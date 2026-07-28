@@ -1,47 +1,35 @@
+from dotenv import load_dotenv
 from flask import Flask
-from config import config
+from flask_login import LoginManager
+from flask_sqlalchemy import SQLAlchemy
 
-# db = SQLAlchemy()
-# cache = Cache()
-# jwt = JWTManager()
-# oauth = OAuth()
+load_dotenv()
+import os
+import cloudinary
 
-def create_app(config_name):
-    app = Flask(__name__, template_folder='templates', static_folder='static')
-    app.config.from_object(config[config_name])
-    config[config_name].init_app(app)
-    return app
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_NAME = os.getenv("DB_NAME")
+app = Flask(__name__)
+app.secret_key = os.getenv("SECRET")
 
-    # db.init_app(app)
-    # cache.init_app(app)
-    # jwt.init_app(app)
-    # jwt_middleware()
-    # CORS(app)
-    # oauth.init_app(app)
-    # oauth.register(
-    #     name='google',
-    #     client_id=app.config['GOOGLE_CLIENT_ID'],
-    #     client_secret=app.config['GOOGLE_CLIENT_SECRET'],
-    #     server_metadata_url=app.config['GOOGLE_SERVER_METADATA_URL'],
-    #     client_kwargs={'scope': app.config['GOOGLE_CLIENT_SCOPE']},
-    # )
-    # cloudinary.config(
-    #     cloud_name=app.config['CLOUDINARY_CLOUD_NAME'],
-    #     api_key=app.config['CLOUDINARY_API_KEY'],
-    #     api_secret=app.config['CLOUDINARY_API_SECRET'],
-    # )
-    #
-    # if config_name == 'production':
-    #     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
-    #
-    # from .pattern.method_payment import PaymentContext
-    # app.payment_context = PaymentContext(app.config)
-    #
-    # from .api import api
-    # from .routes import routes
-    # app.register_blueprint(api)
-    # app.register_blueprint(routes)
+app.config["SQLALCHEMY_DATABASE_URI"] = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@localhost/{DB_NAME}"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 
-    # from .admin import admin
-    # admin.init_app(app)
 
+
+db = SQLAlchemy(app)
+login_manager = LoginManager(app=app)
+login_manager.init_app(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    from eapp.models.Account import Account
+    return Account.query.get(int(user_id))
+
+
+
+cloudinary.config(cloud_name=os.getenv("CLOUD_NAME"),
+                  api_key=os.getenv("API_KEY"),
+                  api_secret=os.getenv('API_SECRET')
+                  )
