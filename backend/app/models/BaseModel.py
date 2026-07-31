@@ -28,3 +28,13 @@ class Company(BaseModel):
     
     location = db.relationship('LocationModel', backref='companies', lazy=True)
     events = db.relationship('EventModel', backref='company', lazy=True)
+    
+class Notification(BaseModel):
+    __tablename__ = 'notification'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+
+    user = db.relationship('User', backref='notifications', lazy=True)

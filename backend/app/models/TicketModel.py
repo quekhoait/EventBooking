@@ -6,15 +6,13 @@ from .BaseModel import BaseModel
 class TicketModel(BaseModel):
     __tablename__ = 'ticket'
     code = db.Column(db.String(8), primary_key=True)
-    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    seat_id = db.Column(db.Integer, db.ForeignKey('event_seat.id'), nullable=False)
-    ticket_type_id = db.Column(db.Integer, db.ForeignKey('event_ticket_type.id'), nullable=False)
+    seat_id = db.Column(db.Integer, db.ForeignKey('seat.id'), nullable=False)
     purchase_time = db.Column(db.DateTime, nullable=False)
     price = db.Column(db.Float, nullable=False)
     discount_id = db.Column(db.Integer, db.ForeignKey('discount.id'), nullable=True)
 
-    ticket_type = db.relationship('EventTicketType', backref='tickets', lazy=True)
+    ticket = db.relationship('Ticket', backref='tickets', lazy=True)
     discount = db.relationship('DiscountModel', backref='tickets', lazy=True)
     payments = db.relationship('PaymentModel', backref='ticket', lazy=True)
     
