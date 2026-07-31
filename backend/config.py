@@ -69,7 +69,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URI') or Config.DB_URI_TEMPLATE
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URI') or os.environ.get('DATABASE_URL') or 'sqlite:///event_booking.db'
     # SQLALCHEMY_ECHO = True
 
 

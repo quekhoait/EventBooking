@@ -1,35 +1,54 @@
-from dotenv import load_dotenv
-from flask import Flask
-from flask_login import LoginManager
-from flask_sqlalchemy import SQLAlchemy
-
-load_dotenv()
 import os
+
+from flask import Flask
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager
+from flask_sqlalchemy import SQLAlchemy
+from flask_caching import Cache
+from authlib.integrations.flask_client import OAuth
 import cloudinary
 
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_NAME = os.getenv("DB_NAME")
-app = Flask(__name__)
-app.secret_key = os.getenv("SECRET")
+from config import config
 
-app.config["SQLALCHEMY_DATABASE_URI"] = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@localhost/{DB_NAME}"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
+db = SQLAlchemy()
+cache = Cache()
+jwt = JWTManager()
+oauth = OAuth()
 
 
+def create_app(config_name=None):
+    app = Flask(__name__, template_folder='templates', static_folder='static')
 
-db = SQLAlchemy(app)
-login_manager = LoginManager(app=app)
-login_manager.init_app(app)
+    selected_config = config_name or os.environ.get('FLASK_ENV', 'development')
+    config_obj = config.get(selected_config, config['default'])
+    app.config.from_object(config_obj)
 
-@login_manager.user_loader
-def load_user(user_id):
-    from eapp.models.Account import Account
-    return Account.query.get(int(user_id))
+    db.init_app(app)
+    cache.init_app(app)
+    jwt.init_app(app)
 
+    CORS(app)
+    oauth.init_app(app)
 
+    if app.config.get('GOOGLE_CLIENT_ID') and app.config.get('GOOGLE_CLIENT_SECRET'):
+        oauth.register(
+            name='google',
+            client_id=app.config['GOOGLE_CLIENT_ID'],
+            client_secret=app.config['GOOGLE_CLIENT_SECRET'],
+            server_metadata_url=app.config['GOOGLE_SERVER_METADATA_URL'],
+            client_kwargs={'scope': app.config['GOOGLE_CLIENT_SCOPE']},
+        )
 
-cloudinary.config(cloud_name=os.getenv("CLOUD_NAME"),
-                  api_key=os.getenv("API_KEY"),
-                  api_secret=os.getenv('API_SECRET')
-                  )
+    if app.config.get('CLOUDINARY_CLOUD_NAME'):
+        cloudinary.config(
+            cloud_name=app.config['CLOUDINARY_CLOUD_NAME'],
+            api_key=app.config['CLOUDINARY_API_KEY'],
+            api_secret=app.config['CLOUDINARY_API_SECRET'],
+        )
+
+    from .controllers import api as controller_blueprint
+    from .routes import routes
+    app.register_blueprint(controller_blueprint)
+    app.register_blueprint(routes)
+
+    return app
