@@ -8,6 +8,8 @@ from flask_caching import Cache
 from authlib.integrations.flask_client import OAuth
 import cloudinary
 
+from app.controllers.demo_controller import demo_bp
+from app.utils.exception import init_error_handlers
 from config import config
 
 db = SQLAlchemy()
@@ -29,6 +31,7 @@ def create_app(config_name=None):
 
     CORS(app)
     oauth.init_app(app)
+    init_error_handlers(app)
 
     if app.config.get('GOOGLE_CLIENT_ID') and app.config.get('GOOGLE_CLIENT_SECRET'):
         oauth.register(
@@ -50,5 +53,6 @@ def create_app(config_name=None):
     from .routes import routes
     app.register_blueprint(controller_blueprint)
     app.register_blueprint(routes)
+    app.register_blueprint(demo_bp)
 
     return app
