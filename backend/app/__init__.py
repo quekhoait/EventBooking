@@ -1,47 +1,54 @@
+import os
+
 from flask import Flask
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager
+from flask_sqlalchemy import SQLAlchemy
+from flask_caching import Cache
+from authlib.integrations.flask_client import OAuth
+import cloudinary
+
 from config import config
 
-# db = SQLAlchemy()
-# cache = Cache()
-# jwt = JWTManager()
-# oauth = OAuth()
+db = SQLAlchemy()
+cache = Cache()
+jwt = JWTManager()
+oauth = OAuth()
 
-def create_app(config_name):
+
+def create_app(config_name=None):
     app = Flask(__name__, template_folder='templates', static_folder='static')
-    app.config.from_object(config[config_name])
-    config[config_name].init_app(app)
+
+    selected_config = config_name or os.environ.get('FLASK_ENV', 'development')
+    config_obj = config.get(selected_config, config['default'])
+    app.config.from_object(config_obj)
+
+    db.init_app(app)
+    cache.init_app(app)
+    jwt.init_app(app)
+
+    CORS(app)
+    oauth.init_app(app)
+
+    if app.config.get('GOOGLE_CLIENT_ID') and app.config.get('GOOGLE_CLIENT_SECRET'):
+        oauth.register(
+            name='google',
+            client_id=app.config['GOOGLE_CLIENT_ID'],
+            client_secret=app.config['GOOGLE_CLIENT_SECRET'],
+            server_metadata_url=app.config['GOOGLE_SERVER_METADATA_URL'],
+            client_kwargs={'scope': app.config['GOOGLE_CLIENT_SCOPE']},
+        )
+
+    if app.config.get('CLOUDINARY_CLOUD_NAME'):
+        cloudinary.config(
+            cloud_name=app.config['CLOUDINARY_CLOUD_NAME'],
+            api_key=app.config['CLOUDINARY_API_KEY'],
+            api_secret=app.config['CLOUDINARY_API_SECRET'],
+        )
+
+    from .controllers import api as controller_blueprint
+    from .routes import routes
+    app.register_blueprint(controller_blueprint)
+    app.register_blueprint(routes)
+
     return app
-
-    # db.init_app(app)
-    # cache.init_app(app)
-    # jwt.init_app(app)
-    # jwt_middleware()
-    # CORS(app)
-    # oauth.init_app(app)
-    # oauth.register(
-    #     name='google',
-    #     client_id=app.config['GOOGLE_CLIENT_ID'],
-    #     client_secret=app.config['GOOGLE_CLIENT_SECRET'],
-    #     server_metadata_url=app.config['GOOGLE_SERVER_METADATA_URL'],
-    #     client_kwargs={'scope': app.config['GOOGLE_CLIENT_SCOPE']},
-    # )
-    # cloudinary.config(
-    #     cloud_name=app.config['CLOUDINARY_CLOUD_NAME'],
-    #     api_key=app.config['CLOUDINARY_API_KEY'],
-    #     api_secret=app.config['CLOUDINARY_API_SECRET'],
-    # )
-    #
-    # if config_name == 'production':
-    #     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
-    #
-    # from .pattern.method_payment import PaymentContext
-    # app.payment_context = PaymentContext(app.config)
-    #
-    # from .api import api
-    # from .routes import routes
-    # app.register_blueprint(api)
-    # app.register_blueprint(routes)
-
-    # from .admin import admin
-    # admin.init_app(app)
-
