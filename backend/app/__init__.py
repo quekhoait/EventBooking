@@ -7,13 +7,16 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
 from authlib.integrations.flask_client import OAuth
 import cloudinary
+from flask_migrate import Migrate
 
+from app.utils.exception import init_error_handlers
 from config import config
 
 db = SQLAlchemy()
 cache = Cache()
 jwt = JWTManager()
 oauth = OAuth()
+migrate = Migrate()
 
 
 def create_app(config_name=None):
@@ -24,11 +27,13 @@ def create_app(config_name=None):
     app.config.from_object(config_obj)
 
     db.init_app(app)
+    migrate.init_app(app, db)
     cache.init_app(app)
     jwt.init_app(app)
 
     CORS(app)
     oauth.init_app(app)
+    init_error_handlers(app)
 
     if app.config.get('GOOGLE_CLIENT_ID') and app.config.get('GOOGLE_CLIENT_SECRET'):
         oauth.register(
@@ -50,5 +55,4 @@ def create_app(config_name=None):
     from .routes import routes
     app.register_blueprint(controller_blueprint)
     app.register_blueprint(routes)
-
     return app
