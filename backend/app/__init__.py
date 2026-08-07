@@ -3,7 +3,6 @@ import os
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
@@ -14,8 +13,6 @@ from app.utils.exception import init_error_handlers
 from config import config
 
 db = SQLAlchemy()
-ma = Marshmallow()
-
 cache = Cache()
 jwt = JWTManager()
 oauth = OAuth()

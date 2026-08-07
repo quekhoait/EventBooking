@@ -22,7 +22,7 @@ class Config:
     DB_PASSWORD = os.environ.get('DB_PASSWORD', 'root')
     DB_HOST = os.environ.get('DB_HOST', 'localhost')
     DB_PORT = os.environ.get('DB_PORT', '3306')
-    DB_NAME = os.environ.get('DB_NAME', 'cineflow')
+    DB_NAME = os.environ.get('DB_NAME', 'event')
     DB_URI_TEMPLATE = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
 
     # Cache
@@ -69,7 +69,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URI') or Config.DB_URI_TEMPLATE
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URI') or os.environ.get('DATABASE_URL') or 'sqlite:///event_booking.db'
     # SQLALCHEMY_ECHO = True
 
 

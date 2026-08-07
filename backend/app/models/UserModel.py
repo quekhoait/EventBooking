@@ -11,18 +11,18 @@ class RoleEnum(Enum):
 class User(BaseModel):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=True)
-    full_name = db.Column(db.String(100))
-    phone_number = db.Column(db.String(15))
-    email = db.Column(db.String(50), unique=True)
+    full_name = db.Column(db.String(100), nullable=True)
+    phone_number = db.Column(db.String(15), nullable=True)
+    email = db.Column(db.String(50), unique=True, nullable=False)
     avatar = db.Column(db.String(255), default='/static/image/icon_user.png')
-    role = db.Column(db.Enum(RoleEnum), default=RoleEnum.USER)
-    hobbies = db.Column(db.String(255))
+    role = db.Column(db.Enum(RoleEnum), default=RoleEnum.USER, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
 
     auth_methods = db.relationship('UserAuthMethod', backref='user', lazy=True)
-    # rules = db.relationship('Rules', backref='user', lazy=True)
+    tickets = db.relationship('TicketModel', foreign_keys='TicketModel.user_id', backref='user', lazy=True)
 
 class UserAuthMethod(BaseModel):
     __tablename__ = 'user_auth_method'

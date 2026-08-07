@@ -3,21 +3,19 @@ from app import db
 from enum import Enum
 from .BaseModel import BaseModel
 
+
 class TicketModel(BaseModel):
     __tablename__ = 'ticket'
     code = db.Column(db.String(8), primary_key=True)
-    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    seat_id = db.Column(db.Integer, db.ForeignKey('event_seat.id'), nullable=False)
-    ticket_type_id = db.Column(db.Integer, db.ForeignKey('event_ticket_type.id'), nullable=False)
+    seat_id = db.Column(db.Integer, db.ForeignKey('seat.id'), nullable=False)
     purchase_time = db.Column(db.DateTime, nullable=False)
     price = db.Column(db.Float, nullable=False)
     discount_id = db.Column(db.Integer, db.ForeignKey('discount.id'), nullable=True)
-
-    ticket_type = db.relationship('EventTicketType', backref='tickets', lazy=True)
-    discount = db.relationship('DiscountModel', backref='tickets', lazy=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
     payments = db.relationship('PaymentModel', backref='ticket', lazy=True)
-    
+
+
 class DiscountModel(BaseModel):
     __tablename__ = 'discount'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -26,15 +24,20 @@ class DiscountModel(BaseModel):
     unit = db.Column(db.String(10), nullable=False)  # 'percentage' or 'amount'
     start_time = db.Column(db.DateTime, nullable=False)
     end_time = db.Column(db.DateTime, nullable=False)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+
+    tickets = db.relationship('TicketModel', backref='discount', lazy=True)
 
 class PaymentStatus(Enum):
     PENDING = 'PENDING'
     SUCCESS = 'SUCCESS'
     FAILED = 'FAILED'
 
+
 class PaymentType(Enum):
     PAYMENT = 'PAYMENT'
     REFUND = 'REFUND'
+
 
 class PaymentModel(BaseModel):
     __tablename__ = 'payment'
