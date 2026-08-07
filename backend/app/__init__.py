@@ -7,6 +7,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
 from authlib.integrations.flask_client import OAuth
 import cloudinary
+from flask_migrate import Migrate
 
 from config import config
 
@@ -14,9 +15,11 @@ db = SQLAlchemy()
 cache = Cache()
 jwt = JWTManager()
 oauth = OAuth()
+migrate = Migrate()
 
 
 def create_app(config_name=None):
+    from app.pattern.method_payment import payment_context
     app = Flask(__name__, template_folder='templates', static_folder='static')
 
     selected_config = config_name or os.environ.get('FLASK_ENV', 'development')
@@ -24,6 +27,7 @@ def create_app(config_name=None):
     app.config.from_object(config_obj)
 
     db.init_app(app)
+    migrate.init_app(app, db)
     cache.init_app(app)
     jwt.init_app(app)
 
@@ -50,5 +54,5 @@ def create_app(config_name=None):
     from .routes import routes
     app.register_blueprint(controller_blueprint)
     app.register_blueprint(routes)
-
+    payment_context.init_app(app.config)
     return app

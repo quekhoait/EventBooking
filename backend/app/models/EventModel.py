@@ -48,7 +48,6 @@ class EventSeat(BaseModel):
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
     seat_total = db.Column(db.String(10), nullable=False)
     price = db.Column(db.Float, nullable=False, default=0.0)
-    is_available = db.Column(db.Boolean, default=True)
     event_ticket_type_id = db.Column(db.Integer, db.ForeignKey('event_ticket_type.id'), nullable=False)
 
 

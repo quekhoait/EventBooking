@@ -15,7 +15,7 @@ def create():
     result = TicketResponse().dump(response)
     return NewPackage(
         status=StatusResponse.SUCCESS,
-        message="hi",
+        message="Tạo Thành công",
         data=result,
         status_code=200
     )

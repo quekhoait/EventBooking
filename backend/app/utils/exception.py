@@ -1,4 +1,5 @@
 # exceptions.py
+from marshmallow import ValidationError
 from werkzeug.exceptions import HTTPException
 
 
@@ -49,6 +50,14 @@ def init_error_handlers(app):
             status=StatusResponse.ERROR,
             message=e.description,
             status_code=e.code
+        )
+
+    @app.errorhandler(ValidationError)
+    def handle_marshmallow_validation(e: ValidationError):
+        return NewPackage(
+            status=StatusResponse.ERROR,
+            message=e.messages,  # Trả về dict chi tiết các trường bị lỗi
+            status_code=400
         )
 
     # 3. Bắt tất cả lỗi không lường trước (Crash, Bug, Lỗi 500)
