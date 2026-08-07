@@ -10,6 +10,11 @@ class AppInitTestCase(unittest.TestCase):
             db.engine.connect()
             self.assertTrue(app.config['SQLALCHEMY_DATABASE_URI'])
 
+    def test_create_app_registers_models(self):
+        app = create_app('development')
+        self.assertIn('user', db.metadata.tables)
+        self.assertIn('event', db.metadata.tables)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -2,18 +2,20 @@ from enum import Enum
 from app import db
 from .BaseModel import BaseModel
 
+
 class EventStatus(Enum):
     DRAFT = 'draft'
     PUBLISHED = 'published'
     CANCELLED = 'cancelled'
 
+
 class EventCategory(BaseModel):
     __tablename__ = 'event_category'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False)
-    
+
     events = db.relationship('EventModel', backref='category', lazy=True)
-    
+
 
 class EventModel(BaseModel):
     __tablename__ = 'event'
@@ -24,7 +26,6 @@ class EventModel(BaseModel):
     max_per_user = db.Column(db.Integer, default=5)
     start_time = db.Column(db.DateTime, nullable=False)
     end_time = db.Column(db.DateTime, nullable=False)
-    #thời gian diễn ra sự kiện
     event_start_time = db.Column(db.DateTime, nullable=False)
     event_end_time = db.Column(db.DateTime, nullable=False)
 
@@ -35,19 +36,22 @@ class EventModel(BaseModel):
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('event_category.id'), nullable=False)
 
-    location = db.relationship('LocationModel', backref='events', lazy=True)
-    seats = db.relationship('EventSeat', backref='event', lazy=True)
-    tickets = db.relationship('TicketModel', backref='event', lazy=True)
+    discount = db.relationship('DiscountModel', backref='event', lazy=True)
+    # ticket_types = db.relationship('EventTicketType', backref='event', lazy=True, cascade="all, delete-orphan")
+    # tickets = db.relationship('TicketModel', backref='event', lazy=True)
 
-#Dùng lưu quy định 
+
+# Dùng lưu quy định
 class EventSeat(BaseModel):
     __tablename__ = 'event_seat'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
-    seat_number = db.Column(db.String(10), nullable=False)
+    seat_total = db.Column(db.String(10), nullable=False)
+    price = db.Column(db.Float, nullable=False, default=0.0)
     is_available = db.Column(db.Boolean, default=True)
     event_ticket_type_id = db.Column(db.Integer, db.ForeignKey('event_ticket_type.id'), nullable=False)
-    
+
+
 class Seat(BaseModel):
     __tablename__ = 'seat'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -61,6 +65,7 @@ class EventTicketType(BaseModel):
     __tablename__ = 'event_ticket_type'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False)
+
     description = db.Column(db.Text, nullable=True)
 
 
