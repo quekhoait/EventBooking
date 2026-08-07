@@ -238,14 +238,14 @@ def seed_events_and_details():
             event_ticket_type_id=ticket_type_vip.id,
             seat_total="10",
             price=500000.0,
-            is_available=True
+            # is_available=True
         )
         event_seat_std = EventSeat(
             event_id=event.id,
             event_ticket_type_id=ticket_type_std.id,
             seat_total="20",
             price=200000.0,
-            is_available=True
+            # is_available=True
         )
         db.session.add_all([event_seat_vip, event_seat_std])
 

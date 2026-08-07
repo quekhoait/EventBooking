@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class ErrorCode(Enum):
     """
     Định nghĩa các lỗi nghiệp vụ hệ thống.
@@ -49,6 +50,7 @@ class ErrorCode(Enum):
     TICKET_SALE_END_INVALID = ("Thời gian kết thúc bán vé không hợp lệ", 400)
     EVENT_NOT_EDITABLE = ("Sự kiện đã xuất bản hoặc đang diễn ra, không thể chỉnh sửa", 400)
     EVENT_HAS_NO_TICKETS = ("Sự kiện chưa có thông tin hạng vé/sơ đồ ghế, không thể xuất bản", 400)
+    EVENT_MUST_HAVE_SEATS = ("Sự kiện phải có ít nhất một loại vé/cấu hình ghế khi xuất bản", 400)  # 👈 Bổ sung ở đây
     EVENT_ALREADY_PUBLISHED = ("Sự kiện đã được xuất bản trước đó", 400)
     EVENT_CANCELLED = ("Sự kiện đã bị hủy", 400)
 

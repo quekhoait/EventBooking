@@ -26,21 +26,21 @@ class EventModel(SoftDeleteModel):
     description = db.Column(db.Text, nullable=True)
 
     max_per_user = db.Column(db.Integer, default=5)
-    start_time = db.Column(db.DateTime, nullable=False)
-    end_time = db.Column(db.DateTime, nullable=False)
+    start_time = db.Column(db.DateTime, nullable=True)
+    end_time = db.Column(db.DateTime, nullable=True)
     #thời gian diễn ra sự kiện
-    event_start_time = db.Column(db.DateTime, nullable=False)
-    event_end_time = db.Column(db.DateTime, nullable=False)
+    event_start_time = db.Column(db.DateTime, nullable=True)
+    event_end_time = db.Column(db.DateTime, nullable=True)
 
-    status = db.Column(db.Enum(EventStatus), default=EventStatus.DRAFT, nullable=False)
+    status = db.Column(db.Enum(EventStatus), default=EventStatus.DRAFT, nullable=True)
 
-    location_id = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=False)
-    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
-    category_id = db.Column(db.Integer, db.ForeignKey('event_category.id'), nullable=False)
+    location_id = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)
+    category_id = db.Column(db.Integer, db.ForeignKey('event_category.id'), nullable=True)
     location_name = db.Column(db.String(255))
     location = db.relationship('LocationModel', backref='events', lazy=True)
     seats = db.relationship('EventSeat', backref='event', lazy=True)
-    tickets = db.relationship('TicketModel', backref='event', lazy=True)
+    # tickets = db.relationship('TicketModel', backref='event', lazy=True)
     discount = db.relationship('DiscountModel', backref='event', lazy=True)
 
 # Dùng lưu quy định

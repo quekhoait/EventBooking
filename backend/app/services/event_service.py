@@ -1,12 +1,13 @@
 from datetime import datetime
 
+from app import db
 from app.errors.error_code import ErrorCode
-from app.models import EventModel, LocationModel, Company, EventCategory
+from app.models import EventModel, LocationModel, Company, EventCategory, EventSeat, EventStatus
 from app.repositories import base_repo, event_repo
 from app.utils.exception import AppException
 
 
-def create_event(event_dto) -> EventModel:
+def create_and_publish_event(event_dto) -> EventModel:
     now = datetime.now()
 
     # 1. Kiểm tra sự tồn tại của Location
@@ -28,11 +29,9 @@ def create_event(event_dto) -> EventModel:
     if event_dto.event_start_time < now:
         raise AppException(ErrorCode.EVENT_START_TIME_IN_PAST)
 
-    # Ngày mở bán vé (start_time) <= Ngày bắt đầu sự kiện (event_start_time)
     if event_dto.start_time > event_dto.event_start_time:
         raise AppException(ErrorCode.TICKET_SALE_AFTER_EVENT_START)
 
-    # Ngày đóng bán vé (end_time) <= Ngày kết thúc sự kiện (event_end_time)
     if event_dto.end_time > event_dto.event_end_time:
         raise AppException(ErrorCode.TICKET_SALE_END_INVALID)
 
@@ -45,10 +44,67 @@ def create_event(event_dto) -> EventModel:
     if is_duplicated:
         raise AppException(ErrorCode.EVENT_NAME_EXISTS)
 
-    event_data = vars(event_dto)
-    event = EventModel(**event_data)
+    event_data = dict(vars(event_dto))
+    seats_dto_list = event_data.pop('event_seats', [])
 
-    # Gán location_name lấy từ full_name (đã viết ở bước trước)
-    event.location_name = location.full_name
+    if not seats_dto_list:
+        raise AppException(ErrorCode.EVENT_MUST_HAVE_SEATS)
 
-    return base_repo.save(event)
+    try:
+        event = EventModel(**event_data)
+        event.status = EventStatus.PUBLISHED
+        event.location_name = location.full_name
+
+        db.session.add(event)
+        db.session.flush()
+
+        for seat_dto in seats_dto_list:
+            seat_data = vars(seat_dto)
+            event_seat = EventSeat(
+                event_id=event.id,
+                **seat_data
+            )
+            db.session.add(event_seat)
+
+        db.session.commit()
+        db.session.refresh(event)
+
+
+        return event
+
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+
+
+def create_draft_event(event_dto) -> EventModel:
+    event_data = dict(vars(event_dto))
+    seats_dto_list = event_data.pop('event_seats', [])
+
+    location_id = getattr(event_dto, 'location_id', None)
+
+    location = None
+    if location_id:
+        location = base_repo.get_by_id(LocationModel, location_id)
+
+    try:
+        event = EventModel(**event_data)
+        event.status = EventStatus.DRAFT
+        if location:
+            event.location_name = location.full_name
+
+        db.session.add(event)
+        db.session.flush()
+
+        for seat_dto in seats_dto_list:
+            seat_data = vars(seat_dto)
+            db.session.add(EventSeat(event_id=event.id, **seat_data))
+
+        db.session.commit()
+        db.session.refresh(event)
+        return event
+
+    except Exception as e:
+        db.session.rollback()
+        raise e

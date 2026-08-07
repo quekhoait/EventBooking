@@ -12,7 +12,7 @@ class TicketModel(BaseModel):
     purchase_time = db.Column(db.DateTime, nullable=False)
     price = db.Column(db.Float, nullable=False)
     discount_id = db.Column(db.Integer, db.ForeignKey('discount.id'), nullable=True)
-    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+
     payments = db.relationship('PaymentModel', backref='ticket', lazy=True)
 
 
