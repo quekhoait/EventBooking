@@ -31,11 +31,10 @@ def count_user_successful_tickets(user_id, event_id):
     return (
         TicketModel.query
         .join(Seat, TicketModel.seat_id == Seat.id)
-        .join(PaymentModel, PaymentModel.ticket_code == TicketModel.code)
         .filter(
             TicketModel.user_id == user_id,
             Seat.event_id == event_id,
-            PaymentModel.status == PaymentStatus.SUCCESS
+            Seat.is_active == False
         )
         .count()
     )

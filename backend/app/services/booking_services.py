@@ -4,7 +4,6 @@ from app.dto.booking_dto import CreateTicketRequestDTO
 from flask_jwt_extended import get_jwt_identity
 import string
 from app import db
-from sqlalchemy.sql.expression import func
 import random
 from app.errors.ErrorCode import ErrorCode
 from app.models import EventModel, TicketModel, Seat, PaymentModel, PaymentStatus, EventSeat, DiscountModel
@@ -55,7 +54,7 @@ def create(data: CreateTicketRequestDTO):
         raise AppException(ErrorCode.NOT_FOUND)
     if event.max_per_user:
         user_ticket_count = booking_repo.count_user_successful_tickets(user_id, data.event_id)
-        if user_ticket_count > event.max_per_user:
+        if user_ticket_count >= event.max_per_user:
             raise AppException("Bạn đã đặt đủ số vé cho phép", status_code=400)
     seat = booking_repo.get_seat_isempty_for_event(event, seatTypeId=data.seat_type_id)
     if not seat:
@@ -84,7 +83,3 @@ def create(data: CreateTicketRequestDTO):
         raise AppException(f"Lỗi đặt vé: {str(e)}", status_code=500)
 
     return new_ticket
-
-
-
-

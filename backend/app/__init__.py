@@ -9,6 +9,7 @@ from authlib.integrations.flask_client import OAuth
 import cloudinary
 from flask_migrate import Migrate
 
+from app.utils.exception import init_error_handlers
 from config import config
 
 db = SQLAlchemy()
@@ -19,7 +20,6 @@ migrate = Migrate()
 
 
 def create_app(config_name=None):
-    from app.pattern.method_payment import payment_context
     app = Flask(__name__, template_folder='templates', static_folder='static')
 
     selected_config = config_name or os.environ.get('FLASK_ENV', 'development')
@@ -33,6 +33,7 @@ def create_app(config_name=None):
 
     CORS(app)
     oauth.init_app(app)
+    init_error_handlers(app)
 
     if app.config.get('GOOGLE_CLIENT_ID') and app.config.get('GOOGLE_CLIENT_SECRET'):
         oauth.register(
@@ -54,5 +55,4 @@ def create_app(config_name=None):
     from .routes import routes
     app.register_blueprint(controller_blueprint)
     app.register_blueprint(routes)
-    payment_context.init_app(app.config)
     return app
