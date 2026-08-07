@@ -13,7 +13,17 @@ class LocationModel(BaseModel):
     name = db.Column(db.String(100), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=True)
     children = db.relationship('LocationModel', backref=db.backref('parent', remote_side='LocationModel.id'), lazy=True)
-    
+
+    @property
+    def full_name(self):
+        """
+        Trả về tên đầy đủ từ nhỏ đến lớn.
+        VD: 'Quận Cầu Giấy, Hà Nội, Việt Nam'
+        """
+        if self.parent:
+            return f"{self.name}, {self.parent.full_name}"
+        return self.name
+
 # class Rules(BaseModel):
 #     pass
 
@@ -25,6 +35,7 @@ class Company(BaseModel):
     address = db.Column(db.String(255), nullable=True)
     description = db.Column(db.Text, nullable=True)
     tax_code = db.Column(db.String(50), nullable=True)
-    
+    location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
+
     location = db.relationship('LocationModel', backref='companies', lazy=True)
     events = db.relationship('EventModel', backref='company', lazy=True)

@@ -22,7 +22,7 @@ class User(BaseModel):
     is_active = db.Column(db.Boolean, default=True)
 
     auth_methods = db.relationship('UserAuthMethod', backref='user', lazy=True)
-    rules = db.relationship('Rules', backref='user', lazy=True)
+    # rules = db.relationship('Rules', backref='user', lazy=True)
 
 class UserAuthMethod(BaseModel):
     __tablename__ = 'user_auth_method'

@@ -1,5 +1,5 @@
 # app/services/demo_service.py
-from app.errors.ErrorCode import ErrorCode
+from app.errors.error_code import ErrorCode
 from app.utils.exception import AppException
 
 class DemoService:

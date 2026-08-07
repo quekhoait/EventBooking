@@ -1,6 +1,8 @@
 from enum import Enum
 from app import db
 from .BaseModel import BaseModel
+from .SoftDeleteModel import SoftDeleteModel
+
 
 class EventStatus(Enum):
     DRAFT = 'draft'
@@ -14,7 +16,7 @@ class EventCategory(BaseModel):
     
     events = db.relationship('EventModel', backref='category', lazy=True)
     
-class EventModel(BaseModel):
+class EventModel(SoftDeleteModel):
     __tablename__ = 'event'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False)
@@ -30,6 +32,8 @@ class EventModel(BaseModel):
     status = db.Column(db.Enum(EventStatus), default=EventStatus.DRAFT)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('event_category.id'), nullable=False)
+
+    location_name = db.Column(db.String(255))
 
     location = db.relationship('LocationModel', backref='events', lazy=True)
     seats = db.relationship('EventSeat', backref='event', lazy=True)
