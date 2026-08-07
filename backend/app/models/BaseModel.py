@@ -1,4 +1,3 @@
-
 from app import db
 from sqlalchemy import func
 
@@ -28,7 +27,7 @@ class Company(BaseModel):
     
     location = db.relationship('LocationModel', backref='companies', lazy=True)
     events = db.relationship('EventModel', backref='company', lazy=True)
-    
+
 class Notification(BaseModel):
     __tablename__ = 'notification'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
