@@ -106,4 +106,34 @@ def list_tickets():
     return tickets
 
 
+def send_ticket(ticket_code, email):
+    ticket = booking_repo.get_ticket_details(ticket_code)
+    body_content = f"""Xin chào {ticket.user.full_name},
+
+    Cảm ơn bạn đã đặt vé. Dưới đây là thông tin chi tiết vé của bạn:
+
+    ----------------------------------------
+    - Mã vé: {ticket.code}
+    - Tên sự kiện: {ticket.seat.event.name}
+    - Thời gian: {ticket.seat.event.event_start_time}
+    - Địa điểm: {ticket.seat.event.location_name}
+    - Số ghế: {ticket.seat.seat_code}
+    - Giá vé: {ticket.price}
+    ----------------------------------------
+
+    Vui lòng đưa mã vé này cho nhân viên khi check-in tại sự kiện.
+    """
+    msg = Message(
+        subject=f"[EVENT] Xác nhận thông tin vé - {ticket.seat.event.name}",
+        recipients=[email],
+        body=body_content
+    )
+    try:
+        mail.send(msg)
+        return True
+    except Exception as e:
+        raise AppException(f"Gửi mail thất bại: {str(e)}")
+
+
+
 
