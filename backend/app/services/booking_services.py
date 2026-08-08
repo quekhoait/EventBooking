@@ -97,6 +97,13 @@ def get_by_code(data: TicketResponse):
     #     raise AppException(ErrorCode.NOT_FOUND)
     return ticket
 
+def list_tickets():
+    # user_id = get_jwt_identity()
+    user_id = 1
+    # if not user_id:
+    #     raise AppException(ErrorCode.USER_NOT_FOUND)
+    tickets = booking_repo.get_list(user_id)
+    return tickets
 
 
 

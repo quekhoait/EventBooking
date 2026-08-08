@@ -55,3 +55,8 @@ def get_ticket_details(ticket_code):
         .joinedload(EventModel.location)
     ).filter(TicketModel.code == ticket_code).first()
 
+def get_list(user_id):
+    return TicketModel.query.options(
+        joinedload(TicketModel.seat)
+            .joinedload(Seat.event)
+    ).filter(TicketModel.user_id == user_id).all()

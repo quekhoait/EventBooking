@@ -37,4 +37,12 @@ def get_details():
 
 
 
-
+#xem lịch sử (lấy toàn bộ vé của user)
+@booking_api.route('/list', methods=['GET'])
+def list_tickets():
+    response = booking_services.list_tickets()
+    result = TicketListResponse(many=True).dump(response)
+    return NewPackage(status=StatusResponse.SUCCESS,
+        message="Lấy dữ liệu thành công",
+        data=result,
+        status_code=200)
