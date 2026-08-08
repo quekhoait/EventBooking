@@ -61,6 +61,7 @@ class Seat(BaseModel):
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
     event_ticket_type_id = db.Column(db.Integer, db.ForeignKey('event_ticket_type.id'), nullable=False)
 
+    event = db.relationship('EventModel',  lazy=True)
 
 class EventTicketType(BaseModel):
     __tablename__ = 'event_ticket_type'

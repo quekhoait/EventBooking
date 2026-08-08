@@ -1,6 +1,7 @@
+from mailbox import Message
 from os.path import join
 from datetime import datetime
-from app.dto.booking_dto import CreateTicketRequestDTO
+from app.dto.booking_dto import CreateTicketRequestDTO, TicketResponse, TicketDetailRequest
 from flask_jwt_extended import get_jwt_identity
 import string
 from app import db
@@ -9,7 +10,8 @@ from app.errors.ErrorCode import ErrorCode
 from app.models import EventModel, TicketModel, Seat, PaymentModel, PaymentStatus, EventSeat, DiscountModel
 from app.utils.exception import AppException
 from app.repositories import booking_repo, event_repo
-
+from flask_mail import Message
+from app import mail
 
 def generate_random_code(length=8):
     chars = string.ascii_uppercase + string.digits
@@ -71,7 +73,6 @@ def create(data: CreateTicketRequestDTO):
         code=ticket_code,
         user_id=user_id,
         seat_id=seat.id,
-        purchase_time=datetime.now(),
         price=final_price,
         discount_id=discount_id,
     )
@@ -81,5 +82,21 @@ def create(data: CreateTicketRequestDTO):
     except Exception as e:
         db.session.rollback()
         raise AppException(f"Lỗi đặt vé: {str(e)}", status_code=500)
-
     return new_ticket
+
+def get_by_code(data: TicketResponse):
+    # user_id = get_jwt_identity
+    user_id = 1
+    # if not user_id:
+    #     raise AppException(ErrorCode.USER_NOT_FOUND)
+
+    ticket = booking_repo.get_ticket_details(data.code)
+    if not ticket:
+        raise AppException(ErrorCode.NOT_FOUND)
+    # if user_id != ticket.user_id:
+    #     raise AppException(ErrorCode.NOT_FOUND)
+    return ticket
+
+
+
+

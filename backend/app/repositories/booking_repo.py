@@ -1,5 +1,7 @@
 from sqlalchemy import func
-from app.models import TicketModel, PaymentModel, Seat, PaymentStatus, DiscountModel, EventSeat
+from sqlalchemy.orm import joinedload
+
+from app.models import TicketModel, PaymentModel, Seat, PaymentStatus, DiscountModel, EventSeat, EventModel
 
 
 def get_seat_isempty_for_event(event, seatTypeId):
@@ -45,3 +47,11 @@ def find_ticket_by_code(code):
 def save_ticket(ticket):
     from app import db
     db.session.add(ticket)
+
+def get_ticket_details(ticket_code):
+    return TicketModel.query.options(
+        joinedload(TicketModel.seat)
+        .joinedload(Seat.event)
+        .joinedload(EventModel.location)
+    ).filter(TicketModel.code == ticket_code).first()
+

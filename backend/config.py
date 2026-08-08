@@ -29,9 +29,13 @@ class Config:
     CACHE_TYPE = 'SimpleCache'
     CACHE_DEFAULT_TIMEOUT = os.environ.get('CACHE_DEFAULT_TIMEOUT', 300)
 
-    # Mail
-    SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
-    SENDGRID_FROM = os.environ.get("SENDGRID_FROM")
+    MAIL_SERVER = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+    MAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+    MAIL_USE_TLS = get_env_bool('EMAIL_USE_TLS', True)
+    MAIL_USERNAME = os.environ.get('EMAIL_HOST_USER')
+    MAIL_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+    MAIL_DEFAULT_SENDER = ('Event Booking', os.environ.get('EMAIL_HOST_USER'))
+
 
     # Google
     GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
