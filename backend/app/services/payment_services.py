@@ -58,3 +58,37 @@ def callback(method:str, data):
     except Exception as e:
         db.session.rollback()
         return e
+
+def refund(data):
+    # user_id = get_jwt_identity()
+    payload = {}
+    ticket = booking_repo.find_ticket_by_code(data.ticket_code)
+    if not ticket:
+        raise AppException("Ticket not found!", status_code=404)
+    payment = payment_repo.get_payment_by_ticket_code(data.ticket_code)
+    if not payment:
+        raise AppException("Payment not found!", status_code=404)
+    if payment.status != PaymentStatus.SUCCESS or payment.type != PaymentType.PAYMENT:
+        raise AppException("Giao dịch không đủ điều kiện để hoàn tiền!", status_code=400)
+
+    payload = {
+        "transaction_id": payment.transaction_id,
+        "amount": int(round(float(payment.amount))),
+        "description": f"Refund ticket {data.ticket_code} from event",
+        "ticket_code": data.ticket_code
+    }
+    try:
+        if ticket.status == TicketStatus.SUCCESS:
+            result_code = payment_context.refund(data.method, payload)
+            if result_code == 0:
+                payment.type = PaymentType.REFUND
+                payment.status = PaymentStatus.SUCCESS
+                payment.ticket.status = TicketStatus.REFUNDED
+                seat = booking_services.get_seat(payment.ticket.seat_id)
+                seat.is_active = False
+                db.session.add(payment)
+            db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        raise e
+

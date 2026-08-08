@@ -21,5 +21,10 @@ def callback(method):
     payment_services.callback(method, request.get_json())
     return NewPackage(status=StatusResponse.SUCCESS, message="Payment successful",status_code=200)
 
+@payment_api.route('/refund', methods = ['POST'])
+# @jwt_required()
+def refund():
+    res = payment_services.refund(PaymentRequest().load(request.get_json()))
+    return NewPackage(status=StatusResponse.SUCCESS, message="Refund payment successful", data=res, status_code=201)
 
 

@@ -37,3 +37,15 @@ def update_payment_result_momo(data: dict):
     seat = booking_services.get_seat(payment.ticket.seat_id)
     seat.is_active = False
     db.session.add(payment)
+
+def create_refund_result_momo(ticket_code, data):
+    new_refund = PaymentModel(
+        code = data['orderId'],
+        ticket_code = ticket_code,
+        payment_method = "MOMO",
+        amount = data['amount'],
+        status = PaymentStatus.SUCCESS if data['resultCode'] == 0 else PaymentStatus.FAILED,
+        type = PaymentType.REFUND
+    )
+    db.session.add(new_refund)
+    db.session.flush()

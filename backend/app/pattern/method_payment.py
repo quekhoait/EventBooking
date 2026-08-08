@@ -182,7 +182,6 @@ class MomoPaymentStrategy(PaymentStrategy):
         }
 
         result_code = 0
-        print(data)
         if data['amount'] != 0:
             res = requests.post(self.endpoint_refund, json=payload).json()
             payment_repo.create_refund_result_momo(data['ticket_code'],res)
