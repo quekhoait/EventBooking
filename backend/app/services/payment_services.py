@@ -92,3 +92,19 @@ def refund(data):
         db.session.rollback()
         raise e
 
+def transaction(method: str, data):
+    # user_id = get_jwt_identity()
+    # if not user_id:
+    #     raise UnauthorizedError()
+    try:
+        result = payment_context.transaction(method, data)
+        if result.get('resultCode') == 0:
+            db.session.commit()
+            return result
+        else:
+            payment_repo.update_payment_result_momo(result)
+        return result
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
