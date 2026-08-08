@@ -37,6 +37,8 @@ def update_payment_result_momo(data: dict):
     seat = booking_services.get_seat(payment.ticket.seat_id)
     seat.is_active = False
     db.session.add(payment)
+    print("payment ở repo", payment)
+    return payment
 
 def create_refund_result_momo(ticket_code, data):
     new_refund = PaymentModel(

@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
-from app.services import payment_services
+from app.services import payment_services, booking_services
 from app.dto.payment_dto import PaymentRequest
 from app.utils.errors import APIError
 from app.utils.json import NewPackage, StatusResponse
@@ -18,7 +18,9 @@ def create():
 
 @payment_api.route('/<string:method>/callback', methods=['POST'])
 def callback(method):
-    payment_services.callback(method, request.get_json())
+    payment = payment_services.callback(method, request.get_json())
+    print("payment", payment.ticket_code)
+    booking_services.send_ticket(payment.ticket_code)
     return NewPackage(status=StatusResponse.SUCCESS, message="Payment successful",status_code=200)
 
 @payment_api.route('/refund', methods = ['POST'])

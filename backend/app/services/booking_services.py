@@ -107,7 +107,7 @@ def list_tickets():
     return tickets
 
 
-def send_ticket(ticket_code, email):
+def send_ticket(ticket_code):
     ticket = booking_repo.get_ticket_details(ticket_code)
     body_content = f"""Xin chào {ticket.user.full_name},
 
@@ -126,7 +126,7 @@ def send_ticket(ticket_code, email):
     """
     msg = Message(
         subject=f"[EVENT] Xác nhận thông tin vé - {ticket.seat.event.name}",
-        recipients=[email],
+        recipients=[ticket.user.email],
         body=body_content
     )
     try:

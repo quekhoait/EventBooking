@@ -53,11 +53,13 @@ def create(data):
 
 def callback(method:str, data):
     try:
-        payment_context.callback(method, data)
+        pay = payment_context.callback(method, data)
         db.session.commit()
+        print("payment ở services", pay)
+        return pay
     except Exception as e:
         db.session.rollback()
-        return e
+        raise e
 
 def refund(data):
     # user_id = get_jwt_identity()

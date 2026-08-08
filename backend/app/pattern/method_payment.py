@@ -109,12 +109,12 @@ class MomoPaymentStrategy(PaymentStrategy):
             raise PaymentsError("Chữ ký MoMo không hợp lệ!")
         try:
             validated_data = MomoPaymentCallbackRequest().load(data)
-            print("val", validated_data)
             if not isinstance(validated_data, dict):
                 validated_data = vars(validated_data)
         except ValidationError as err:
             raise PaymentsError(f"Dữ liệu MoMo không hợp lệ: {err.messages}")
-        payment_repo.update_payment_result_momo(validated_data)
+        return payment_repo.update_payment_result_momo(validated_data)
+
 
     # {
     #     "method": "momo",
@@ -206,7 +206,7 @@ class PaymentContext:
         return self.method_payment.get(method).create(ticket_code, amount)
 
     def callback(self,method, data):
-        self.method_payment.get(method).callback(data)
+        return self.method_payment.get(method).callback(data)
 
     def transaction(self, method, data):
         return self.method_payment.get(method).transaction(data)
