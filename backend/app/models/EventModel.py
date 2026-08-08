@@ -16,8 +16,6 @@ class EventCategory(BaseModel):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False)
 
-    events = db.relationship('EventModel', backref='category', lazy=True)
-    
 class EventModel(SoftDeleteModel):
     __tablename__ = 'event'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -38,10 +36,13 @@ class EventModel(SoftDeleteModel):
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)
     category_id = db.Column(db.Integer, db.ForeignKey('event_category.id'), nullable=True)
     location_name = db.Column(db.String(255))
-    location = db.relationship('LocationModel', backref='events', lazy=True)
     seats = db.relationship('EventSeat', backref='event', lazy=True)
     # tickets = db.relationship('TicketModel', backref='event', lazy=True)
     discount = db.relationship('DiscountModel', backref='event', lazy=True)
+
+    company = db.relationship('Company', backref='events', lazy=True)  # <-- THÊM DÒNG NÀY
+    category = db.relationship('EventCategory', backref='events', lazy=True)
+    location = db.relationship('LocationModel', backref='events', lazy=True)
 
 # Dùng lưu quy định
 class EventSeat(BaseModel):

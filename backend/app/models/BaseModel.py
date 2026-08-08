@@ -37,7 +37,6 @@ class Company(BaseModel):
     location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
 
     location = db.relationship('LocationModel', backref='companies', lazy=True)
-    events = db.relationship('EventModel', backref='company', lazy=True)
 
 
 class Notification(BaseModel):

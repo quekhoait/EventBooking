@@ -106,3 +106,95 @@ class EventPublishSchema(BaseEventSchema):
         validate=validate.Length(min=1, error="Sự kiện phải có ít nhất 1 loại vé/ghế khi xuất bản."),
         error_messages={"required": "Danh sách vé không được để trống."}
     )
+
+# =============================================================================
+# 5. RESPONSE SCHEMAS (Dùng cho API Xem Chi Tiết / Danh Sách)
+# =============================================================================
+
+class TicketTypeResponseSchema(BaseSchema):
+    id = fields.Integer()
+    name = fields.String()
+    description = fields.String()
+
+
+class EventSeatResponseSchema(BaseSchema):
+    id = fields.Integer()
+    event_ticket_type_id = fields.Integer()
+    seat_total = fields.Integer()
+    price = fields.Float()
+    is_available = fields.Boolean()
+    # Nếu trong EventSeat Model có relationship ticket_type:
+    ticket_type = fields.Nested(TicketTypeResponseSchema, dump_only=True)
+
+
+class CompanyResponseSchema(BaseSchema):
+    id = fields.Integer()
+    name = fields.String()
+    address = fields.String()
+    description = fields.String()
+
+
+class EventCategoryResponseSchema(BaseSchema):
+    id = fields.Integer()
+    name = fields.String()
+
+
+class EventDetailResponseSchema(BaseSchema):
+    id = fields.Integer()
+    name = fields.String()
+    image = fields.String()
+    description = fields.String()
+    status = fields.Enum(EventStatus, by_value=True)
+
+    # Thời gian
+    start_time = fields.DateTime()
+    end_time = fields.DateTime()
+    event_start_time = fields.DateTime()
+    event_end_time = fields.DateTime()
+
+    # Vị trí & Ban tổ chức
+    location_id = fields.Integer()
+    location_name = fields.String()
+    company_id = fields.Integer()
+    category_id = fields.Integer()
+
+    # Relationship Data (Nút mở rộng chi tiết)
+    company = fields.Nested(CompanyResponseSchema, dump_only=True)
+    category = fields.Nested(EventCategoryResponseSchema, dump_only=True)
+    event_seats = fields.Nested(EventSeatResponseSchema, many=True, dump_only=True)
+
+
+# =============================================================================
+# 6. SCHEMA CẬP NHẬT SỰ KIỆN
+# =============================================================================
+class EventUpdateSchema(BaseEventSchema):
+    # Các trường tên & status có thể không bắt buộc gửi lại nếu chỉ sửa nội dung khác
+    name = fields.String(
+        required=False,
+        validate=validate.Length(min=5, max=100, error="Tên sự kiện phải từ 5 đến 100 ký tự.")
+    )
+    status = fields.Enum(EventStatus, by_value=True, required=False)
+
+class EventFilterQuerySchema(BaseSchema):
+    page = fields.Integer(load_default=1, validate=validate.Range(min=1, error="Trang phải lớn hơn 0."))
+    page_size = fields.Integer(load_default=10, validate=validate.Range(min=1, max=100, error="Kích thước trang từ 1 đến 100."))
+    keyword = fields.String(allow_none=True, load_default=None)
+    category_id = fields.Integer(allow_none=True, load_default=None)
+    company_id = fields.Integer(allow_none=True, load_default=None)
+    location_id = fields.Integer(allow_none=True, load_default=None)
+    # status = fields.Enum(EventStatus, by_value=True, allow_none=True, load_default=None)
+    event_from_date = fields.DateTime(allow_none=True, load_default=None)
+    event_to_date = fields.DateTime(allow_none=True, load_default=None)
+
+
+class EventListResponseSchema(BaseSchema):
+    id = fields.Integer()
+    name = fields.String()
+    image = fields.String()
+    status = fields.Enum(EventStatus, by_value=True)
+    event_start_time = fields.DateTime()
+    event_end_time = fields.DateTime()
+    location_name = fields.String()
+    # Chỉ lấy thông tin cơ bản, BỎ event_seats
+    company = fields.Nested(CompanyResponseSchema, dump_only=True)
+    category = fields.Nested(EventCategoryResponseSchema, dump_only=True)
