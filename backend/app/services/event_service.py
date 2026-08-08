@@ -87,8 +87,82 @@ def get_events_load_more(
         has_next=has_next
     )
 
+def delete_event(event_id: int) -> bool:
+    # 1. Tìm sự kiện (Không bao gồm bản ghi đã xóa mềm)
+    event = event_repo.get_event_by_id(event_id)
+    if not event:
+        raise AppException(ErrorCode.EVENT_NOT_FOUND)
 
-def _validate_publish_event(event_dto):
+    # 2. Check nghiệp vụ: Sự kiện đã PUBLISHED thì không cho xóa
+    if event.status == EventStatus.PUBLISHED:
+        raise AppException(
+            "Sự kiện đã xuất bản không thể xóa. Vui lòng chuyển trạng thái thành HỦY sự kiện."
+        )
+
+    # 3. Nếu là DRAFT -> Tiến hành Soft Delete qua Base Repo
+    return event_repo.delete_event(event)
+
+def cancel_event(event_id: int) -> EventModel:
+    """Hủy sự kiện (Chuyển status = CANCELLED)"""
+    event = event_repo.get_event_by_id(event_id)
+    if not event:
+        raise AppException(ErrorCode.EVENT_NOT_FOUND)
+
+    if event.status == EventStatus.CANCELLED:
+        raise AppException("Sự kiện này đã bị hủy trước đó.")
+
+    event.status = EventStatus.CANCELLED
+    return base_repo.save(event)
+
+
+def restore_event(event_id: int) -> bool:
+    """Khôi phục sự kiện đã xóa mềm"""
+    # Lấy ra cả bản ghi đã bị soft delete để kiểm tra
+    event = event_repo.get_event_by_id(event_id, include_deleted=True)
+    if not event:
+        raise AppException(ErrorCode.EVENT_NOT_FOUND)
+
+    return event_repo.restore_event(event_id)
+
+
+def publish_event(event_id: int) -> EventModel:
+    """
+    Xuất bản một sự kiện đang ở trạng thái DRAFT.
+    """
+    # 1. Tìm sự kiện theo ID
+    event = get_event_detail(event_id)
+
+    # 2. Ràng buộc trạng thái: Chỉ cho xuất bản sự kiện DRAFT
+    if event.status == EventStatus.PUBLISHED:
+        raise AppException("Sự kiện này đã được xuất bản trước đó.")
+
+    if event.status == EventStatus.CANCELLED:
+        raise AppException("Sự kiện đã bị hủy, không thể xuất bản.")
+
+    # 3. Bắt buộc sự kiện phải có ghế/vé trước khi xuất bản
+    if not event.seats or len(event.seats) == 0:
+        raise AppException(ErrorCode.EVENT_MUST_HAVE_SEATS)
+
+    # 4. Tái sử dụng helper _validate_publish_event để validate thời gian, địa điểm, công ty...
+    # (Do _validate_publish_event nhận parameter dạng DTO, ta truyền trực tiếp object event vào)
+    location, company, category = _validate_publish_event(event, exclude_event_id=event_id)
+
+    try:
+        # 5. Cập nhật trạng thái và thông tin địa điểm chuẩn
+        event.status = EventStatus.PUBLISHED
+        event.location_name = location.full_name() if callable(
+            getattr(location, 'full_name', None)) else location.full_name
+
+        # 6. Luân chuyển thay đổi vào DB
+        db.session.commit()
+        db.session.refresh(event)
+        return event
+
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def _validate_publish_event(event_dto , exclude_event_id: int | None = None):
     """Kiểm tra toàn bộ điều kiện ràng buộc trước khi Publish Event."""
     now = datetime.now()
 
@@ -119,7 +193,8 @@ def _validate_publish_event(event_dto):
     is_duplicated = event_repo.exists_by_company_name_and_time(
         company_id=event_dto.company_id,
         name=event_dto.name,
-        event_start_time=event_dto.event_start_time
+        event_start_time=event_dto.event_start_time,
+        exclude_event_id=exclude_event_id
     )
     if is_duplicated:
         raise AppException(ErrorCode.EVENT_NAME_EXISTS)
@@ -173,4 +248,4 @@ def _get_location_name(location_id: int | None) -> str | None:
     location = base_repo.get_by_id(LocationModel, location_id)
     if not location:
         return None
-    return location.full_name()
+    return location.full_name

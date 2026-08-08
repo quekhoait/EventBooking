@@ -103,3 +103,52 @@ def get_events():
         message="Lấy danh sách sự kiện thành công",
         status_code=200
     )
+
+@event_bp.route('/events/<int:event_id>', methods=['DELETE'])
+def delete_event(event_id: int):
+    event_service.delete_event(event_id)
+
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        data=None,
+        message="Xóa sự kiện thành công.",
+        status_code=200
+    )
+
+@event_bp.route('/events/<int:event_id>/cancel', methods=['PATCH'])
+def cancel_event(event_id: int):
+    event = event_service.cancel_event(event_id)
+    event_data = event_detail_schema.dump(event)
+
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        data=event_data,
+        message="Hủy sự kiện thành công.",
+        status_code=200
+    )
+
+@event_bp.route('/events/<int:event_id>/restore', methods=['PATCH'])
+def restore_event(event_id: int):
+    event_service.restore_event(event_id)
+
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        data=None,
+        message="Khôi phục sự kiện thành công.",
+        status_code=200
+    )
+
+@event_bp.route('/events/<int:event_id>/publish', methods=['PATCH'])
+def publish_event(event_id: int):
+    # Gọi Service thực hiện xuất bản
+    published_event = event_service.publish_event(event_id)
+
+    # Serialize kết quả chi tiết sự kiện đã xuất bản
+    event_data = event_detail_schema.dump(published_event)
+
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        data=event_data,
+        message="Xuất bản sự kiện thành công.",
+        status_code=200
+    )

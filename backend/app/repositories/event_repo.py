@@ -7,10 +7,11 @@ from sqlalchemy.orm import selectinload
 
 from app import db
 from app.models import EventModel, EventStatus
+from app.repositories import base_repo
 
 
 def exists_by_company_name_and_time(
-    company_id: int, name: str, event_start_time: datetime
+    company_id: int, name: str, event_start_time: datetime, exclude_event_id: int | None = None
 ) -> bool:
     """Kiểm tra sự kiện trùng tên và thời gian bắt đầu của cùng một công ty."""
     stmt = select(EventModel.id).where(
@@ -18,6 +19,8 @@ def exists_by_company_name_and_time(
         EventModel.name == name,
         EventModel.event_start_time == event_start_time
     )
+    if exclude_event_id is not None:
+        stmt = stmt.where(EventModel.id != exclude_event_id)
     return db.session.scalar(stmt) is not None
 
 def get_events_load_more(
@@ -106,3 +109,14 @@ def get_events_load_more(
 
 
     return raw_items[:page_size], has_next
+
+def get_event_by_id(event_id: int, include_deleted: bool = False) -> Optional[EventModel]:
+    return base_repo.get_by_id(EventModel, event_id, include_deleted=include_deleted)
+
+def delete_event(event: EventModel, hard_delete: bool = False) -> bool:
+    # Hàm base_repo.delete sẽ tự kiểm tra isinstance(entity, SoftDeleteModel)
+    # và gọi entity.soft_delete()
+    return base_repo.delete(event, hard_delete=hard_delete)
+
+def restore_event(event_id: int) -> bool:
+    return base_repo.restore_by_id(EventModel, event_id)
