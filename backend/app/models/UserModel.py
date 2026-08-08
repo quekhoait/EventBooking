@@ -1,4 +1,3 @@
-
 from enum import Enum
 from app import db
 from .BaseModel import BaseModel
