@@ -156,8 +156,40 @@ class MomoPaymentStrategy(PaymentStrategy):
         except Exception as e:
             return {"resultCode": -1, "message": f"Query logic error: {str(e)}"}
 
-   def refund(self, data):
-       pass
+    def refund(self, data):
+        order_id = "RF"+uuid.uuid4().hex[:10].upper()
+        request_id =  str(uuid.uuid4())
+
+        raw_signature = (
+            f"accessKey={self.access_key}"
+            f"&amount={data['amount']}"
+            f"&description={data['description']}"
+            f"&orderId={order_id}"
+            f"&partnerCode={self.partner_code}"
+            f"&requestId={request_id}"
+            f"&transId={data['transaction_id']}"
+        )
+        signature = self._create_signature(raw_signature)
+        payload = {
+            "partnerCode": self.partner_code,
+            "requestId": request_id,
+            "orderId": order_id,
+            "amount": data['amount'],
+            "transId": data['transaction_id'],
+            "lang": "vi",
+            "description": data['description'],
+            "signature": signature
+        }
+
+        result_code = 0
+        print(data)
+        if data['amount'] != 0:
+            res = requests.post(self.endpoint_refund, json=payload).json()
+            payment_repo.create_refund_result_momo(data['ticket_code'],res)
+            result_code = res.get('resultCode')
+
+        return result_code
+
 
 
 class PaymentContext:

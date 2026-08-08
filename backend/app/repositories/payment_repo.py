@@ -27,3 +27,13 @@ def get_payment_by_ticket_code(ticket_code):
     return payment
 
 
+def update_payment_result_momo(data: dict):
+    payment = PaymentModel.query.filter_by(code=data.get('orderId'), ticket_code=data.get('extraData')).first()
+    if not payment:
+        raise NotFoundError("Payment not found!!")
+    payment.transaction_id = data.get('transId')
+    payment.status = PaymentStatus.SUCCESS if data.get('resultCode') == 0 else PaymentStatus.FAILED
+    payment.ticket.status = TicketStatus.SUCCESS if data.get('resultCode') == 0 else TicketStatus.PENDING
+    seat = booking_services.get_seat(payment.ticket.seat_id)
+    seat.is_active = False
+    db.session.add(payment)

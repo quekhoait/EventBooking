@@ -51,3 +51,10 @@ def create(data):
         db.session.rollback()
         raise e
 
+def callback(method:str, data):
+    try:
+        payment_context.callback(method, data)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return e

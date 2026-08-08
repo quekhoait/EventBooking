@@ -83,3 +83,4 @@ def create(data: CreateTicketRequestDTO):
         raise AppException(f"Lỗi đặt vé: {str(e)}", status_code=500)
 
     return new_ticket
+
