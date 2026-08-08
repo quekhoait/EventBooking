@@ -3,6 +3,21 @@ from app import db
 from enum import Enum
 from .BaseModel import BaseModel
 
+class PaymentStatus(Enum):
+    PENDING = 'PENDING'
+    SUCCESS = 'SUCCESS'
+    FAILED = 'FAILED'
+
+
+class PaymentType(Enum):
+    PAYMENT = 'PAYMENT'
+    REFUND = 'REFUND'
+
+class TicketStatus(Enum):
+    PENDING = 'PENDING'
+    SUCCESS = 'SUCCESS'
+    CANCELLED = 'CANCELLED'
+    REFUNDED = 'REFUNDED'
 
 class TicketModel(BaseModel):
     __tablename__ = 'ticket'
@@ -12,6 +27,7 @@ class TicketModel(BaseModel):
     purchase_time = db.Column(db.DateTime, nullable=False)
     price = db.Column(db.Float, nullable=False)
     discount_id = db.Column(db.Integer, db.ForeignKey('discount.id'), nullable=True)
+    status = db.Column(db.Enum(TicketStatus), default=TicketStatus.PENDING, nullable=False)
 
     payments = db.relationship('PaymentModel', backref='ticket', lazy=True)
 
@@ -28,15 +44,7 @@ class DiscountModel(BaseModel):
 
     tickets = db.relationship('TicketModel', backref='discount', lazy=True)
 
-class PaymentStatus(Enum):
-    PENDING = 'PENDING'
-    SUCCESS = 'SUCCESS'
-    FAILED = 'FAILED'
 
-
-class PaymentType(Enum):
-    PAYMENT = 'PAYMENT'
-    REFUND = 'REFUND'
 
 
 class PaymentModel(BaseModel):

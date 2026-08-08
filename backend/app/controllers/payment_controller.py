@@ -16,10 +16,6 @@ def create():
     res = payment_services.create(PaymentRequest().load(request.get_json()))
     return NewPackage(status=StatusResponse.SUCCESS, message="Create payment successful",data=res,status_code=201)
 
-@payment_api.route('/<string:method>/callback', methods=['POST'])
-def callback(method):
-    payment_services.callback(method, request.get_json())
-    return NewPackage(status=StatusResponse.SUCCESS, message="Payment successful",status_code=200)
 
 
 

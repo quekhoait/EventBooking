@@ -38,11 +38,11 @@ def use_discount(discount_id, price):
     return price, None
 
 
-def check_payment(ticket_code):
-    payment = booking_repo.find_payment_by_ticket_code(ticket_code)
-    if not payment:
-        raise AppException("Mi chưa thanh toán", status_code=400)
-    return payment
+
+
+def get_seat(seat_id):
+    return Seat.query.get(seat_id)
+
 
 def create(data: CreateTicketRequestDTO):
     # user_id = get_jwt_identity
