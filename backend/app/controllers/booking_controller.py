@@ -4,6 +4,7 @@ from flask import Blueprint, request
 
 from app.dto.booking_dto import CreateTicketRequestDTO, TicketDetailRequest, TicketResponse, TicketDetailResponse, \
     TicketListResponse
+from app.dto.payment_dto import PaymentRequest
 from app.services import booking_services
 from app.utils.json import NewPackage, StatusResponse
 
@@ -45,4 +46,15 @@ def list_tickets():
     return NewPackage(status=StatusResponse.SUCCESS,
         message="Lấy dữ liệu thành công",
         data=result,
+        status_code=200)
+
+#hủy vé\
+@booking_api.route('/cancel', methods=['POST'])
+def cancel():
+    data = request.get_json()
+    data = PaymentRequest().load(data)
+    booking_services.cancel_ticket(data)
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        message="Hủy vé thành công",
         status_code=200)

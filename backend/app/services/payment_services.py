@@ -79,15 +79,17 @@ def refund(data):
         "description": f"Refund ticket {data.ticket_code} from event",
         "ticket_code": data.ticket_code
     }
+    print("payload ", payload)
     try:
         if ticket.status == TicketStatus.SUCCESS:
             result_code = payment_context.refund(data.method, payload)
-            if result_code == 0:
+            print("result_code", result_code)
+            if result_code == 0 or result_code == 7002:
                 payment.type = PaymentType.REFUND
                 payment.status = PaymentStatus.SUCCESS
                 payment.ticket.status = TicketStatus.REFUNDED
                 seat = booking_services.get_seat(payment.ticket.seat_id)
-                seat.is_active = False
+                seat.is_active = True
                 db.session.add(payment)
             db.session.commit()
     except Exception as e:

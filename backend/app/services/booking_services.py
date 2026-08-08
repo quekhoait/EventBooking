@@ -6,8 +6,11 @@ from flask_jwt_extended import get_jwt_identity
 import string
 from app import db
 import random
+
+from app.dto.payment_dto import PaymentRequest
 from app.errors.ErrorCode import ErrorCode
 from app.models import EventModel, TicketModel, Seat, PaymentModel, PaymentStatus, EventSeat, DiscountModel
+from app.services import payment_services
 from app.utils.exception import AppException
 from app.repositories import booking_repo, event_repo
 from flask_mail import Message
@@ -136,5 +139,19 @@ def send_ticket(ticket_code):
         raise AppException(f"Gửi mail thất bại: {str(e)}")
 
 
+def cancel_ticket(data):
+    ticket_code = data.get('ticket_code') if isinstance(data, dict) else getattr(data, 'ticket_code', None)
+
+    # user_id = get_jwt_identity()
+    user_id = 1
+
+    ticket = booking_repo.find_ticket_by_code(ticket_code)
+    if not ticket:
+        raise AppException("Không tìm thấy thông tin vé!", status_code=404)
+
+    if ticket.user_id != user_id:
+        raise AppException("Bạn không có quyền hủy vé này!", status_code=403)
+
+    return payment_services.refund(data)
 
 
