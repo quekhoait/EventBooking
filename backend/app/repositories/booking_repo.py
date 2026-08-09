@@ -1,6 +1,6 @@
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
-
+from app import db
 from app.models import TicketModel, PaymentModel, Seat, PaymentStatus, DiscountModel, EventSeat, EventModel
 
 
@@ -26,8 +26,6 @@ def find_discounts_by_event_id(event_id):
         DiscountModel.event_id == event_id,
     ).all()
 
-def find_payment_by_ticket_code(ticket_code):
-    return PaymentModel.query.filter(ticket_code == TicketModel.code).first()
 
 def count_user_successful_tickets(user_id, event_id):
     return (
@@ -42,10 +40,9 @@ def count_user_successful_tickets(user_id, event_id):
     )
 
 def find_ticket_by_code(code):
-    return TicketModel.query.get(code)
+    return db.session.get(TicketModel, code)
 
 def save_ticket(ticket):
-    from app import db
     db.session.add(ticket)
 
 def get_ticket_details(ticket_code):

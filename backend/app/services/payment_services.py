@@ -3,6 +3,7 @@ from sqlalchemy.sql.functions import user
 from datetime import datetime
 from app import db, pattern
 from app.dto.payment_dto import CreatePaymentResponse
+from app.errors.ErrorCode import ErrorCode
 from app.models import PaymentStatus, PaymentType
 from app.models.TicketModel import TicketStatus
 from app.pattern.method_payment import payment_context
@@ -13,17 +14,17 @@ from app.utils.exception import AppException
 
 
 def check_payment(ticket_code):
-    payment = booking_repo.find_payment_by_ticket_code(ticket_code)
+    payment = payment_repo.get_payment_by_ticket_code(ticket_code)
     return payment
 
+def check_authorization():
+    user_id = get_jwt_identity()
+    if not user_id:
+        raise AppException(ErrorCode.UNAUTHORIZED)
 
 def create(data):
-    # user_id = get_jwt_identity()
-    # if not user_id:
-    #     raise UnauthorizedError()
-
-    payment = payment_repo.get_payment_by_ticket_code(data.ticket_code)
-
+    check_authorization()
+    payment = check_payment(data.ticket_code)
     # Nếu thanh toán lại
     if payment:
         seat = booking_services.get_seat(payment.ticket.seat_id)
@@ -55,19 +56,17 @@ def callback(method:str, data):
     try:
         pay = payment_context.callback(method, data)
         db.session.commit()
-        print("payment ở services", pay)
         return pay
     except Exception as e:
         db.session.rollback()
         raise e
 
 def refund(data):
-    # user_id = get_jwt_identity()
-    payload = {}
+    check_authorization()
     ticket = booking_repo.find_ticket_by_code(data.ticket_code)
     if not ticket:
         raise AppException("Ticket not found!", status_code=404)
-    payment = payment_repo.get_payment_by_ticket_code(data.ticket_code)
+    payment = check_payment(data.ticket_code)
     if not payment:
         raise AppException("Payment not found!", status_code=404)
     if payment.status != PaymentStatus.SUCCESS or payment.type != PaymentType.PAYMENT:
@@ -79,11 +78,9 @@ def refund(data):
         "description": f"Refund ticket {data.ticket_code} from event",
         "ticket_code": data.ticket_code
     }
-    print("payload ", payload)
     try:
         if ticket.status == TicketStatus.SUCCESS:
             result_code = payment_context.refund(data.method, payload)
-            print("result_code", result_code)
             if result_code == 0 or result_code == 7002:
                 payment.type = PaymentType.REFUND
                 payment.status = PaymentStatus.SUCCESS
@@ -97,9 +94,7 @@ def refund(data):
         raise e
 
 def transaction(method: str, data):
-    # user_id = get_jwt_identity()
-    # if not user_id:
-    #     raise UnauthorizedError()
+    check_authorization()
     try:
         result = payment_context.transaction(method, data)
         if result.get('resultCode') == 0:

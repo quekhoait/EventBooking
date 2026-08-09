@@ -2,11 +2,13 @@ from datetime import datetime, timedelta
 from encodings.punycode import T
 
 from app.dto.payment_dto import MomoPaymentCallbackRequest
+from app.errors.ErrorCode import ErrorCode
 from app.models import PaymentModel, PaymentStatus, PaymentType
 from app.models.TicketModel import TicketStatus
 from app.services import booking_services
 from app.utils.errors import NotFoundError
 from app import db
+from app.utils.exception import AppException
 
 
 def create_new_payment_with_momo(ticket_code, data):
@@ -30,14 +32,13 @@ def get_payment_by_ticket_code(ticket_code):
 def update_payment_result_momo(data: dict):
     payment = PaymentModel.query.filter_by(code=data.get('orderId'), ticket_code=data.get('extraData')).first()
     if not payment:
-        raise NotFoundError("Payment not found!!")
+        raise AppException(ErrorCode.PAYMENT_NOT_FOUND)
     payment.transaction_id = data.get('transId')
     payment.status = PaymentStatus.SUCCESS if data.get('resultCode') == 0 else PaymentStatus.FAILED
     payment.ticket.status = TicketStatus.SUCCESS if data.get('resultCode') == 0 else TicketStatus.PENDING
     seat = booking_services.get_seat(payment.ticket.seat_id)
-    seat.is_active = False
+    seat.is_active = False if data.get('resultCode') == 0 else True
     db.session.add(payment)
-    print("payment ở repo", payment)
     return payment
 
 def create_refund_result_momo(ticket_code, data):

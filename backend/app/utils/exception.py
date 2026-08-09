@@ -1,4 +1,5 @@
 # exceptions.py
+from marshmallow import ValidationError
 from werkzeug.exceptions import HTTPException
 
 
@@ -33,6 +34,14 @@ def init_error_handlers(app):
             status=StatusResponse.ERROR,
             message=e.message,
             status_code=e.status_code
+        )
+
+    @app.errorhandler(ValidationError)
+    def handle_validation_error(e: ValidationError):
+        return NewPackage(
+            status=StatusResponse.ERROR,
+            message=e.messages,
+            status_code=400
         )
 
     @app.errorhandler(HTTPException)
