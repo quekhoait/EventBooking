@@ -3,48 +3,55 @@ from datetime import timedelta
 
 from dotenv import load_dotenv
 
-dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
 if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
+
 
 def get_env_bool(name, default=False):
     val = os.environ.get(name)
     if val is None:
         return default
-    return str(val).lower() in ('true', '1', 't', 'yes', 'y')
+    return str(val).lower() in ("true", "1", "t", "yes", "y")
 
 
 class Config:
-    ACCESS_KEY = os.environ.get('ACCESS_KEY', '0cb87b9870d7a23f02dece7648ad')
-    SECRET_KEY = os.environ.get('SECRET_KEY', '1ee5da987f2df0cb87b9870d7a23f02dece7648ad518cf9a43')
+    ACCESS_KEY = os.environ.get("ACCESS_KEY", "0cb87b9870d7a23f02dece7648ad")
+    SECRET_KEY = os.environ.get(
+        "SECRET_KEY", "1ee5da987f2df0cb87b9870d7a23f02dece7648ad518cf9a43"
+    )
 
-    DB_USER = os.environ.get('DB_USER', 'root')
-    DB_PASSWORD = os.environ.get('DB_PASSWORD', 'root')
-    DB_HOST = os.environ.get('DB_HOST', 'localhost')
-    DB_PORT = os.environ.get('DB_PORT', '3306')
-    DB_NAME = os.environ.get('DB_NAME', 'event')
+    DB_USER = os.environ.get("DB_USER", "root")
+    DB_PASSWORD = os.environ.get("DB_PASSWORD", "root")
+    DB_HOST = os.environ.get("DB_HOST", "localhost")
+    DB_PORT = os.environ.get("DB_PORT", "3306")
+    DB_NAME = os.environ.get("DB_NAME", "event")
     DB_URI_TEMPLATE = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
 
     # Cache
-    CACHE_TYPE = 'SimpleCache'
-    CACHE_DEFAULT_TIMEOUT = os.environ.get('CACHE_DEFAULT_TIMEOUT', 300)
+    CACHE_TYPE = "SimpleCache"
+    CACHE_DEFAULT_TIMEOUT = os.environ.get("CACHE_DEFAULT_TIMEOUT", 300)
 
-    MAIL_SERVER = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
-    MAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
-    MAIL_USE_TLS = get_env_bool('EMAIL_USE_TLS', True)
-    MAIL_USERNAME = os.environ.get('EMAIL_HOST_USER')
-    MAIL_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
-    MAIL_DEFAULT_SENDER = ('Event Booking', os.environ.get('EMAIL_HOST_USER'))
-
+    MAIL_SERVER = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+    MAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
+    MAIL_USE_TLS = get_env_bool("EMAIL_USE_TLS", True)
+    MAIL_USERNAME = os.environ.get("EMAIL_HOST_USER")
+    MAIL_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
+    MAIL_DEFAULT_SENDER = ("Event Booking", os.environ.get("EMAIL_HOST_USER"))
+    FRONTEND_URL = "http://127.0.0.1:8000"
 
     # Google
     GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
     GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
-    GOOGLE_SERVER_METADATA_URL = 'https://accounts.google.com/.well-known/openid-configuration'
-    GOOGLE_CLIENT_SCOPE = 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile'
+    GOOGLE_SERVER_METADATA_URL = (
+        "https://accounts.google.com/.well-known/openid-configuration"
+    )
+    GOOGLE_CLIENT_SCOPE = "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
+    GOOGLE_REDIRECT_URL = os.environ.get("GOOGLE_REDIRECT_URL")
+    GOOGLE_AUTH_URL = os.environ.get("GOOGLE_AUTH_URL")
 
     # JWT
-    JWT_TOKEN_LOCATION = ['headers', 'cookies']
+    JWT_TOKEN_LOCATION = ["headers", "cookies"]
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
@@ -73,28 +80,34 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URI') or os.environ.get('DATABASE_URL') or 'sqlite:///event_booking.db'
+    SQLALCHEMY_DATABASE_URI = (
+        os.environ.get("DEV_DATABASE_URI")
+        or os.environ.get("DATABASE_URL")
+        or "sqlite:///event_booking.db"
+    )
     # SQLALCHEMY_ECHO = True
 
 
 class TestingConfig(Config):
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///'
+    SQLALCHEMY_DATABASE_URI = "sqlite:///"
     WTF_CSRF_ENABLED = False
-    SERVER_NAME = 'localhost:5000'
+    SERVER_NAME = "localhost:5000"
+
 
 class TestingFakeConfig(Config):
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///'
+    SQLALCHEMY_DATABASE_URI = "sqlite:///"
     WTF_CSRF_ENABLED = False
-    SERVER_NAME = 'localhost:5000'
+    SERVER_NAME = "localhost:5000"
+
 
 class ProductionConfig(Config):
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or Config.DB_URI_TEMPLATE
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or Config.DB_URI_TEMPLATE
     SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_TYPE = 'filesystem'
+    SESSION_TYPE = "filesystem"
 
     @classmethod
     def init_app(cls, app):
@@ -103,23 +116,26 @@ class ProductionConfig(Config):
         import logging
         from logging.handlers import RotatingFileHandler
 
-        if not os.path.exists('logs'):
-            os.mkdir('logs')
+        if not os.path.exists("logs"):
+            os.mkdir("logs")
 
-        file_handler = RotatingFileHandler('logs/cineflow.log', maxBytes=10240000, backupCount=10)
+        file_handler = RotatingFileHandler(
+            "logs/cineflow.log", maxBytes=10240000, backupCount=10
+        )
         file_formatter = logging.Formatter(
-            '%(asctime)s | %(levelname)s | %(message)s | [in %(pathname)s:%(lineno)d]'
+            "%(asctime)s | %(levelname)s | %(message)s | [in %(pathname)s:%(lineno)d]"
         )
         file_handler.setFormatter(file_formatter)
         file_handler.setLevel(logging.INFO)
         app.logger.addHandler(file_handler)
         app.logger.setLevel(logging.INFO)
-        app.logger.info('Start with cineflow')
+        app.logger.info("Start with cineflow")
+
 
 config = {
-    'development': DevelopmentConfig,
-    'testing': TestingConfig,
-    'testing_fake': TestingFakeConfig,
-    'production': ProductionConfig,
-    'default': DevelopmentConfig
+    "development": DevelopmentConfig,
+    "testing": TestingConfig,
+    "testing_fake": TestingFakeConfig,
+    "production": ProductionConfig,
+    "default": DevelopmentConfig,
 }

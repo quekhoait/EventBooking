@@ -1,4 +1,17 @@
-from .UserModel import User, UserAuthMethod, RoleEnum
-from .EventModel import EventModel, EventCategory, EventSeat, EventTicketType, EventStatus, Seat
 from .BaseModel import BaseModel, LocationModel, Company
-from .TicketModel import TicketModel, DiscountModel, PaymentModel, PaymentStatus, PaymentType
+from .UserModel import User, EmailOTP, UserAuthMethod, UserProvider, RoleEnum
+from .EventModel import (
+    EventModel,
+    EventCategory,
+    EventSeat,
+    EventTicketType,
+    EventStatus,
+    Seat,
+)
+from .TicketModel import (
+    TicketModel,
+    DiscountModel,
+    PaymentModel,
+    PaymentStatus,
+    PaymentType,
+)

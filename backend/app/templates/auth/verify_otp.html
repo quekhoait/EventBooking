@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/auth.css') }}"
+    />
+    <title>Verify Email</title>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>Verify your email</h1>
+
+      <p class="description">We have sent a verification code to</p>
+
+      <p class="email">{{ email }}</p>
+
+      {% if error %}
+
+      <div class="error">{{ error }}</div>
+
+      {% endif %}
+
+      <!-- VERIFY FORM -->
+
+      <form
+        id="verifyForm"
+        action="{{ url_for('api.auth_api.verify_otp') }}"
+        method="POST"
+      >
+        <!-- Email gửi lên backend -->
+
+        <input type="hidden" name="email" value="{{ email }}" />
+
+        <div class="form-group">
+          <label for="otp"> Verification code </label>
+
+          <input
+            id="otp"
+            class="otp-input"
+            type="text"
+            name="verification_code"
+            maxlength="6"
+            minlength="6"
+            pattern="[0-9]{6}"
+            placeholder="000000"
+            autocomplete="one-time-code"
+            inputmode="numeric"
+            required
+          />
+        </div>
+
+        <!-- COUNTDOWN -->
+
+        <div class="countdown">
+          OTP expires in:
+
+          <span id="countdown"> --:-- </span>
+        </div>
+
+        <button id="verifyButton" class="verify-button" type="submit">
+          Verify email
+        </button>
+      </form>
+
+      <!-- RESEND -->
+
+      <div class="resend-section">
+        <div class="resend-text">Didn't receive the code?</div>
+
+        <button id="resendButton" class="resend-button" type="button" disabled>
+          Resend OTP
+        </button>
+      </div>
+    </div>
+
+    <script>
+      /*
+       * expires_at được Flask truyền từ EmailOTP:
+       *
+       * {{ expires_at }}
+       *
+       * Ví dụ:
+       *
+       * 2026-08-09T12:10:00
+       */
+
+      const expiresAt = "{{ expires_at or '' }}";
+
+      const countdown = document.getElementById("countdown");
+
+      const verifyButton = document.getElementById("verifyButton");
+
+      const resendButton = document.getElementById("resendButton");
+
+      const otpInput = document.getElementById("otp");
+
+      /*
+       * Countdown
+       */
+
+      function updateCountdown() {
+        /*
+         * Không có expires_at
+         */
+
+        if (!expiresAt) {
+          countdown.textContent = "Expired";
+
+          countdown.classList.add("expired");
+
+          verifyButton.disabled = true;
+
+          resendButton.disabled = false;
+
+          return false;
+        }
+
+        /*
+         * Tính thời gian còn lại
+         */
+
+        const now = Date.now();
+
+        const expiry = new Date(expiresAt).getTime();
+
+        const remaining = expiry - now;
+
+        /*
+         * OTP hết hạn
+         */
+
+        if (remaining <= 0) {
+          countdown.textContent = "00:00";
+
+          countdown.classList.add("expired");
+
+          verifyButton.disabled = true;
+
+          resendButton.disabled = false;
+
+          otpInput.disabled = true;
+
+          return false;
+        }
+
+        /*
+         * OTP vẫn còn hiệu lực
+         */
+
+        const totalSeconds = Math.floor(remaining / 1000);
+
+        const minutes = Math.floor(totalSeconds / 60);
+
+        const seconds = totalSeconds % 60;
+
+        countdown.textContent = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+
+        countdown.classList.remove("expired");
+
+        verifyButton.disabled = false;
+
+        resendButton.disabled = true;
+
+        otpInput.disabled = false;
+
+        return true;
+      }
+
+      /*
+       * Chạy countdown ngay khi mở trang
+       */
+
+      updateCountdown();
+
+      /*
+       * Update mỗi 1 giây
+       */
+
+      const countdownTimer = setInterval(() => {
+        const active = updateCountdown();
+
+        if (!active) {
+          clearInterval(countdownTimer);
+        }
+      }, 1000);
+
+      /*
+       * RESEND OTP
+       */
+
+      resendButton.addEventListener("click", async function () {
+        const email = "{{ email }}";
+
+        if (!email) {
+          alert("Email is required");
+
+          return;
+        }
+
+        /*
+         * Disable button trong lúc request
+         */
+
+        resendButton.disabled = true;
+
+        resendButton.textContent = "Sending...";
+
+        try {
+          const response = await fetch(
+            "{{ url_for('api.auth_api.resend_otp') }}",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type": "application/json",
+              },
+
+              body: JSON.stringify({
+                email: email,
+              }),
+            },
+          );
+
+          const result = await response.json();
+
+          /*
+           * Resend thất bại
+           */
+
+          if (!response.ok) {
+            alert(result.message || "Cannot resend OTP");
+
+            resendButton.disabled = false;
+
+            resendButton.textContent = "Resend OTP";
+
+            return;
+          }
+
+          window.location.reload();
+        } catch (error) {
+          console.error("Resend OTP error:", error);
+
+          alert("Cannot connect to server");
+
+          resendButton.disabled = false;
+
+          resendButton.textContent = "Resend OTP";
+        }
+      });
+      otpInput.addEventListener("input", function () {
+        this.value = this.value.replace(/\D/g, "").slice(0, 6);
+      });
+    </script>
+  </body>
+</html>
