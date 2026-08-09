@@ -90,3 +90,10 @@ def delete_email_otp(email):
 
 def get_profile(user_id):
     return User.query.filter_by(id=user_id).first()
+
+
+def update_user_profile(user, profile_data):
+    for key, value in profile_data.items():
+        setattr(user, key, value)
+    db.session.commit()
+    return user
