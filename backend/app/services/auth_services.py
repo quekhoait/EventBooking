@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import requests
 from config import Config
-from flask_jwt_extended import create_access_token, create_refresh_token
+from flask_jwt_extended import create_access_token, create_refresh_token, current_user
 
 from app.dto.auth_dto import LoginDto, RegisterDto
 from app.utils.exception import AppException
@@ -257,3 +257,14 @@ def login(data: LoginDto):
         raise AppException("Invalid password", status_code=401)
 
     return user
+
+
+def logout(user_id):
+    provider = user_repo.find_by_user_provider(
+        current_user.id, UserProvider.EMAIL.value
+    )
+    if provider:
+        provider.refresh_token = None
+        db.session.commit()
+
+    return {"message": "Logged out successfully"}

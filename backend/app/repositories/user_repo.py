@@ -86,3 +86,7 @@ def delete_email_otp(email):
         db.session.delete(otp)
 
     db.session.commit()
+
+
+def get_profile(user_id):
+    return User.query.filter_by(id=user_id).first()

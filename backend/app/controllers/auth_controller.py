@@ -6,7 +6,7 @@ from flask import Blueprint, redirect, render_template, session
 from flask import request
 from marshmallow import ValidationError
 
-from app.dto.auth_dto import LoginDto, RegisterDto, VerifyEmailDto, GoogleLoginDto
+from app.dto.auth_dto import LoginDto, RegisterDto, VerifyEmailDto
 from app.utils.exception import AppException
 from app.services import auth_services
 from app.utils.json import NewPackage, StatusResponse
@@ -275,6 +275,32 @@ def login():
             message="Invalid input data",
             data={"errors": e.messages},
             status_code=400,
+        )
+    except AppException as e:
+        return NewPackage(
+            status=StatusResponse.ERROR,
+            message=e.message,
+            status_code=e.status_code,
+        )
+
+
+@auth_api.route("/logout", methods=["POST"])
+def logout():
+    try:
+        current_user_id = getattr(request, "user_id", None)
+        if not current_user_id:
+            return NewPackage(
+                status=StatusResponse.ERROR,
+                message="User not authenticated",
+                status_code=401,
+            )
+
+        result = auth_services.logout(current_user_id)
+        return NewPackage(
+            status=StatusResponse.SUCCESS,
+            message="Logout successful",
+            data=result,
+            status_code=200,
         )
     except AppException as e:
         return NewPackage(
