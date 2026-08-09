@@ -176,6 +176,86 @@ def resend_otp():
         )
 
 
+@auth_api.route("/google/login", methods=["GET"])
+def initiate_google_login():
+    state = secrets.token_urlsafe(16)
+    session["oauth_state"] = state
+    google_auth_url = Config.GOOGLE_AUTH_URL
+    params = {
+        "client_id": Config.GOOGLE_CLIENT_ID,
+        "redirect_uri": Config.GOOGLE_REDIRECT_URL,
+        "response_type": "code",
+        "scope": Config.GOOGLE_CLIENT_SCOPE,
+        "state": state,
+        "prompt": "consent",
+        "access_type": "offline",
+    }
+
+    url = f"{google_auth_url}?{urlencode(params)}"
+
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        message="Google auth URL generated",
+        data={"auth_url": url},
+        status_code=200,
+    )
+
+
+@auth_api.route("/google/callback", methods=["POST", "GET"])
+def handle_google_callback():
+    try:
+
+        if request.method == "GET":
+            data = {
+                "code": request.args.get("code"),
+                "state": request.args.get("state"),
+            }
+
+            error = request.args.get("error")
+            if error:
+                return NewPackage(
+                    status=StatusResponse.ERROR,
+                    message=f"Google Auth Error: {error}",
+                    status_code=400,
+                )
+        else:
+
+            data = request.get_json(silent=True) or {}
+
+        print(f"Received data from Google callback: {data}")
+
+        result = auth_services.login_with_google(data)
+        print(f"Google login result: {result}")
+
+        user = {
+            "id": result.id,
+            "email": result.email,
+            "username": result.username,
+            "is_verified": result.is_verified,
+        }
+
+        print(f"User data to be sent in response: {user}")
+        return NewPackage(
+            status=StatusResponse.SUCCESS,
+            message="Google login successful",
+            data=user,
+            status_code=200,
+        )
+    except ValidationError as e:
+        return NewPackage(
+            status=StatusResponse.ERROR,
+            message="Invalid input data",
+            data={"errors": e.messages},
+            status_code=400,
+        )
+    except AppException as e:
+        return NewPackage(
+            status=StatusResponse.ERROR,
+            message=e.message,
+            status_code=e.status_code,
+        )
+
+
 @auth_api.route("/login", methods=["POST"])
 def login():
     try:

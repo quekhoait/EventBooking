@@ -174,6 +174,81 @@ def re_send_otp(email: str):
     return {"message": "OTP sent successfully"}
 
 
+def login_with_google(data):
+
+    token_url = "https://oauth2.googleapis.com/token"
+    token_data = {
+        "code": data["code"],
+        "client_id": Config.GOOGLE_CLIENT_ID,
+        "client_secret": Config.GOOGLE_CLIENT_SECRET,
+        "redirect_uri": Config.GOOGLE_REDIRECT_URL,
+        "grant_type": "authorization_code",
+    }
+
+    token_res = requests.post(token_url, data=token_data)
+    token_json = token_res.json()
+
+    if token_res.status_code != 200 or "error" in token_json:
+        raise AppException(
+            message=token_json.get(
+                "error_description", "Failed to exchange code with Google"
+            ),
+            status_code=400,
+        )
+
+    access_token = token_json.get("access_token")
+
+    userinfo_url = "https://www.googleapis.com/oauth2/v2/userinfo"
+    userinfo_res = requests.get(
+        userinfo_url, headers={"Authorization": f"Bearer {access_token}"}
+    )
+    google_user = userinfo_res.json()
+
+    if userinfo_res.status_code != 200:
+        raise AppException("Failed to fetch user profile from Google", status_code=400)
+
+    data = SimpleNamespace(
+        email=google_user.get("email"),
+        username=google_user.get("name"),
+        provider_id=google_user.get("id"),
+        refresh_token=token_json.get("refresh_token"),
+        # role="user",  # Default role for Google users
+    )
+
+    print(f"Google user data: {data}")
+    auth_method = user_repo.find_by_provider(
+        UserProvider.GOOGLE.value, data.provider_id
+    )
+
+    if auth_method:
+        user = user_repo.find_one(id=auth_method.user_id)
+        auth_method.refresh_token = data.refresh_token
+        db.session.commit()
+
+        return user
+
+    user = user_repo.find_one(email=data.email)
+
+    if not user:
+        username = user_repo.generate_unique_username(data.email, data.username)
+        user = user_repo.create_user_email(
+            email=data.email,
+            username=data.username,
+            password=None,
+            is_verified=True,  # Google users are considered verified
+        )
+
+    user_repo.create_user_provider(
+        user_id=user.id,
+        provider=UserProvider.GOOGLE.value,
+        provider_id=data.provider_id,
+        refresh_token=data.refresh_token,
+    )
+
+    db.session.commit()
+    return user
+
+
 def login(data: LoginDto):
     user = user_repo.find_one(email=data.email)
     if not user:
