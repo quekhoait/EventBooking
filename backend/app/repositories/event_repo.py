@@ -120,3 +120,7 @@ def delete_event(event: EventModel, hard_delete: bool = False) -> bool:
 
 def restore_event(event_id: int) -> bool:
     return base_repo.restore_by_id(EventModel, event_id)
+
+def find_event_by_id(event_id):
+    return db.session.query(EventModel).filter(EventModel.id == event_id).first()
+

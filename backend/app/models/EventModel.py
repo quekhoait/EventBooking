@@ -49,7 +49,7 @@ class EventSeat(BaseModel):
     __tablename__ = 'event_seat'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
-    seat_total = db.Column(db.String(10), nullable=False)
+    seat_total = db.Column(db.Integer, nullable=False)
     price = db.Column(db.Float, nullable=False, default=0.0)
     event_ticket_type_id = db.Column(db.Integer, db.ForeignKey('event_ticket_type.id'), nullable=False)
 
@@ -62,6 +62,7 @@ class Seat(BaseModel):
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
     event_ticket_type_id = db.Column(db.Integer, db.ForeignKey('event_ticket_type.id'), nullable=False)
 
+    event = db.relationship('EventModel',  lazy=True)
 
 class EventTicketType(BaseModel):
     __tablename__ = 'event_ticket_type'

@@ -11,6 +11,28 @@ from app.models import (
 # ----------------------------------------------------------------------
 # 1. DỮ LIỆU MẪU (SEED DATA)
 # ----------------------------------------------------------------------
+EVENT_TICKET_TYPES_DATA = [
+    {
+        "name": "Vé VIP",
+        "description": "Khu vực sát sân khấu, view đẹp nhất, bao gồm nước uống nhẹ."
+    },
+    {
+        "name": "Vé Thường (Standard)",
+        "description": "Khu vực tiêu chuẩn, tầm nhìn toàn cảnh sân khấu."
+    },
+    {
+        "name": "Vé Early Bird",
+        "description": "Vé mở bán sớm với mức giá ưu đãi đặc biệt."
+    },
+    {
+        "name": "Vé VVIP (Super VIP)",
+        "description": "Hàng ghế đầu tiên, có lối đi riêng và tham gia Session Meet & Greet."
+    },
+    {
+        "name": "Vé Sinh viên",
+        "description": "Dành riêng cho sinh viên (Cần xuất trình thẻ sinh viên khi check-in)."
+    }
+]
 
 LOCATIONS_DATA = [
     {
@@ -102,6 +124,8 @@ def clear_data():
             "company",
             "event_category",
             "location",
+            "ticket",
+            "payment",
             "user" # Thay tên bảng user thực tế trong DB của bạn nếu khác (ví dụ: user / users)
         ]
 
@@ -199,15 +223,18 @@ def seed_users():
         db.session.rollback()
         print(f"❌ Seed data User thất bại: {e}")
 
-
 def seed_events_and_details():
-    """Seed Sự kiện, Loại vé, Cấu hình giá, Ghế và Mã giảm giá."""
+    """Seed Sự kiện, Cấu hình giá, Ghế và Mã giảm giá."""
     print("🌱 Bắt đầu seed Sự kiện, Vé, Ghế và Discount...")
     try:
         # Lấy thông tin phụ thuộc đã được seed trước đó
         location = LocationModel.query.filter(LocationModel.parent_id.isnot(None)).first()
         company = Company.query.first()
         category = EventCategory.query.first()
+
+        # Lấy các TicketType đã seed từ database
+        ticket_type_vip = EventTicketType.query.filter_by(name="Vé VIP").first()
+        ticket_type_std = EventTicketType.query.filter_by(name="Vé Thường (Standard)").first()
 
         # 1. Tạo Sự kiện mẫu (EventModel)
         event = EventModel(
@@ -226,46 +253,38 @@ def seed_events_and_details():
         db.session.add(event)
         db.session.flush()
 
-        # 2. Tạo Loại vé (EventTicketType)
-        ticket_type_vip = EventTicketType(name="Vé VIP", description="Hàng ghế sát sân khấu")
-        ticket_type_std = EventTicketType(name="Vé Thường", description="Hàng ghế tiêu chuẩn")
-        db.session.add_all([ticket_type_vip, ticket_type_std])
-        db.session.flush()
-
-        # 3. Tạo Cấu hình giá (EventSeat)
+        # 2. Tạo Cấu hình giá (EventSeat)
         event_seat_vip = EventSeat(
             event_id=event.id,
-            event_ticket_type_id=ticket_type_vip.id,
+            event_ticket_type_id=ticket_type_vip.id if ticket_type_vip else 1,
             seat_total="10",
             price=500000.0,
-            # is_available=True
         )
         event_seat_std = EventSeat(
             event_id=event.id,
-            event_ticket_type_id=ticket_type_std.id,
+            event_ticket_type_id=ticket_type_std.id if ticket_type_std else 2,
             seat_total="20",
             price=200000.0,
-            # is_available=True
         )
         db.session.add_all([event_seat_vip, event_seat_std])
 
-        # 4. Sinh danh sách Ghế thực tế (Seat)
+        # 3. Sinh danh sách Ghế thực tế (Seat)
         for i in range(1, 6):
             db.session.add(Seat(
                 seat_code=f"VIP-{i:02d}",
                 is_active=True,
                 event_id=event.id,
-                event_ticket_type_id=ticket_type_vip.id
+                event_ticket_type_id=ticket_type_vip.id if ticket_type_vip else 1
             ))
         for i in range(1, 11):
             db.session.add(Seat(
                 seat_code=f"STD-{i:02d}",
                 is_active=True,
                 event_id=event.id,
-                event_ticket_type_id=ticket_type_std.id
+                event_ticket_type_id=ticket_type_std.id if ticket_type_std else 2
             ))
 
-        # 5. Tạo Mã giảm giá (DiscountModel)
+        # 4. Tạo Mã giảm giá (DiscountModel)
         discount = DiscountModel(
             code="HE2026",
             value=20.0,
@@ -282,8 +301,10 @@ def seed_events_and_details():
         print("\n🎉 ĐÃ TẠO XONG TOÀN BỘ DỮ LIỆU MẪU!")
         print("\n--- BỘ THÔNG SỐ TEST POSTMAN ---")
         print(f"• event_id      : {event.id}")
-        print(f"• seat_type_id  : {ticket_type_vip.id} (Vé VIP - 500k)")
-        print(f"• seat_type_id  : {ticket_type_std.id} (Vé Thường - 200k)")
+        if ticket_type_vip:
+            print(f"• seat_type_id  : {ticket_type_vip.id} ({ticket_type_vip.name} - 500k)")
+        if ticket_type_std:
+            print(f"• seat_type_id  : {ticket_type_std.id} ({ticket_type_std.name} - 200k)")
         print(f"• discount_id   : {discount.id}")
         print("---------------------------------\n")
 
@@ -291,6 +312,23 @@ def seed_events_and_details():
         db.session.rollback()
         print(f"❌ Seed dữ liệu Sự kiện thất bại: {e}")
 
+
+def seed_event_ticket_types():
+    """Seed danh mục Loại vé (EventTicketType)."""
+    print("🌱 Bắt đầu seed data cho EventTicketType...")
+    try:
+        for item in EVENT_TICKET_TYPES_DATA:
+            ticket_type = EventTicketType(
+                name=item["name"],
+                description=item["description"]
+            )
+            db.session.add(ticket_type)
+
+        db.session.commit()
+        print("✅ Seed data EventTicketType thành công!")
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Seed data EventTicketType thất bại: {e}")
 
 # ----------------------------------------------------------------------
 # 4. CHƯƠNG TRÌNH CHÍNH
@@ -301,10 +339,11 @@ app = create_app()
 if __name__ == '__main__':
     with app.app_context():
         print("🚀 Bắt đầu quá trình Reset & Seed Data...")
-        clear_data()               # Step 1: Xóa toàn bộ bảng & reset ID
-        seed_locations()           # Step 2: Seed Cây địa điểm
-        seed_event_categories()    # Step 3: Seed Danh mục
-        seed_companies()           # Step 4: Seed Công ty (Cần Location)
-        seed_users()               # Step 5: Seed User
-        seed_events_and_details()  # Step 6: Seed Event, TicketType, Seat, Discount
+        clear_data()  # Step 1: Xóa toàn bộ bảng & reset ID
+        seed_locations()  # Step 2: Seed Cây địa điểm
+        seed_event_categories()  # Step 3: Seed Danh mục Sự kiện
+        seed_event_ticket_types()  # Step 4: Seed Loại vé (MỚI THÊM)
+        seed_companies()  # Step 5: Seed Công ty
+        seed_users()  # Step 6: Seed User
+        seed_events_and_details()  # Step 7: Seed Event, Seat, Discount
         print("✨ Hoàn tất toàn bộ quy trình!")
