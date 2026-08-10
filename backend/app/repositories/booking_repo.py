@@ -9,7 +9,7 @@ def get_seat_isempty_for_event(event, seatTypeId):
         Seat.event_id == event.id,
         Seat.event_ticket_type_id == seatTypeId,
         Seat.is_active == True
-    ).order_by(func.rand()).with_for_update().first()
+    ).order_by(func.random()).with_for_update().first()
     return seat
 
 def get_price_config_for_seat(event_id, seat_type_id):
@@ -19,7 +19,10 @@ def get_price_config_for_seat(event_id, seat_type_id):
     ).first()
 
 def find_discount_by_id(discount_id):
-    return DiscountModel.query.get(discount_id)
+    return db.session.get(DiscountModel, discount_id)
+
+def get_seat(seat_id):
+    return db.session.get(Seat, seat_id)
 
 def find_discounts_by_event_id(event_id):
     return DiscountModel.query.filter(

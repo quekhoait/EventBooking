@@ -81,7 +81,7 @@ def test_repayment_valid_returns_existing_url(logged_in_user, mocker):
     )
     db.session.add_all([ticket, payment])
     db.session.commit()
-    mocker.patch('app.services.payment_services.booking_services.get_seat', return_value=mocker.Mock(is_active=1))
+    mocker.patch('app.services.payment_services.booking_repo.get_seat', return_value=mocker.Mock(is_active=1))
     data = PaymentRequest().load({"ticket_code": "TCK00003", "method": "momo"})
     res = payment_services.create(data)
     assert res == "https://momo.vn/pay/OLD_URL"
@@ -116,7 +116,7 @@ def test_repayment_failure_cases(logged_in_user, mocker, seat_active, payment_st
     db.session.add_all([ticket, payment])
     db.session.commit()
     mock_seat = Seat(id=100, seat_code="A100", is_active=seat_active)
-    mocker.patch('app.services.payment_services.booking_services.get_seat', return_value=mock_seat)
+    mocker.patch('app.services.payment_services.booking_repo.get_seat', return_value=mock_seat)
 
     data = PaymentRequest().load({"ticket_code": "TCK_REPAY_TEST", "method": "momo"})
 
@@ -206,7 +206,7 @@ def test_refund_success_and_release_seat(logged_in_user, mocker):
     mock_strategy = mocker.Mock()
     mock_strategy.refund.return_value = 0
     mocker.patch.dict(payment_context.method_payment, {"momo": mock_strategy})
-    mocker.patch('app.services.payment_services.booking_services.get_seat', return_value=seat)
+    mocker.patch('app.services.payment_services.booking_repo.get_seat', return_value=seat)
 
     data = PaymentRequest().load({"ticket_code": "TCK00001", "method": "momo"})
     payment_services.refund(data)
@@ -282,7 +282,7 @@ def test_all_services_commit_exception_triggers_rollback(logged_in_user, mocker,
     mocker.patch.object(payment_context, 'refund', return_value=0)
     mocker.patch.object(payment_context, 'create', return_value={"payUrl": "https://momo.vn/pay/123"})
     mocker.patch.object(payment_context, 'transaction', return_value={"resultCode": 0})
-    mocker.patch('app.services.payment_services.booking_services.get_seat', return_value=seat)
+    mocker.patch('app.services.payment_services.booking_repo.get_seat', return_value=seat)
 
     mocker.patch('app.services.payment_services.db.session.commit', side_effect=Exception("Database Connection Lost"))
     mock_rollback = mocker.patch('app.services.payment_services.db.session.rollback')

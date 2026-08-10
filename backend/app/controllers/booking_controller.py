@@ -12,6 +12,7 @@ booking_api = Blueprint('booking_api', __name__, url_prefix='/bookings')
 
 
 @booking_api.route('/create', methods=['POST'])
+# @jwt_required()
 def create():
     data = request.get_json()
     data = CreateTicketRequestDTO().load(data)
@@ -26,6 +27,7 @@ def create():
 
 #xem chi tiet vé
 @booking_api.route('/details', methods=['GET'])
+# @jwt_required()
 def get_details():
     data = request.get_json()
     validated_data = TicketDetailRequest().load(data)
@@ -40,6 +42,7 @@ def get_details():
 
 #xem lịch sử (lấy toàn bộ vé của user)
 @booking_api.route('/list', methods=['GET'])
+# @jwt_required()
 def list_tickets():
     response = booking_services.list_tickets()
     result = TicketListResponse(many=True).dump(response)
@@ -50,6 +53,7 @@ def list_tickets():
 
 #hủy vé\
 @booking_api.route('/cancel', methods=['POST'])
+# @jwt_required()
 def cancel():
     data = request.get_json()
     data = PaymentRequest().load(data)

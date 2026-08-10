@@ -27,7 +27,7 @@ def create(data):
     payment = check_payment(data.ticket_code)
     # Nếu thanh toán lại
     if payment:
-        seat = booking_services.get_seat(payment.ticket.seat_id)
+        seat = booking_repo.get_seat(payment.ticket.seat_id)
 
         if seat.is_active == 0:
             raise AppException("Ticket seat not active!", status_code=403)
@@ -85,7 +85,7 @@ def refund(data):
                 payment.type = PaymentType.REFUND
                 payment.status = PaymentStatus.SUCCESS
                 payment.ticket.status = TicketStatus.REFUNDED
-                seat = booking_services.get_seat(payment.ticket.seat_id)
+                seat = booking_repo.get_seat(payment.ticket.seat_id)
                 seat.is_active = True
                 db.session.add(payment)
             db.session.commit()

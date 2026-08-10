@@ -16,6 +16,12 @@ from app.repositories import booking_repo, event_repo
 from flask_mail import Message
 from app import mail
 
+def check_authorization():
+    user_id = get_jwt_identity()
+    if not user_id:
+        raise AppException(ErrorCode.UNAUTHORIZED)
+    return user_id
+
 def generate_random_code(length=8):
     chars = string.ascii_uppercase + string.digits
     return ''.join(random.choices(chars, k=length))
@@ -43,17 +49,9 @@ def use_discount(discount_id, price):
     return price, None
 
 
-
-
-def get_seat(seat_id):
-    return Seat.query.get(seat_id)
-
-
 def create(data: CreateTicketRequestDTO):
-    # user_id = get_jwt_identity
-    user_id = 1
-    # if not user_id:
-    #     raise AppException(ErrorCode.USER_NOT_FOUND)
+    user_id = check_authorization()
+    # user_id = 1
     event = event_repo.find_event_by_id(data.event_id)
     if not event:
         raise AppException(ErrorCode.NOT_FOUND)
@@ -69,7 +67,7 @@ def create(data: CreateTicketRequestDTO):
     final_price, discount_id = use_discount(discount_id_input, price_config)
 
     ticket_code = generate_random_code(8)
-    while TicketModel.query.get(ticket_code):
+    while db.session.get(TicketModel, ticket_code) is not None:
         ticket_code = generate_random_code(8)
 
     new_ticket = TicketModel(
@@ -89,23 +87,17 @@ def create(data: CreateTicketRequestDTO):
     return new_ticket
 
 def get_by_code(data: TicketResponse):
-    # user_id = get_jwt_identity
-    user_id = 1
-    # if not user_id:
-    #     raise AppException(ErrorCode.USER_NOT_FOUND)
-
+    user_id = check_authorization()
+    # user_id = 1
     ticket = booking_repo.get_ticket_details(data.code)
     if not ticket:
         raise AppException(ErrorCode.NOT_FOUND)
-    # if user_id != ticket.user_id:
-    #     raise AppException(ErrorCode.NOT_FOUND)
+    if user_id != ticket.user_id:
+        raise AppException(ErrorCode.NOT_FOUND)
     return ticket
 
 def list_tickets():
-    # user_id = get_jwt_identity()
-    user_id = 1
-    # if not user_id:
-    #     raise AppException(ErrorCode.USER_NOT_FOUND)
+    user_id = check_authorization()
     tickets = booking_repo.get_list(user_id)
     return tickets
 
@@ -120,7 +112,7 @@ def send_ticket(ticket_code):
     - Mã vé: {ticket.code}
     - Tên sự kiện: {ticket.seat.event.name}
     - Thời gian: {ticket.seat.event.event_start_time}
-    - Địa điểm: {ticket.seat.event.location_name}
+    - Địa điểm: {ticket.seat.event}
     - Số ghế: {ticket.seat.seat_code}
     - Giá vé: {ticket.price}
     ----------------------------------------
@@ -140,11 +132,9 @@ def send_ticket(ticket_code):
 
 
 def cancel_ticket(data):
+    user_id = check_authorization()
+    # user_id = 1
     ticket_code = data.get('ticket_code') if isinstance(data, dict) else getattr(data, 'ticket_code', None)
-
-    # user_id = get_jwt_identity()
-    user_id = 1
-
     ticket = booking_repo.find_ticket_by_code(ticket_code)
     if not ticket:
         raise AppException("Không tìm thấy thông tin vé!", status_code=404)

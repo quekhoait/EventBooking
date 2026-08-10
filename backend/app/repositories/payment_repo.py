@@ -5,6 +5,7 @@ from app.dto.payment_dto import MomoPaymentCallbackRequest
 from app.errors.ErrorCode import ErrorCode
 from app.models import PaymentModel, PaymentStatus, PaymentType
 from app.models.TicketModel import TicketStatus
+from app.repositories import booking_repo
 from app.services import booking_services
 from app.utils.errors import NotFoundError
 from app import db
@@ -36,7 +37,7 @@ def update_payment_result_momo(data: dict):
     payment.transaction_id = data.get('transId')
     payment.status = PaymentStatus.SUCCESS if data.get('resultCode') == 0 else PaymentStatus.FAILED
     payment.ticket.status = TicketStatus.SUCCESS if data.get('resultCode') == 0 else TicketStatus.PENDING
-    seat = booking_services.get_seat(payment.ticket.seat_id)
+    seat = booking_repo.get_seat(payment.ticket.seat_id)
     seat.is_active = False if data.get('resultCode') == 0 else True
     db.session.add(payment)
     return payment

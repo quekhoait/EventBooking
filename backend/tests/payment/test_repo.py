@@ -56,7 +56,7 @@ def test_get_payment_by_code():
     result_none = payment_repo.get_payment_by_ticket_code("TCK_NOT_EXIST")
     assert result_none is None
 
-@patch('app.services.booking_services.get_seat')
+@patch('app.services.booking_services.booking_repo.get_seat')
 def test_update_payment_result_code_success(mock_service):
     seat = Seat(id = 5, seat_code="VIP_1", is_active=True, event_id=1, event_ticket_type_id=1)
     mock_service.return_value = seat
@@ -78,7 +78,7 @@ def test_update_payment_result_code_success(mock_service):
     assert result.ticket.status == TicketStatus.SUCCESS
     assert seat.is_active == False
 
-@patch('app.services.booking_services.get_seat')
+@patch('app.services.booking_services.booking_repo.get_seat')
 def test_update_payment_result_code_failed(mock_service):
     seat = Seat(id = 1, seat_code="VIP_2", is_active=True, event_id=1, event_ticket_type_id=1)
     mock_service.return_value = seat

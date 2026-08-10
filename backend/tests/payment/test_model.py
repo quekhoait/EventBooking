@@ -48,12 +48,13 @@ def test_create_payment_success_and_defaults(client):
     assert saved_payment.type == PaymentType.PAYMENT
 
 
-# def test_payment_ticket_foreign_key_constraint(client):
-#     payment = PaymentModel(code="PAY_INVALID", ticket_code="NOT_EXIST", amount=100000.0)
-#     db.session.add(payment)
-#     with pytest.raises(IntegrityError):
-#         db.session.commit()
-#     db.session.rollback()
+def test_payment_ticket_foreign_key_constraint(client):
+    db.session.execute(text("PRAGMA foreign_keys = ON;"))
+    payment = PaymentModel(code="PAY_INVALID", ticket_code="NOT_EXIST", amount=100000.0)
+    db.session.add(payment)
+    with pytest.raises(IntegrityError):
+        db.session.commit()
+    db.session.rollback()
 
 def test_ticket_payments_relationship(client):
     ticket = TicketModel(code="TCK00004", user_id=1, seat_id=1, price=100000.0)
