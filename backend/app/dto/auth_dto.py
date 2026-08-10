@@ -3,7 +3,7 @@ from marshmallow import ValidationError, fields, validate
 from app.dto import BaseSchema
 
 
-class RegisterDto(BaseSchema):
+class RegisterRequestDto(BaseSchema):
     username = fields.String(required=True)
     email = fields.Email(required=True)
     password = fields.String(required=True)
@@ -17,17 +17,22 @@ class RegisterDto(BaseSchema):
             )
 
 
-class VerifyEmailDto(BaseSchema):
+class VerifyEmailRequestDto(BaseSchema):
     email = fields.Email(required=True)
     verification_code = fields.String(required=True)
 
 
-class LoginDto(BaseSchema):
+class ResendOTPRequestDto(BaseSchema):
+    email = fields.Email(required=True)
+
+
+class LoginRequestDto(BaseSchema):
+
     email = fields.Email(required=True)
     password = fields.String(required=True)
 
 
-class UserProviderDto(BaseSchema):
+class UserProviderRequestDto(BaseSchema):
     provider = fields.String(
         required=True, validate=validate.OneOf(["google", "email"])
     )

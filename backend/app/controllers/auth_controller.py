@@ -1,16 +1,15 @@
-import secrets
-from urllib.parse import urlencode
+from flask_jwt_extended import jwt_required
+from backend.app.dto.user_dto import UserResponseDto
 from config import Config
 
-from flask import Blueprint, redirect, render_template, session
+from flask import Blueprint
 from flask import request
 from marshmallow import ValidationError
+from app.dto import auth_dto
 
-from app.dto.auth_dto import LoginDto, RegisterDto, VerifyEmailDto
 from app.utils.exception import AppException
 from app.services import auth_services
 from app.utils.json import NewPackage, StatusResponse
-from app.repositories import user_repo
 
 auth_api = Blueprint("auth_api", __name__, url_prefix="/auth")
 
@@ -20,20 +19,20 @@ def register():
 
     try:
         data = request.get_json()
-        validated_data = RegisterDto().load(data)
-        user, otp = auth_services.register_with_email(validated_data)
-
+        validated_data = auth_dto.RegisterRequestDto().load(data)
+        user_response = auth_services.register_with_email(validated_data)
+        result = UserResponseDto().dump(user_response)
         return NewPackage(
             status=StatusResponse.SUCCESS,
-            message="OTP sent successfully. Please check your email for the verification code.",
-            data={"user_id": user.id, "email": user.email},
+            message="Đã gửi OTP đến email của bạn. Vui lòng kiểm tra email để xác thực tài khoản.",
+            data=result,
             status_code=201,
         )
     except ValidationError as e:
         return NewPackage(
             status=StatusResponse.ERROR,
-            message="Invalid input data",
-            data={"errors": e.messages},
+            message="Validation error",
+            data=e.messages,
             status_code=400,
         )
     except AppException as e:
@@ -44,267 +43,153 @@ def register():
         )
 
 
-# @auth_api.route("/verify-otp", methods=["POST"])
-# def verify_otp():
-
-#     try:
-
-#         data = request.get_json()
-
-#         validated_data = VerifyEmailDto().load(data)
-
-#         user = auth_services.verify_email_otp(validated_data)
-
-#         return NewPackage(
-#             status=StatusResponse.SUCCESS,
-#             message="User registered successfully",
-#             data={
-#                 "user_id": user.id,
-#                 "email": user.email,
-#             },
-#             status_code=200,
-#         )
-
-#     except ValidationError as e:
-
-#         return NewPackage(
-#             status=StatusResponse.ERROR,
-#             message="Invalid OTP data",
-#             data={"errors": e.messages},
-#             status_code=400,
-#         )
-
-#     except AppException as e:
-
-#         return NewPackage(
-#             status=StatusResponse.ERROR,
-#             message=e.message,
-#             status_code=e.status_code,
-#         )
-
-
-@auth_api.route("/verify-email", methods=["GET"])
-def verify_email_page():
-
-    email = request.args.get("email")
-
-    if not email:
-        return "Email is required", 400
-
-    # Lấy OTP hiện tại của email
-    otp = user_repo.get_active_otp(email)
-
-    if not otp:
-        return render_template(
-            "auth/verify_otp.html",
-            email=email,
-            expires_at=None,
-            error="OTP has expired. Please request a new OTP.",
-        )
-
-    return render_template(
-        "auth/verify_otp.html", email=email, expires_at=otp.expires_at.isoformat()
-    )
-
-
 @auth_api.route("/verify-otp", methods=["POST"])
 def verify_otp():
 
-    email = request.form.get("email")
-
     try:
-        data = request.form.to_dict()
-        validated_data = VerifyEmailDto().load(data)
-        user = auth_services.verify_email_otp(validated_data)
+        data = request.get_json()
+        validated_data = auth_dto.VerifyEmailRequestDto().load(data)
+        user_response = auth_services.verify_email_otp(validated_data)
+        result = auth_dto.UserResponseDto().dump(user_response)
 
-        return render_template("auth/verify_success.html", user=user)
-
+        return NewPackage(
+            status=StatusResponse.SUCCESS,
+            message="Xác thực email thành công",
+            data=result,
+            status_code=200,
+        )
     except ValidationError as e:
-
-        otp = user_repo.get_active_otp(email)
-
-        return (
-            render_template(
-                "auth/verify_otp.html",
-                email=email,
-                expires_at=(otp.expires_at.isoformat() if otp else None),
-                error="Invalid OTP. Please try again.",
-            ),
-            400,
+        return NewPackage(
+            status=StatusResponse.ERROR,
+            message="Validation error",
+            data=e.messages,
+            status_code=400,
         )
-
     except AppException as e:
-
-        otp = user_repo.get_active_otp(email)
-
-        return (
-            render_template(
-                "auth/verify_otp.html",
-                email=email,
-                expires_at=(otp.expires_at.isoformat() if otp else None),
-                error=e.message,
-            ),
-            e.status_code,
+        return NewPackage(
+            status=StatusResponse.ERROR,
+            message=e.message,
+            status_code=e.status_code,
         )
+
+
+# @auth_api.route("/verify-email", methods=["GET"])
+# def verify_email_page():
+
+#     email = request.args.get("email")
+
+#     if not email:
+#         return "Email is required", 400
+
+#     # Lấy OTP hiện tại của email
+#     otp = user_repo.get_active_otp(email)
+
+#     if not otp:
+#         return render_template(
+#             "auth/verify_otp.html",
+#             email=email,
+#             expires_at=None,
+#             error="OTP has expired. Please request a new OTP.",
+#         )
+
+#     return render_template(
+#         "auth/verify_otp.html", email=email, expires_at=otp.expires_at.isoformat()
+#     )
 
 
 @auth_api.route("/resend-otp", methods=["POST"])
 def resend_otp():
     try:
         data = request.get_json()
-        email = data.get("email")
-        if not email:
-            return NewPackage(
-                status=StatusResponse.ERROR,
-                message="Email is required",
-                status_code=400,
-            )
-
-        result = auth_services.re_send_otp(email)
+        validated_data = auth_dto.ResendOTPRequestDto().load(data)
+        response = auth_services.re_send_otp(validated_data.email)
 
         return NewPackage(
             status=StatusResponse.SUCCESS,
-            message="OTP resent successfully",
+            message={response["message"]},
             status_code=200,
         )
-
     except AppException as e:
         return NewPackage(
             status=StatusResponse.ERROR,
             message=e.message,
             status_code=e.status_code,
         )
+    except ValidationError as e:
+        return NewPackage(
+            status=StatusResponse.ERROR,
+            message="Validation error",
+            data=e.messages,
+            status_code=400,
+        )
 
 
+# trả về link đăng nhập
 @auth_api.route("/google/login", methods=["GET"])
 def initiate_google_login():
-    state = secrets.token_urlsafe(16)
-    session["oauth_state"] = state
-    google_auth_url = Config.GOOGLE_AUTH_URL
-    params = {
-        "client_id": Config.GOOGLE_CLIENT_ID,
-        "redirect_uri": Config.GOOGLE_REDIRECT_URL,
-        "response_type": "code",
-        "scope": Config.GOOGLE_CLIENT_SCOPE,
-        "state": state,
-        "prompt": "consent",
-        "access_type": "offline",
-    }
-
-    url = f"{google_auth_url}?{urlencode(params)}"
+    init_url = auth_services.initiate_google_login()
 
     return NewPackage(
         status=StatusResponse.SUCCESS,
-        message="Google auth URL generated",
-        data={"auth_url": url},
+        message="Đã tạo liên kết đăng nhập Google thành công.",
+        data={"auth_url": init_url},
         status_code=200,
     )
 
 
 @auth_api.route("/google/callback", methods=["POST", "GET"])
 def handle_google_callback():
-    try:
 
-        if request.method == "GET":
-            data = {
-                "code": request.args.get("code"),
-                "state": request.args.get("state"),
-            }
-
-            error = request.args.get("error")
-            if error:
-                return NewPackage(
-                    status=StatusResponse.ERROR,
-                    message=f"Google Auth Error: {error}",
-                    status_code=400,
-                )
-        else:
-
-            data = request.get_json(silent=True) or {}
-
-        print(f"Received data from Google callback: {data}")
-
-        result = auth_services.login_with_google(data)
-        print(f"Google login result: {result}")
-
-        user = {
-            "id": result.id,
-            "email": result.email,
-            "username": result.username,
-            "is_verified": result.is_verified,
+    if request.method == "GET":
+        data = {
+            "code": request.args.get("code"),
+            "state": request.args.get("state"),
         }
 
-        print(f"User data to be sent in response: {user}")
-        return NewPackage(
-            status=StatusResponse.SUCCESS,
-            message="Google login successful",
-            data=user,
-            status_code=200,
-        )
-    except ValidationError as e:
-        return NewPackage(
-            status=StatusResponse.ERROR,
-            message="Invalid input data",
-            data={"errors": e.messages},
-            status_code=400,
-        )
-    except AppException as e:
-        return NewPackage(
-            status=StatusResponse.ERROR,
-            message=e.message,
-            status_code=e.status_code,
-        )
+        error = request.args.get("error")
+        if error:
+            return NewPackage(
+                status=StatusResponse.ERROR,
+                message=f"Google Auth Error: {error}",
+                status_code=400,
+            )
+    else:
+        data = request.get_json(silent=True) or {}
+
+    print(f"Received data from Google callback: {data}")
+    user_response = auth_services.login_with_google(data)
+    result = UserResponseDto().dump(user_response)
+    print(f"User data to be sent in response: {result}")
+
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        message="Đang nhập bằng Google thành công",
+        data=result,
+        status_code=200,
+    )
 
 
 @auth_api.route("/login", methods=["POST"])
 def login():
-    try:
-        data = request.get_json()
-        validated_data = LoginDto().load(data)
-        result = auth_services.login(validated_data)
+    data = request.get_json()
+    validated_data = auth_dto.LoginRequestDto().load(data)
+    user_response = auth_services.login(validated_data)
+    result = auth_dto.UserResponseDto().dump(user_response)
 
-        return NewPackage(
-            status=StatusResponse.SUCCESS,
-            message="Login successful",
-            data=result,
-            status_code=200,
-        )
-    except ValidationError as e:
-        return NewPackage(
-            status=StatusResponse.ERROR,
-            message="Invalid input data",
-            data={"errors": e.messages},
-            status_code=400,
-        )
-    except AppException as e:
-        return NewPackage(
-            status=StatusResponse.ERROR,
-            message=e.message,
-            status_code=e.status_code,
-        )
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        message="Đăng nhập thành công",
+        data=result,
+        status_code=200,
+    )
 
 
 @auth_api.route("/logout", methods=["POST"])
+@jwt_required()
 def logout():
-    try:
-        current_user_id = getattr(request, "user_id", None)
-        if not current_user_id:
-            return NewPackage(
-                status=StatusResponse.ERROR,
-                message="User not authenticated",
-                status_code=401,
-            )
-
-        result = auth_services.logout(current_user_id)
-        return NewPackage(
-            status=StatusResponse.SUCCESS,
-            message="Logout successful",
-            data=result,
-            status_code=200,
-        )
-    except AppException as e:
-        return NewPackage(
-            status=StatusResponse.ERROR,
-            message=e.message,
-            status_code=e.status_code,
-        )
+    response = auth_services.logout()
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        message=response["message"],
+        status_code=200,
+    )

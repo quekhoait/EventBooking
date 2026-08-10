@@ -41,6 +41,10 @@ def find_by_user_provider(user_id, provider):
     return UserAuthMethod.query.filter_by(user_id=user_id, provider=provider).first()
 
 
+def get_provider(user_id):
+    return UserAuthMethod.query.filter_by(user_id=user_id).all()
+
+
 def create_user_provider(user_id, provider, provider_id, refresh_token):
     auth_method = UserAuthMethod(
         user_id=user_id,

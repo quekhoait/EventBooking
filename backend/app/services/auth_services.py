@@ -1,20 +1,24 @@
 from datetime import datetime, timedelta
 import email
 from types import SimpleNamespace
+from urllib.parse import urlencode
 
 import requests
 from config import Config
 from flask_jwt_extended import create_access_token, create_refresh_token, current_user
 
-from app.dto.auth_dto import LoginDto, RegisterDto
+from app.dto.auth_dto import LoginDto, LoginRequestDto, RegisterDto
 from app.utils.exception import AppException
 from app.repositories import user_repo
 from app import mail, db
 from flask_mail import Message
-from flask import current_app, url_for
+from flask import current_app, url_for, session
 import bcrypt
 
 from app.models import UserProvider
+
+import secrets
+from urllib.parse import urlencode
 
 
 def generate_token(user):
@@ -47,34 +51,40 @@ def send_otp(email, otp_code):
         )
 
         message.body = f"""
-Your OTP code is:
+            Xin chào,
 
-{otp_code}
+            Mã OTP xác thực email của bạn là:
 
-Verify your email:
-{verify_url}
+            {otp_code}
 
-This code will expire in 5 minutes.
-"""
+            Mã OTP có hiệu lực trong 2 phút.
+
+            Bạn có thể xác thực email bằng cách nhấp vào liên kết sau:
+            {verify_url}
+
+            Vui lòng không chia sẻ mã OTP này với bất kỳ ai.
+
+            Trân trọng,
+            Đội ngũ hỗ trợ.
+            """
 
         mail.send(message)
 
         print(f"[EMAIL] Sent OTP to {email}")
 
     except Exception as e:
-        print("[EMAIL ERROR]", repr(e))
-        raise
+        raise AppException(f"Gửi email OTP thất bại: {str(e)}", status_code=500)
 
 
 def register_with_email(data: RegisterDto):
     user = user_repo.find_one(email=data.email)
 
     if user:
-        raise AppException("Email already exists", status_code=400)
+        raise AppException("Email này đã được sử dụng", status_code=400)
 
     user = user_repo.find_one(username=data.username)
     if user:
-        raise AppException("Username already exists", status_code=400)
+        raise AppException("Tên người dùng đã tồn tại", status_code=400)
 
     try:
         otp_code = _generate_otp(6)  # Generate a random OTP code
@@ -110,10 +120,10 @@ def register_with_email(data: RegisterDto):
         )  # Log the expiration time for debugging
 
         send_otp(data.email, otp_code)  # Send the OTP to the user's email)
-        return (user, otp)
+        return user
     except Exception as e:
         raise AppException(
-            f"Error occurred while registering user: {str(e)}", status_code=500
+            f"Đã xảy ra lỗi khi đăng ký người dùng: {str(e)}", status_code=500
         )
 
 
@@ -128,17 +138,17 @@ def verify_email_otp(data):
     print(f"User is_verified :", user.is_verified if user else None)
 
     if not user:
-        raise AppException("User not found", status_code=404)
+        raise AppException("Người dùng không tồn tại", status_code=404)
 
     email_otp = user_repo.find_otp_laster_by_email(data.email)
     if not email_otp:
-        raise AppException("OTP not found", status_code=404)
+        raise AppException("Mã OTP không tồn tại", status_code=404)
 
     if not bcrypt.checkpw(
         data.verification_code.encode("utf-8"),
         email_otp.otp_code_hash.encode("utf-8"),
     ):
-        raise AppException("Invalid OTP", status_code=400)
+        raise AppException("Mã OTP không hợp lệ", status_code=400)
 
     user.is_verified = True
     provider = user_repo.find_by_user_provider(user.id, UserProvider.EMAIL.value)
@@ -154,7 +164,7 @@ def verify_email_otp(data):
 def re_send_otp(email: str):
     user = user_repo.find_one(email=email)
     if not user:
-        raise AppException("User not found", status_code=404)
+        raise AppException("Người dùng không tồn tại", status_code=404)
 
     user_repo.delete_email_otp(user.email)  # Delete existing OTPs for the user
 
@@ -171,7 +181,27 @@ def re_send_otp(email: str):
     db.session.commit()
 
     send_otp(email, otp_code)
-    return {"message": "OTP sent successfully"}
+    return {"message": "OTP đã được gửi lại thành công"}
+
+
+# khởi tạo đăng nhập với google, trả về link đăng nhập
+def initiate_google_login():
+    state = secrets.token_urlsafe(16)
+    session["oauth_state"] = state
+    google_auth_url = Config.GOOGLE_AUTH_URL
+    params = {
+        "client_id": Config.GOOGLE_CLIENT_ID,
+        "redirect_uri": Config.GOOGLE_REDIRECT_URL,
+        "response_type": "code",
+        "scope": Config.GOOGLE_CLIENT_SCOPE,
+        "state": state,
+        "prompt": "consent",
+        "access_type": "offline",
+    }
+
+    url = f"{google_auth_url}?{urlencode(params)}"
+
+    return url
 
 
 def login_with_google(data):
@@ -230,10 +260,11 @@ def login_with_google(data):
     user = user_repo.find_one(email=data.email)
 
     if not user:
+        # lấy user name trước @
         username = user_repo.generate_unique_username(data.email, data.username)
         user = user_repo.create_user_email(
             email=data.email,
-            username=data.username,
+            username=username,
             password=None,
             is_verified=True,  # Google users are considered verified
         )
@@ -249,22 +280,27 @@ def login_with_google(data):
     return user
 
 
-def login(data: LoginDto):
+def login(data: LoginRequestDto):
     user = user_repo.find_one(email=data.email)
     if not user:
-        raise AppException("User not found", status_code=404)
+        raise AppException("Người dùng không tồn tại", status_code=404)
     if not bcrypt.checkpw(data.password.encode("utf-8"), user.password.encode("utf-8")):
-        raise AppException("Invalid password", status_code=401)
+        raise AppException("Mật khẩu không đúng", status_code=401)
 
+    access_token, refresh_token = generate_token(user)
     return user
 
 
-def logout(user_id):
-    provider = user_repo.find_by_user_provider(
-        current_user.id, UserProvider.EMAIL.value
-    )
-    if provider:
-        provider.refresh_token = None
-        db.session.commit()
+def logout():
+    user = current_user
+    if not user:
+        raise AppException("Người dùng không tồn tại", status_code=404)
 
-    return {"message": "Logged out successfully"}
+    providers = user_repo.get_provider(user.id)
+    for provider in providers:
+        if provider.refresh_token:
+            provider.refresh_token = None
+            db.session.commit()
+            return {"message": "Đã đăng xuất thành công"}
+
+    return {"message": "Không có phương thức xác thực nào để đăng xuất."}
