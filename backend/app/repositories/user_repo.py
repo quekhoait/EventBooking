@@ -11,6 +11,19 @@ def find_one(**kwargs):
     return User.query.filter_by(**kwargs).first()
 
 
+def generate_username_unique(email, username=None):
+    if not username:
+        username = email.split("@")[0]
+
+    unique_username = username
+    counter = 1
+    while find_one(username=unique_username):
+        unique_username = f"{username}_{counter}"
+        counter += 1
+
+    return unique_username
+
+
 def create_user_email(email, username, password, role=None, is_verified=False):
 
     user = User(

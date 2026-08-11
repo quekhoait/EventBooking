@@ -1,11 +1,10 @@
 from flask_jwt_extended import jwt_required
-from backend.app.dto.user_dto import UserResponseDto
-from config import Config
+from app.dto.user_dto import UserResponseDto
 
 from flask import Blueprint
 from flask import request
 from marshmallow import ValidationError
-from app.dto import auth_dto
+from app.dto import auth_dto, user_dto
 
 from app.utils.exception import AppException
 from app.services import auth_services
@@ -50,7 +49,7 @@ def verify_otp():
         data = request.get_json()
         validated_data = auth_dto.VerifyEmailRequestDto().load(data)
         user_response = auth_services.verify_email_otp(validated_data)
-        result = auth_dto.UserResponseDto().dump(user_response)
+        result = user_dto.UserResponseDto().dump(user_response)
 
         return NewPackage(
             status=StatusResponse.SUCCESS,
@@ -86,14 +85,14 @@ def verify_otp():
 
 #     if not otp:
 #         return render_template(
-#             "auth/verify_otp.html",
+#             "services/verify_otp.html",
 #             email=email,
 #             expires_at=None,
 #             error="OTP has expired. Please request a new OTP.",
 #         )
 
 #     return render_template(
-#         "auth/verify_otp.html", email=email, expires_at=otp.expires_at.isoformat()
+#         "services/verify_otp.html", email=email, expires_at=otp.expires_at.isoformat()
 #     )
 
 
@@ -103,10 +102,10 @@ def resend_otp():
         data = request.get_json()
         validated_data = auth_dto.ResendOTPRequestDto().load(data)
         response = auth_services.re_send_otp(validated_data.email)
-
+        result = response["message"]
         return NewPackage(
             status=StatusResponse.SUCCESS,
-            message={response["message"]},
+            message=result,
             status_code=200,
         )
     except AppException as e:
@@ -171,25 +170,41 @@ def handle_google_callback():
 
 @auth_api.route("/login", methods=["POST"])
 def login():
-    data = request.get_json()
-    validated_data = auth_dto.LoginRequestDto().load(data)
-    user_response = auth_services.login(validated_data)
-    result = auth_dto.UserResponseDto().dump(user_response)
+    try:
+        data = request.get_json()
+        validated_data = auth_dto.LoginRequestDto().load(data)
+        user_response = auth_services.login(validated_data)
+        result = user_dto.UserResponseDto().dump(user_response)
 
-    return NewPackage(
-        status=StatusResponse.SUCCESS,
-        message="Đăng nhập thành công",
-        data=result,
-        status_code=200,
-    )
+        return NewPackage(
+            status=StatusResponse.SUCCESS,
+            message="Đăng nhập thành công",
+            data=result,
+            status_code=200,
+        )
+    except AppException as e:
+        return NewPackage(
+            status=StatusResponse.ERROR,
+            message=e.message,
+            status_code=e.status_code,
+        )
+    except ValidationError as e:
+        return NewPackage(
+            status=StatusResponse.ERROR,
+            message="Validation error",
+            data=e.messages,
+            status_code=400,
+        )
+
 
 
 @auth_api.route("/logout", methods=["POST"])
 @jwt_required()
 def logout():
     response = auth_services.logout()
+    result = response["message"]
     return NewPackage(
         status=StatusResponse.SUCCESS,
-        message=response["message"],
+        message=result,
         status_code=200,
     )

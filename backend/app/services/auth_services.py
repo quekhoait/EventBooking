@@ -7,7 +7,6 @@ import requests
 from config import Config
 from flask_jwt_extended import create_access_token, create_refresh_token, current_user
 
-from app.dto.auth_dto import LoginDto, LoginRequestDto, RegisterDto
 from app.utils.exception import AppException
 from app.repositories import user_repo
 from app import mail, db
@@ -38,7 +37,6 @@ def _generate_otp(length=6):
 
 
 def send_otp(email, otp_code):
-
     try:
         verify_url = url_for(
             "api.auth_api.verify_email_page", email=email, _external=True
@@ -76,7 +74,7 @@ def send_otp(email, otp_code):
         raise AppException(f"Gửi email OTP thất bại: {str(e)}", status_code=500)
 
 
-def register_with_email(data: RegisterDto):
+def register_with_email(data):
     user = user_repo.find_one(email=data.email)
 
     if user:
@@ -89,9 +87,10 @@ def register_with_email(data: RegisterDto):
     try:
         otp_code = _generate_otp(6)  # Generate a random OTP code
         password_hash = bcrypt.hashpw(data.password.encode("utf-8"), bcrypt.gensalt())
+        username = user_repo.generate_username_unique(data.email, data.username)
         user = user_repo.create_user_email(
             email=data.email,
-            username=data.username,
+            username=username,
             password=password_hash,
             role=data.role,
         )
@@ -108,18 +107,12 @@ def register_with_email(data: RegisterDto):
             email=data.email,
             otp_code_hash=bcrypt.hashpw(otp_code.encode("utf-8"), bcrypt.gensalt()),
             expires_at=datetime.now()
-            + timedelta(minutes=2),  # Set the expiration time as needed
+                       + timedelta(minutes=2),  # Set the expiration time as needed
         )
 
         db.session.commit()
-        print(
-            f"[OTP] Generated OTP for {data.email}: {otp_code}"
-        )  # Log the OTP for debugging
-        print(
-            f"[OTP] OTP expires at: {otp.expires_at}"
-        )  # Log the expiration time for debugging
 
-        send_otp(data.email, otp_code)  # Send the OTP to the user's email)
+        send_otp(data.email, otp_code)
         return user
     except Exception as e:
         raise AppException(
@@ -145,8 +138,8 @@ def verify_email_otp(data):
         raise AppException("Mã OTP không tồn tại", status_code=404)
 
     if not bcrypt.checkpw(
-        data.verification_code.encode("utf-8"),
-        email_otp.otp_code_hash.encode("utf-8"),
+            data.verification_code.encode("utf-8"),
+            email_otp.otp_code_hash.encode("utf-8"),
     ):
         raise AppException("Mã OTP không hợp lệ", status_code=400)
 
@@ -175,7 +168,7 @@ def re_send_otp(email: str):
         email=email,
         otp_code_hash=bcrypt.hashpw(otp_code.encode("utf-8"), bcrypt.gensalt()),
         expires_at=datetime.now()
-        + timedelta(minutes=2),  # Set the expiration time as needed
+                   + timedelta(minutes=2),  # Set the expiration time as needed
     )
 
     db.session.commit()
@@ -205,7 +198,6 @@ def initiate_google_login():
 
 
 def login_with_google(data):
-
     token_url = "https://oauth2.googleapis.com/token"
     token_data = {
         "code": data["code"],
@@ -219,12 +211,7 @@ def login_with_google(data):
     token_json = token_res.json()
 
     if token_res.status_code != 200 or "error" in token_json:
-        raise AppException(
-            message=token_json.get(
-                "error_description", "Failed to exchange code with Google"
-            ),
-            status_code=400,
-        )
+        raise AppException("Failed to exchange code with Google",status_code=400 )
 
     access_token = token_json.get("access_token")
 
@@ -280,7 +267,7 @@ def login_with_google(data):
     return user
 
 
-def login(data: LoginRequestDto):
+def login(data):
     user = user_repo.find_one(email=data.email)
     if not user:
         raise AppException("Người dùng không tồn tại", status_code=404)

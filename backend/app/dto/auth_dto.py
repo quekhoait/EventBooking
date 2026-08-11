@@ -1,4 +1,4 @@
-from marshmallow import ValidationError, fields, validate
+from marshmallow import ValidationError, fields, validate, validates_schema
 
 from app.dto import BaseSchema
 
@@ -10,6 +10,7 @@ class RegisterRequestDto(BaseSchema):
     role = fields.String(required=True, validate=validate.OneOf(["admin", "user"]))
     confirm_password = fields.String(required=True)
 
+    @validates_schema
     def validate_password(self, data, **kwargs):
         if data["password"] != data["confirm_password"]:
             raise ValidationError(
