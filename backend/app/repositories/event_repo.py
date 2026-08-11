@@ -6,7 +6,7 @@ from sqlalchemy import select, or_, func
 from sqlalchemy.orm import selectinload
 
 from app import db
-from app.models import EventModel, EventStatus
+from app.models import EventModel, EventStatus, User, TicketModel, Seat
 from app.repositories import base_repo
 
 
@@ -123,4 +123,15 @@ def restore_event(event_id: int) -> bool:
 
 def find_event_by_id(event_id):
     return db.session.query(EventModel).filter(EventModel.id == event_id).first()
+
+
+def get_ticket_holder_emails(event_id: int) -> list[str]:
+    stmt = (
+        select(User.email)
+        .join(TicketModel, TicketModel.user_id == User.id)
+        .join(Seat, Seat.id == TicketModel.seat_id)
+        .where(Seat.event_id == event_id)
+        .distinct()
+    )
+    return [email for email in db.session.scalars(stmt).all() if email]
 

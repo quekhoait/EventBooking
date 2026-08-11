@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import Tuple
+
+from flask import current_app
 
 from app import db
 from app.dto.pagination_dto import LoadMoreResponse
@@ -7,17 +8,18 @@ from app.errors.error_code import ErrorCode
 from app.models import EventModel, LocationModel, Company, EventCategory, EventSeat, EventStatus, EventTicketType
 from app.repositories import base_repo, event_repo
 from app.utils.exception import AppException
+from app.utils.signals import event_cancelled_signal
 
 
 def create_and_publish_event(event_dto) -> EventModel:
-    location = _validate_publish_event(event_dto)
+    location, company, category = _validate_publish_event(event_dto)
 
     seats_dto_list = getattr(event_dto, 'event_seats', [])
     if not seats_dto_list:
         raise AppException(ErrorCode.EVENT_MUST_HAVE_SEATS)
 
     # 3. Tạo và lưu Event
-    location_name = location.full_name()
+    location_name = location.full_name
     return _save_event_to_db(event_dto, status=EventStatus.PUBLISHED, location_name=location_name)
 
 
@@ -74,7 +76,6 @@ def get_events_load_more(
         page_size: int = 10,
         **filters
 ) -> LoadMoreResponse[EventModel]:
-
     items, has_next = event_repo.get_events_load_more(
         status=EventStatus.PUBLISHED,
         **filters
@@ -87,6 +88,7 @@ def get_events_load_more(
         has_next=has_next
     )
 
+
 def delete_event(event_id: int) -> bool:
     # 1. Tìm sự kiện (Không bao gồm bản ghi đã xóa mềm)
     event = event_repo.get_event_by_id(event_id)
@@ -96,11 +98,12 @@ def delete_event(event_id: int) -> bool:
     # 2. Check nghiệp vụ: Sự kiện đã PUBLISHED thì không cho xóa
     if event.status == EventStatus.PUBLISHED:
         raise AppException(
-            "Sự kiện đã xuất bản không thể xóa. Vui lòng chuyển trạng thái thành HỦY sự kiện."
+            ErrorCode.EVENT_CANNOT_DELETE_PUBLISHED
         )
 
     # 3. Nếu là DRAFT -> Tiến hành Soft Delete qua Base Repo
     return event_repo.delete_event(event)
+
 
 def cancel_event(event_id: int) -> EventModel:
     """Hủy sự kiện (Chuyển status = CANCELLED)"""
@@ -108,11 +111,20 @@ def cancel_event(event_id: int) -> EventModel:
     if not event:
         raise AppException(ErrorCode.EVENT_NOT_FOUND)
 
-    if event.status == EventStatus.CANCELLED:
-        raise AppException("Sự kiện này đã bị hủy trước đó.")
+    # if event.status == EventStatus.CANCELLED:
+    #     raise AppException(ErrorCode.EVENT_ALREADY_CANCELLED)
 
     event.status = EventStatus.CANCELLED
-    return base_repo.save(event)
+    saved_event = base_repo.save(event)
+
+    # Phát signal kèm theo thông tin event
+    # current_app._get_current_object() được truyền để đảm bảo context đúng khi sang thread khác
+    event_cancelled_signal.send(
+        current_app._get_current_object(),
+        event=saved_event
+    )
+
+    return saved_event
 
 
 def restore_event(event_id: int) -> bool:
@@ -162,7 +174,8 @@ def publish_event(event_id: int) -> EventModel:
         db.session.rollback()
         raise e
 
-def _validate_publish_event(event_dto , exclude_event_id: int | None = None):
+
+def _validate_publish_event(event_dto, exclude_event_id: int | None = None):
     """Kiểm tra toàn bộ điều kiện ràng buộc trước khi Publish Event."""
     now = datetime.now()
 

@@ -11,6 +11,8 @@ class AppException(Exception):
     def __init__(self, error: str | ErrorCode, *args, status_code: int = None):
         super().__init__()
 
+        self.error_code = error if isinstance(error, ErrorCode) else None
+
         # 1. Nếu tham số đầu tiên là ErrorCode Enum
         if isinstance(error, ErrorCode):
             raw_message = error.message

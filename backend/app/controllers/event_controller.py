@@ -24,7 +24,7 @@ def create_event():
     raw_status = str(json_data.get('status', '')).upper()
 
     # 2. Quyết định Schema validate & Service handler
-    if raw_status == EventStatus.PUBLISHED.value: # hoặc EventStatus.PUBLISHED.name tùy cách khai báo Enum
+    if raw_status == EventStatus.PUBLISHED.name: # hoặc EventStatus.PUBLISHED.name tùy cách khai báo Enum
         event_dto = event_publish_schema.load(json_data)
         created_event = event_service.create_and_publish_event(event_dto)
         message = "Xuất bản sự kiện thành công"
@@ -112,7 +112,7 @@ def delete_event(event_id: int):
         status=StatusResponse.SUCCESS,
         data=None,
         message="Xóa sự kiện thành công.",
-        status_code=200
+        status_code=204
     )
 
 @event_bp.route('/events/<int:event_id>/cancel', methods=['PATCH'])

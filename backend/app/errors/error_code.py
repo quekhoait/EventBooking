@@ -53,6 +53,9 @@ class ErrorCode(Enum):
     EVENT_MUST_HAVE_SEATS = ("Sự kiện phải có ít nhất một loại vé/cấu hình ghế khi xuất bản", 400)  # 👈 Bổ sung ở đây
     EVENT_ALREADY_PUBLISHED = ("Sự kiện đã được xuất bản trước đó", 400)
     EVENT_CANCELLED = ("Sự kiện đã bị hủy", 400)
+    EVENT_CANNOT_DELETE_PUBLISHED = ("Sự kiện đã xuất bản không thể xóa. Vui lòng chuyển trạng thái thành HỦY sự kiện.",
+                                     400)
+    EVENT_ALREADY_CANCELLED = ("Sự kiện này đã bị hủy trước đó.", 400)
 
     # ==========================================
     # 6. Ticket & Seat Errors (Đặt vé & Ghế)
