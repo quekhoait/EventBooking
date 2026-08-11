@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 
 import requests
 from config import Config
-from flask_jwt_extended import create_access_token, create_refresh_token, current_user
+from flask_jwt_extended import create_access_token, create_refresh_token, current_user, get_jwt_identity
 
 from app.utils.exception import AppException
 from app.repositories import user_repo
@@ -119,6 +119,21 @@ def register_with_email(data):
             f"Đã xảy ra lỗi khi đăng ký người dùng: {str(e)}", status_code=500
         )
 
+def refresh_token():
+    identity = get_jwt_identity()
+
+    user = user_repo.find_one(id = identity)
+
+    if not user:
+        raise AppException(
+            "Người dùng không tồn tại", status_code=404
+        )
+
+    access_token = generate_token(user.id)[1]
+
+    return {
+        "access_token": access_token
+    }
 
 def verify_email_otp(data):
     user = user_repo.find_one(email=data.email)

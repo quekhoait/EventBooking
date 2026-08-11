@@ -1,3 +1,5 @@
+from http.client import responses
+
 from flask_jwt_extended import jwt_required
 from app.dto.user_dto import UserResponseDto
 
@@ -196,7 +198,16 @@ def login():
             status_code=400,
         )
 
-
+@auth_api.route("/refresh_token", methods=["POST"])
+@jwt_required()
+def refresh_token():
+    response = auth_services.refresh_token()
+    result = response["message"]
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        message=result,
+        status_code=200,
+    )
 
 @auth_api.route("/logout", methods=["POST"])
 @jwt_required()
