@@ -518,3 +518,160 @@ def test_google_callback_app_exception(client, mocker):
     assert response.status_code == 400
 
     mock_service.assert_called_once()
+
+def test_login_success(client, mocker):
+    mock_service = mocker.patch(
+        "app.controllers.auth_controller.auth_services.login"
+    )
+
+    mock_dump = mocker.patch(
+        "app.controllers.auth_controller.UserResponseDto.dump"
+    )
+
+    user = Mock()
+
+    mock_service.return_value = user
+
+    mock_dump.return_value = {
+        "id": 1,
+        "email": "test@gmail.com",
+        "username": "testuser",
+    }
+
+    response = client.post(
+        "/api/auth/login",
+        json={
+            "email": "test@gmail.com",
+            "password": "password123",
+        },
+    )
+
+    assert response.status_code == 200
+
+    mock_service.assert_called_once()
+    mock_dump.assert_called_once_with(user)
+
+
+def test_login_validation_error(client, mocker):
+    mock_service = mocker.patch(
+        "app.controllers.auth_controller.auth_services.login"
+    )
+
+    response = client.post(
+        "/api/auth/login",
+        json={
+            "email": "invalid-email",
+            "password": "password123",
+        },
+    )
+
+    assert response.status_code == 400
+
+    mock_service.assert_not_called()
+
+
+def test_login_missing_password(client, mocker):
+    mock_service = mocker.patch(
+        "app.controllers.auth_controller.auth_services.login"
+    )
+
+    response = client.post(
+        "/api/auth/login",
+        json={
+            "email": "test@gmail.com",
+        },
+    )
+
+    assert response.status_code == 400
+
+    mock_service.assert_not_called()
+
+
+def test_login_app_exception(client, mocker):
+    mock_service = mocker.patch(
+        "app.controllers.auth_controller.auth_services.login"
+    )
+
+    mock_service.side_effect = AppException(
+        "Mật khẩu không đúng",
+        status_code=401,
+    )
+
+    response = client.post(
+        "/api/auth/login",
+        json={
+            "email": "test@gmail.com",
+            "password": "wrong",
+        },
+    )
+
+    assert response.status_code == 401
+
+    mock_service.assert_called_once()
+
+
+def test_logout_success(client, mocker):
+    mock_service = mocker.patch(
+        "app.controllers.auth_controller.auth_services.logout"
+    )
+
+    mock_service.return_value = {
+        "message": "Đã đăng xuất thành công"
+    }
+
+    # Nếu controller có @jwt_required(), phải tạo JWT hợp lệ
+    from flask_jwt_extended import create_access_token
+
+    access_token = create_access_token(identity="1")
+
+    response = client.post(
+        "/api/auth/logout",
+        headers={
+            "Authorization": f"Bearer {access_token}"
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json["message"] == "Đã đăng xuất thành công"
+
+    mock_service.assert_called_once()
+
+
+def test_logout_without_token(client, mocker):
+    mock_service = mocker.patch(
+        "app.controllers.auth_controller.auth_services.logout"
+    )
+
+    response = client.post(
+        "/api/auth/logout"
+    )
+
+    assert response.status_code == 401
+
+    mock_service.assert_not_called()
+
+
+def test_logout_app_exception(client, mocker):
+    mock_service = mocker.patch(
+        "app.controllers.auth_controller.auth_services.logout"
+    )
+
+    mock_service.side_effect = AppException(
+        "Người dùng không tồn tại",
+        status_code=404,
+    )
+
+    from flask_jwt_extended import create_access_token
+
+    access_token = create_access_token(identity="1")
+
+    response = client.post(
+        "/api/auth/logout",
+        headers={
+            "Authorization": f"Bearer {access_token}"
+        },
+    )
+
+    assert response.status_code == 404
+
+    mock_service.assert_called_once()
