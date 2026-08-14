@@ -1,4 +1,3 @@
-from cloudinary.models import CloudinaryField
 
 from app import db
 from sqlalchemy import func
@@ -35,6 +34,7 @@ class Company(BaseModel):
     description = db.Column(db.Text, nullable=True)
     tax_code = db.Column(db.String(50), nullable=True)
     location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
+    is_active =  db.Column(db.Boolean, default=True)
 
     location = db.relationship('LocationModel', backref='companies', lazy=True)
     # events = db.relationship('EventModel', backref='company', lazy=True)
