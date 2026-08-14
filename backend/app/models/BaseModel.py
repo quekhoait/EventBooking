@@ -1,4 +1,3 @@
-from cloudinary.models import CloudinaryField
 
 from app import db
 from sqlalchemy import func
