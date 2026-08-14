@@ -1,3 +1,4 @@
+from cloudinary.models import CloudinaryField
 
 from app import db
 from sqlalchemy import func
@@ -16,7 +17,12 @@ class LocationModel(BaseModel):
     parent_id = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=True)
     children = db.relationship('LocationModel', backref=db.backref('parent', remote_side='LocationModel.id'), lazy=True)
 
-
+    @property
+    def full_name(self):
+        """Trả về tên đầy đủ phân cấp. VD: 'Việt Nam, Hà Nội, Quận Cầu Giấy'"""
+        if self.parent:
+            return f"{self.name}, {self.parent.full_name}"
+        return self.name
 # class Rules(BaseModel):
 #     pass
 
@@ -31,7 +37,7 @@ class Company(BaseModel):
     location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
 
     location = db.relationship('LocationModel', backref='companies', lazy=True)
-    events = db.relationship('EventModel', backref='company', lazy=True)
+    # events = db.relationship('EventModel', backref='company', lazy=True)
 
 
 class Notification(BaseModel):

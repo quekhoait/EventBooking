@@ -8,7 +8,6 @@ from flask_caching import Cache
 from authlib.integrations.flask_client import OAuth
 import cloudinary
 from flask_migrate import Migrate
-
 from app.utils.exception import init_error_handlers
 from config import config
 from flask_mail import Mail
@@ -19,7 +18,6 @@ cache = Cache()
 jwt = JWTManager()
 oauth = OAuth()
 migrate = Migrate()
-
 
 def create_app(config_name=None):
     app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -55,8 +53,16 @@ def create_app(config_name=None):
 
     from .controllers import api as controller_blueprint
     from .routes import routes
+    from app.controllers.event_controller import event_bp
+    from app.utils import listener
+    # from app.controllers.demo_controller import demo_bp
+
     app.register_blueprint(controller_blueprint)
     app.register_blueprint(routes)
     from app.pattern.method_payment import payment_context
     payment_context.init_app(app.config)
+    # app.register_blueprint(demo_bp)
+
+    app.register_blueprint(event_bp)
+
     return app
