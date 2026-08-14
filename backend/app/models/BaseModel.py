@@ -1,4 +1,4 @@
-# from cloudinary.models import CloudinaryField
+from cloudinary.models import CloudinaryField
 
 from app import db
 from sqlalchemy import func
@@ -27,7 +27,7 @@ class LocationModel(BaseModel):
 #     pass
 
 class Company(BaseModel):
-    __tablename__ = 'company'
+    __tablename__ = "company"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     # logo = CloudinaryField(max_length=255, nullable=True)
     name = db.Column(db.String(255), nullable=True)
@@ -41,7 +41,7 @@ class Company(BaseModel):
 
 
 class Notification(BaseModel):
-    __tablename__ = 'notification'
+    __tablename__ = "notification"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(255), nullable=False)
