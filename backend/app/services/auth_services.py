@@ -14,7 +14,7 @@ from flask_mail import Message
 from flask import current_app, url_for, session
 import bcrypt
 
-from app.models import UserProvider
+from app.models import UserProvider, RoleEnum, Company, User
 
 import secrets
 from urllib.parse import urlencode
@@ -73,6 +73,11 @@ def send_otp(email, otp_code):
     except Exception as e:
         raise AppException(f"Gửi email OTP thất bại: {str(e)}", status_code=500)
 
+def generate_hash_password(password):
+    return  bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+
+
+
 
 def register_with_email(data):
     user = user_repo.find_one(email=data.email)
@@ -86,12 +91,11 @@ def register_with_email(data):
 
     try:
         otp_code = _generate_otp(6)  # Generate a random OTP code
-        password_hash = bcrypt.hashpw(data.password.encode("utf-8"), bcrypt.gensalt())
         username = user_repo.generate_username_unique(data.email, data.username)
         user = user_repo.create_user_email(
             email=data.email,
             username=username,
-            password=password_hash,
+            password=generate_hash_password,
             role=data.role,
         )
 

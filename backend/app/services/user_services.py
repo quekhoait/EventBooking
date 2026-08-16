@@ -1,4 +1,5 @@
 from app import db
+from app.models import RoleEnum, Company
 from app.utils.exception import AppException
 from app.repositories import user_repo
 from app.dto.user_dto import UserProfileDto
@@ -26,3 +27,33 @@ def update_profile(user_id, profile_data: UserProfileDto):
         raise AppException(f"Failed to update profile: {str(e)}", status_code=500)
     except ValidationError as e:
         raise AppException(f"Validation error: {e.messages}", status_code=400)
+
+def create_user_company(user_id, data, oauth_provider=None):
+
+    user = user_repo.find_one(id=user_id)
+    role = user.role
+    company_id = data.get("company_id")
+
+    if role == RoleEnum.STAFF.value:
+        if company_id:
+            company = Company.query.get(company_id)
+            if not company:
+                raise ValueError("Company không tồn tại")
+        else:
+            location_id = data.get("location_id")
+            if not location_id:
+                raise ValueError("location_id là bắt buộc khi tạo company")
+
+            company = Company(
+                name=data.get("company_name"),
+                address=data.get("company_address"),
+                tax_code=data.get("tax_code"),
+                description=data.get("description"),
+                location_id=location_id,
+            )
+            db.session.add(company)
+            db.session.flush()
+
+            return company
+
+    return None
