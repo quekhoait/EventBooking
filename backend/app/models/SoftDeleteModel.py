@@ -5,7 +5,7 @@ from app import db
 from .BaseModel import BaseModel
 
 class SoftDeleteModel(BaseModel):
-    __abstract__ =  True
+    __abstract__ = True
 
     deleted_at = db.Column(db.DateTime, nullable=True, default=None)
 
@@ -23,7 +23,7 @@ class SoftDeleteModel(BaseModel):
 @event.listens_for(db.session, "do_orm_execute")
 def _add_soft_delete_filter(execute_state):
     """
-    Tự động chèn điều kiện deleted_at IS NULL cho tất cả các câu SELECT
+    Tự động chèn điều kiện `deleted_at IS NULL` cho tất cả các câu SELECT
     liên quan đến SoftDeleteModel ở cấp độ ORM.
     """
     if (

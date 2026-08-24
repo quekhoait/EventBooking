@@ -124,6 +124,8 @@ def clear_data():
             "company",
             "event_category",
             "location",
+            "ticket",
+            "payment",
             "user" # Thay tên bảng user thực tế trong DB của bạn nếu khác (ví dụ: user / users)
         ]
 

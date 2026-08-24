@@ -6,12 +6,21 @@ from flask_jwt_extended import get_jwt_identity
 import string
 from app import db
 import random
+
+from app.dto.payment_dto import PaymentRequest
 from app.errors.ErrorCode import ErrorCode
 from app.models import EventModel, TicketModel, Seat, PaymentModel, PaymentStatus, EventSeat, DiscountModel
+from app.services import payment_services
 from app.utils.exception import AppException
 from app.repositories import booking_repo, event_repo
 from flask_mail import Message
 from app import mail
+
+def check_authorization():
+    user_id = get_jwt_identity()
+    if not user_id:
+        raise AppException(ErrorCode.UNAUTHORIZED)
+    return user_id
 
 def generate_random_code(length=8):
     chars = string.ascii_uppercase + string.digits
@@ -40,17 +49,9 @@ def use_discount(discount_id, price):
     return price, None
 
 
-def check_payment(ticket_code):
-    payment = booking_repo.find_payment_by_ticket_code(ticket_code)
-    if not payment:
-        raise AppException("Mi chưa thanh toán", status_code=400)
-    return payment
-
 def create(data: CreateTicketRequestDTO):
-    # user_id = get_jwt_identity
-    user_id = 1
-    # if not user_id:
-    #     raise AppException(ErrorCode.USER_NOT_FOUND)
+    user_id = check_authorization()
+    # user_id = 1
     event = event_repo.find_event_by_id(data.event_id)
     if not event:
         raise AppException(ErrorCode.NOT_FOUND)
@@ -66,7 +67,7 @@ def create(data: CreateTicketRequestDTO):
     final_price, discount_id = use_discount(discount_id_input, price_config)
 
     ticket_code = generate_random_code(8)
-    while TicketModel.query.get(ticket_code):
+    while db.session.get(TicketModel, ticket_code) is not None:
         ticket_code = generate_random_code(8)
 
     new_ticket = TicketModel(
@@ -82,31 +83,26 @@ def create(data: CreateTicketRequestDTO):
     except Exception as e:
         db.session.rollback()
         raise AppException(f"Lỗi đặt vé: {str(e)}", status_code=500)
+
     return new_ticket
 
 def get_by_code(data: TicketResponse):
-    # user_id = get_jwt_identity
-    user_id = 1
-    # if not user_id:
-    #     raise AppException(ErrorCode.USER_NOT_FOUND)
-
+    user_id = check_authorization()
+    # user_id = 1
     ticket = booking_repo.get_ticket_details(data.code)
     if not ticket:
         raise AppException(ErrorCode.NOT_FOUND)
-    # if user_id != ticket.user_id:
-    #     raise AppException(ErrorCode.NOT_FOUND)
+    if user_id != ticket.user_id:
+        raise AppException(ErrorCode.NOT_FOUND)
     return ticket
 
 def list_tickets():
-    # user_id = get_jwt_identity()
-    user_id = 1
-    # if not user_id:
-    #     raise AppException(ErrorCode.USER_NOT_FOUND)
+    user_id = check_authorization()
     tickets = booking_repo.get_list(user_id)
     return tickets
 
 
-def send_ticket(ticket_code, email):
+def send_ticket(ticket_code):
     ticket = booking_repo.get_ticket_details(ticket_code)
     body_content = f"""Xin chào {ticket.user.full_name},
 
@@ -116,7 +112,7 @@ def send_ticket(ticket_code, email):
     - Mã vé: {ticket.code}
     - Tên sự kiện: {ticket.seat.event.name}
     - Thời gian: {ticket.seat.event.event_start_time}
-    - Địa điểm: {ticket.seat.event.location_name}
+    - Địa điểm: {ticket.seat.event}
     - Số ghế: {ticket.seat.seat_code}
     - Giá vé: {ticket.price}
     ----------------------------------------
@@ -125,7 +121,7 @@ def send_ticket(ticket_code, email):
     """
     msg = Message(
         subject=f"[EVENT] Xác nhận thông tin vé - {ticket.seat.event.name}",
-        recipients=[email],
+        recipients=[ticket.user.email],
         body=body_content
     )
     try:
@@ -135,5 +131,17 @@ def send_ticket(ticket_code, email):
         raise AppException(f"Gửi mail thất bại: {str(e)}")
 
 
+def cancel_ticket(data):
+    user_id = check_authorization()
+    # user_id = 1
+    ticket_code = data.get('ticket_code') if isinstance(data, dict) else getattr(data, 'ticket_code', None)
+    ticket = booking_repo.find_ticket_by_code(ticket_code)
+    if not ticket:
+        raise AppException("Không tìm thấy thông tin vé!", status_code=404)
+
+    if ticket.user_id != user_id:
+        raise AppException("Bạn không có quyền hủy vé này!", status_code=403)
+
+    return payment_services.refund(data)
 
 

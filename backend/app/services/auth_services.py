@@ -13,8 +13,12 @@ from app import mail, db
 from flask_mail import Message
 from flask import current_app, url_for, session
 import bcrypt
+<<<<<<< HEAD
 
 from app.models import UserProvider, RoleEnum, Company, User
+=======
+from app.models import User, UserProvider
+>>>>>>> c36c9bfe4e2874b51f40f32f876b91e5921b1c9a
 
 import secrets
 from urllib.parse import urlencode
