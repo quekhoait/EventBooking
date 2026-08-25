@@ -1,17 +1,5 @@
+from .UserModel import User, UserAuthMethod, RoleEnum, UserProvider
+from .EventModel import EventModel, EventCategory, EventSeat, EventTicketType, EventStatus, Seat
 from .BaseModel import BaseModel, LocationModel, Company
-from .UserModel import User, EmailOTP, UserAuthMethod, UserProvider, RoleEnum
-from .EventModel import (
-    EventModel,
-    EventCategory,
-    EventSeat,
-    EventTicketType,
-    EventStatus,
-    Seat,
-)
-from .TicketModel import (
-    TicketModel,
-    DiscountModel,
-    PaymentModel,
-    PaymentStatus,
-    PaymentType,
-)
+from .TicketModel import TicketModel, DiscountModel, PaymentModel, PaymentStatus, PaymentType
+from .SoftDeleteModel import SoftDeleteModel

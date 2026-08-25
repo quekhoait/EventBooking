@@ -1,7 +1,7 @@
 from flask import Blueprint
 
 from .booking_controller import booking_api
-<<<<<<< HEAD
+<<<<<<<<< Temporary merge branch 1
 from .auth_controller import auth_api
 =======
 from .payment_controller import payment_api
