@@ -24,6 +24,7 @@ class TicketDetailRequest(BaseSchema):
 class UserDetailResponse(BaseSchema):
     full_name = fields.Str(required=True)
     phone_number = fields.Str(required=True)
+    email = fields.Str(required=True)
 
 class DiscountDetailResponse(BaseSchema):
     code = fields.Str(required=True)

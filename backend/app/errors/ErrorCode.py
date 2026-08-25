@@ -20,6 +20,9 @@ class ErrorCode(Enum):
     # --- System Errors ---
     INTERNAL_SERVER_ERROR = ("Đã xảy ra lỗi hệ thống, vui lòng thử lại sau", 500)
 
+    #payment
+    PAYMENT_NOT_FOUND = ("Không tìm thấy payment", 404)
+
     def __init__(self, message: str, status_code: int):
         self.message = message
         self.status_code = status_code

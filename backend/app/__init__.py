@@ -58,4 +58,10 @@ def create_app(config_name=None):
 
     app.register_blueprint(controller_blueprint)
     app.register_blueprint(routes)
+<<<<<<< HEAD
     return app
+=======
+    from app.pattern.method_payment import payment_context
+    payment_context.init_app(app.config)
+    return app
+>>>>>>> 6c5f404f3d36c6e5283c62669ce7d726b1ea7fcd
