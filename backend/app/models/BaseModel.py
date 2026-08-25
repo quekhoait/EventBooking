@@ -1,4 +1,3 @@
-from cloudinary.models import CloudinaryField
 
 from app import db
 from sqlalchemy import func
@@ -17,12 +16,17 @@ class LocationModel(BaseModel):
     parent_id = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=True)
     children = db.relationship('LocationModel', backref=db.backref('parent', remote_side='LocationModel.id'), lazy=True)
 
-
+    @property
+    def full_name(self):
+        """Trả về tên đầy đủ phân cấp. VD: 'Việt Nam, Hà Nội, Quận Cầu Giấy'"""
+        if self.parent:
+            return f"{self.name}, {self.parent.full_name}"
+        return self.name
 # class Rules(BaseModel):
 #     pass
 
 class Company(BaseModel):
-    __tablename__ = 'company'
+    __tablename__ = "company"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     # logo = CloudinaryField(max_length=255, nullable=True)
     name = db.Column(db.String(255), nullable=True)
@@ -30,13 +34,14 @@ class Company(BaseModel):
     description = db.Column(db.Text, nullable=True)
     tax_code = db.Column(db.String(50), nullable=True)
     location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
+    is_active =  db.Column(db.Boolean, default=True)
 
     location = db.relationship('LocationModel', backref='companies', lazy=True)
-    events = db.relationship('EventModel', backref='company', lazy=True)
+    # events = db.relationship('EventModel', backref='company', lazy=True)
 
 
 class Notification(BaseModel):
-    __tablename__ = 'notification'
+    __tablename__ = "notification"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(255), nullable=False)
