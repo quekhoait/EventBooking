@@ -95,16 +95,6 @@ def register_with_email(data):
         if isinstance(data, dict)
         else getattr(data, "username", None)
     )
-    password = (
-        data.get("password")
-        if isinstance(data, dict)
-        else getattr(data, "password", None)
-    )
-    role = (
-        data.get("role", "user")
-        if isinstance(data, dict)
-        else getattr(data, "role", "user")
-    )
 
     user = user_repo.find_one(email=email)
     if user:
@@ -117,6 +107,7 @@ def register_with_email(data):
     try:
         otp_code = _generate_otp(6)  # Generate a random OTP code
         username = user_repo.generate_username_unique(data.email, data.username)
+
         user = user_repo.create_user_email(
             email=email,
             username=username,
@@ -231,11 +222,10 @@ def re_send_otp(email: str):
     return {"message": "OTP đã được gửi lại thành công"}
 
 
-# khởi tạo đăng nhập với google, trả về link đăng nhập
 def initiate_google_login():
     state = secrets.token_urlsafe(16)
     session["oauth_state"] = state
-    google_auth_url = Config.GOOGLE_AUTH_URL
+
     params = {
         "client_id": Config.GOOGLE_CLIENT_ID,
         "redirect_uri": Config.GOOGLE_REDIRECT_URL,
@@ -246,15 +236,18 @@ def initiate_google_login():
         "access_type": "offline",
     }
 
-    url = f"{google_auth_url}?{urlencode(params)}"
-
-    return url
+    return f"{Config.GOOGLE_AUTH_URL}?{urlencode(params)}"
 
 
 def login_with_google(data):
+    code = data.get("code") if isinstance(data, dict) else None
+    if not code:
+        raise AppException("Missing authorization code", status_code=400)
+
+    # Đổi auth code lấy Google tokens
     token_url = "https://oauth2.googleapis.com/token"
     token_data = {
-        "code": data["code"],
+        "code": code,
         "client_id": Config.GOOGLE_CLIENT_ID,
         "client_secret": Config.GOOGLE_CLIENT_SECRET,
         "redirect_uri": Config.GOOGLE_REDIRECT_URL,
@@ -267,58 +260,77 @@ def login_with_google(data):
     if token_res.status_code != 200 or "error" in token_json:
         raise AppException("Failed to exchange code with Google", status_code=400)
 
-    access_token = token_json.get("access_token")
+    google_access_token = token_json.get("access_token")
 
+    # Lấy thông tin user profile từ Google
     userinfo_url = "https://www.googleapis.com/oauth2/v2/userinfo"
     userinfo_res = requests.get(
-        userinfo_url, headers={"Authorization": f"Bearer {access_token}"}
+        userinfo_url, headers={"Authorization": f"Bearer {google_access_token}"}
     )
     google_user = userinfo_res.json()
 
     if userinfo_res.status_code != 200:
         raise AppException("Failed to fetch user profile from Google", status_code=400)
 
-    data = SimpleNamespace(
+    google_data = SimpleNamespace(
         email=google_user.get("email"),
         username=google_user.get("name"),
+        avatar=google_user.get("picture", "/static/image/icon_user.png"),
         provider_id=google_user.get("id"),
         refresh_token=token_json.get("refresh_token"),
-        # role="user",  # Default role for Google users
     )
 
-    print(f"Google user data: {data}")
     auth_method = user_repo.find_by_provider(
-        UserProvider.GOOGLE.value, data.provider_id
+        UserProvider.GOOGLE.value, google_data.provider_id
     )
 
     if auth_method:
         user = user_repo.find_one(id=auth_method.user_id)
-        auth_method.refresh_token = data.refresh_token
-        db.session.commit()
+        if google_data.refresh_token:
+            auth_method.refresh_token = google_data.refresh_token
+            db.session.commit()
 
+        set_user_session(user)
         return user
 
-    user = user_repo.find_one(email=data.email)
+    user = user_repo.find_one(email=google_data.email)
 
     if not user:
-        # lấy user name trước @
-        username = user_repo.generate_username_unique(data.email, data.username)
+        username = user_repo.generate_username_unique(
+            google_data.email, google_data.username
+        )
         user = user_repo.create_user_email(
-            email=data.email,
+            email=google_data.email,
             username=username,
+            full_name=google_data.username,
+            avatar=google_data.avatar,
             password=None,
-            is_verified=True,  # Google users are considered verified
+            role=RoleEnum.PENDING,
+            is_verified=True,
+            is_active=True,
         )
 
     user_repo.create_user_provider(
         user_id=user.id,
         provider=UserProvider.GOOGLE.value,
-        provider_id=data.provider_id,
-        refresh_token=data.refresh_token,
+        provider_id=google_data.provider_id,
+        refresh_token=google_data.refresh_token,
     )
 
     db.session.commit()
+
+    set_user_session(user)
     return user
+
+
+def set_user_session(user):
+    clean_role = (
+        user.role.value if hasattr(user.role, "value") else str(user.role).lower()
+    )
+    session["user_id"] = user.id
+    session["role"] = clean_role
+    session["username"] = user.username
+    session["email"] = user.email
 
 
 def login(data):
@@ -345,3 +357,35 @@ def logout():
             return {"message": "Đã đăng xuất thành công"}
 
     return {"message": "Không có phương thức xác thực nào để đăng xuất."}
+
+
+def update_user_role(data):
+    user_id = (
+        data.get("user_id")
+        if isinstance(data, dict)
+        else getattr(data, "user_id", None)
+    )
+    new_role_str = (
+        data.get("role", "") if isinstance(data, dict) else getattr(data, "role", "")
+    ).upper()
+
+    if not user_id or new_role_str not in ["USER", "STAFF"]:
+        raise AppException(
+            "Thông tin vai trò hoặc người dùng không hợp lệ", status_code=400
+        )
+
+    user = user_repo.find_one(id=user_id)
+    if not user:
+        raise AppException("Không tìm thấy người dùng", status_code=404)
+
+    user.role = RoleEnum[new_role_str]
+    db.session.commit()
+
+    set_user_session(user)
+
+    return {
+        "id": user.id,
+        "role": (
+            user.role.value if hasattr(user.role, "value") else str(user.role).lower()
+        ),
+    }

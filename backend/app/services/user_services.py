@@ -5,6 +5,8 @@ from app.repositories import user_repo
 from app.dto.user_dto import UserProfileDto
 from marshmallow import ValidationError
 
+from backend.app.models.UserModel import UserPreference
+
 
 def get_profile(user_id):
     profile = user_repo.get_profile(user_id)
@@ -27,6 +29,7 @@ def update_profile(user_id, profile_data: UserProfileDto):
         raise AppException(f"Failed to update profile: {str(e)}", status_code=500)
     except ValidationError as e:
         raise AppException(f"Validation error: {e.messages}", status_code=400)
+
 
 def create_user_company(user_id, data, oauth_provider=None):
 

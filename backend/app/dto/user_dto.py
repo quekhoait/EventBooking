@@ -25,6 +25,8 @@ class UserResponseDto(BaseSchema):
     role = fields.String(required=True)
     is_active = fields.Boolean(required=True)
     is_verified = fields.Boolean(required=True)
+    has_preferences = fields.Boolean(required=True)
+
 
 class CompanyRequestDto(BaseSchema):
     id = fields.Integer(required=True)
@@ -33,3 +35,6 @@ class CompanyRequestDto(BaseSchema):
     description = fields.String(required=True)
     tax_code = fields.String(required=True)
 
+
+class UpdateUserPreferenceDto(BaseSchema):
+    category_ids = fields.List(fields.Integer(), required=True)

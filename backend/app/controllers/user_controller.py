@@ -27,7 +27,7 @@ def create_user_company(id):
         status=StatusResponse.SUCCESS,
         message="Company created successfully",
         data=result,
-        status_code=200
+        status_code=200,
     )
 
 
@@ -98,3 +98,9 @@ def update_profile():
         },
         status_code=200,
     )
+
+
+@user_api.route("/preference", methods=["PUT", "PATCH"])
+@jwt_required()
+def update_preference():
+    pass
