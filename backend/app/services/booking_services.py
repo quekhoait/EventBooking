@@ -50,8 +50,8 @@ def use_discount(discount_id, price):
 
 
 def create(data: CreateTicketRequestDTO):
-    user_id = check_authorization()
-    # user_id = 1
+    # user_id = check_authorization()
+    user_id = 1
     event = event_repo.find_event_by_id(data.event_id)
     if not event:
         raise AppException(ErrorCode.NOT_FOUND)
@@ -66,6 +66,7 @@ def create(data: CreateTicketRequestDTO):
     discount_id_input = getattr(data, 'discount_id', None)
     final_price, discount_id = use_discount(discount_id_input, price_config)
 
+
     ticket_code = generate_random_code(8)
     while db.session.get(TicketModel, ticket_code) is not None:
         ticket_code = generate_random_code(8)
@@ -76,6 +77,7 @@ def create(data: CreateTicketRequestDTO):
         seat_id=seat.id,
         price=final_price,
         discount_id=discount_id,
+        face_image=data.face_image
     )
     try:
         db.session.add(new_ticket)

@@ -6,7 +6,7 @@ from sqlalchemy import select, or_, func
 from sqlalchemy.orm import selectinload
 
 from app import db
-from app.models import EventModel, EventStatus, User, TicketModel, Seat
+from app.models import EventModel, EventStatus, User, TicketModel, Seat, EventSeat, EventTicketType
 from app.repositories import base_repo
 
 
@@ -135,3 +135,28 @@ def get_ticket_holder_emails(event_id: int) -> list[str]:
     )
     return [email for email in db.session.scalars(stmt).all() if email]
 
+
+def get_tickets(event_id: int):
+    results = (
+        db.session.query(EventSeat, EventTicketType)
+        .join(EventTicketType, EventSeat.event_ticket_type_id == EventTicketType.id)
+        .filter(EventSeat.event_id == event_id)
+        .all()
+    )
+
+    tickets = []
+    for seat, ticket_type in results:
+        tickets.append({
+            "id": seat.id,
+            "event_id": seat.event_id,
+            "price": float(seat.price),
+            "seat_total": seat.seat_total,
+            "event_ticket_type_id": seat.event_ticket_type_id,
+            "ticket_type": {
+                "id": ticket_type.id,
+                "name": ticket_type.name,
+                "description": ticket_type.description,
+            }
+        })
+
+    return tickets

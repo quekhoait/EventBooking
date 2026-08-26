@@ -195,6 +195,20 @@ class EventListResponseSchema(BaseSchema):
     event_start_time = fields.DateTime()
     event_end_time = fields.DateTime()
     location_name = fields.String()
+    max_per_user = fields.Integer()
     # Chỉ lấy thông tin cơ bản, BỎ event_seats
     company = fields.Nested(CompanyResponseSchema, dump_only=True)
     category = fields.Nested(EventCategoryResponseSchema, dump_only=True)
+
+
+class EventTicketTypeSchema(BaseSchema):
+    id = fields.Integer()
+    name = fields.String()
+    description = fields.String()
+
+class EventSeatDetailSchema(BaseSchema):
+    id = fields.Integer()
+    event_id = fields.Integer()
+    price = fields.Float()
+    event_ticket_type_id = fields.Integer()
+    ticket_type = fields.Nested(EventTicketTypeSchema)

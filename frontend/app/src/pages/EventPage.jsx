@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { eventServices } from "../services/eventServices.jsx";
 
 const categories = [
   "Tất cả",
@@ -8,84 +9,38 @@ const categories = [
   "Thể thao",
   "Hội thảo & workshop",
 ];
-const eventData = [
-  [
-    "The Sound Of Summer",
-    "Nhạc sống",
-    "20.08.2026",
-    "19:30 - 22:00",
-    "photo-1492684223066-81342ee5ff30",
-  ],
-  [
-    "Indie Weekend",
-    "Nhạc sống",
-    "28.08.2026",
-    "18:00 - 21:30",
-    "photo-1501386761578-eac5c94b800a",
-  ],
-  [
-    "Đêm diễn Mộng Mị",
-    "Sân khấu & nghệ thuật",
-    "20.08.2026",
-    "19:30 - 22:00",
-    "photo-1503095396549-807759245b35",
-  ],
-  [
-    "Vũ điệu thành phố",
-    "Sân khấu & nghệ thuật",
-    "28.08.2026",
-    "19:00 - 22:00",
-    "photo-1531058020387-3be344556be6",
-  ],
-  [
-    "HCMC Night Run",
-    "Thể thao",
-    "20.08.2026",
-    "05:30 - 09:00",
-    "photo-1461896836934-ffe607ba8211",
-  ],
-  [
-    "Saigon Basketball Cup",
-    "Thể thao",
-    "28.08.2026",
-    "18:00 - 21:30",
-    "photo-1546519638-68e109498ffc",
-  ],
-  [
-    "Design Thinking Day",
-    "Hội thảo & workshop",
-    "20.08.2026",
-    "09:00 - 17:00",
-    "photo-1540575467063-178a50c2df87",
-  ],
-  [
-    "Creative Makers Lab",
-    "Hội thảo & workshop",
-    "28.08.2026",
-    "09:00 - 16:00",
-    "photo-1517245386807-bb43f82c33c4",
-  ],
-].map(([name, category, date, time, image], index) => ({
-  id: index + 1,
-  name,
-  category,
-  date,
-  time,
-  location: "TP. Hồ Chí Minh",
-  image: `https://images.unsplash.com/${image}?auto=format&fit=crop&w=900&q=80`,
-}));
 
 function EventPage() {
   const navigate = useNavigate();
-  const query = new URLSearchParams(useLocation().search);
+  const location = useLocation();
+  const [eventData, setEventData] = useState([]);
+
+  useEffect(() => {
+    const getAllEvent = async () => {
+      try {
+        const response = await eventServices.getEvents();
+        if (response?.status === 200) {
+          setEventData(response?.data?.data.items);
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách sự kiện:", error);
+      }
+    };
+
+    getAllEvent();
+  }, []);
+
+  const query = new URLSearchParams(location.search);
   const activeCategory = query.get("category") || "Tất cả";
   const visibleEvents = useMemo(
     () =>
       activeCategory === "Tất cả"
         ? eventData
         : eventData.filter((event) => event.category === activeCategory),
-    [activeCategory],
+    [activeCategory, eventData],
   );
+
+  console.log(eventData)
 
   return (
     <main className="mx-auto max-w-[1240px] px-5 py-9 lg:px-10 lg:py-12">

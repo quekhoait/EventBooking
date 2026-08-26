@@ -9,6 +9,7 @@ from authlib.integrations.flask_client import OAuth
 import cloudinary
 from flask_migrate import Migrate
 
+
 from app.utils.exception import init_error_handlers
 from config import config
 from flask_mail import Mail
@@ -57,4 +58,6 @@ def create_app(config_name=None):
     from .routes import routes
     app.register_blueprint(controller_blueprint)
     app.register_blueprint(routes)
+    from app.pattern.method_payment import payment_context
+    payment_context.init_app(app.config)
     return app

@@ -1,7 +1,8 @@
 from flask import Blueprint, request
+from sqlalchemy import true
 
 from app.dto.event_dto import EventDraftSchema, EventPublishSchema, EventDetailResponseSchema, EventUpdateSchema, \
-    EventFilterQuerySchema, EventListResponseSchema
+    EventFilterQuerySchema, EventListResponseSchema, EventTicketTypeSchema, EventSeatDetailSchema
 from app.models import EventStatus
 from app.services import event_service
 from app.utils.json import NewPackage, StatusResponse
@@ -150,5 +151,16 @@ def publish_event(event_id: int):
         status=StatusResponse.SUCCESS,
         data=event_data,
         message="Xuất bản sự kiện thành công.",
+        status_code=200
+    )
+
+@event_bp.route('/events/<int:event_id>/tickets', methods=['GET'])
+def get_tickets(event_id: int):
+    data = event_service.get_tickets(event_id)
+    tickets = EventSeatDetailSchema(many=True).dump(data)
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        data=tickets,
+        message="Lấy loại vé thành công!",
         status_code=200
     )

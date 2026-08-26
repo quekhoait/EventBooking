@@ -1,10 +1,46 @@
-function TicketSelector({ tickets, selectedType, onSelect, quantities, onQuantityChange }) {
-  return <div className="space-y-3">
-    {tickets.map((ticket) => <div key={ticket.id} onClick={() => onSelect(ticket.id)} className={`flex w-full cursor-pointer items-center justify-between rounded-xl p-4 text-left panel-border ${selectedType === ticket.id ? 'border-[#ff6b12] bg-[#ff6b12]/10' : 'bg-white/[.03] hover:bg-white/[.06]'}`}>
-      <span><span className="block font-bold text-white">{ticket.name}</span><span className="text-xs text-white/45">{ticket.description}</span></span>
-      <span className="text-right"><span className="block font-bold text-[#ff985c]">{ticket.price.toLocaleString('vi-VN')} đ</span><span className="mt-1 inline-flex items-center gap-2 text-xs text-white/60"><button type="button" className="h-6 w-6 rounded border border-white/20" onClick={(event) => { event.stopPropagation(); onQuantityChange(ticket.id, -1) }}>-</button>{quantities[ticket.id]}<button type="button" className="h-6 w-6 rounded border border-white/20" onClick={(event) => { event.stopPropagation(); onQuantityChange(ticket.id, 1) }}>+</button></span></span>
-    </div>)}
-  </div>
+function TicketSelector({ tickets = [], selectedTicket, onSelect }) {
+  return (
+    <div className="space-y-4">
+      {tickets.map((ticket) => {
+        const isSelected = selectedTicket?.id === ticket.id;
+
+        return (
+          <div
+            key={ticket.id}
+            onClick={() => onSelect(ticket)}
+            className={`flex cursor-pointer items-center justify-between rounded-xl border p-4 transition-all ${
+              isSelected
+                ? "border-[#ff985c] bg-[#ff985c]/10 shadow-[0_0_15px_rgba(255,152,92,0.15)]"
+                : "border-white/10 bg-[#252729] hover:border-white/20"
+            }`}
+          >
+            <div>
+              <div className="flex items-center gap-3">
+                <h3 className="font-display text-lg font-bold text-white">
+                  {ticket.ticket_type?.name || "Vé sự kiện"}
+                </h3>
+                {isSelected && (
+                  <span className="rounded-full bg-[#ff985c] px-2 py-0.5 text-[10px] font-bold uppercase text-black">
+                    Đã chọn
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-white/50">
+                {ticket.ticket_type?.description || "Không có mô tả"}
+              </p>
+            </div>
+
+            <div className="text-right">
+              <p className="text-sm font-semibold text-[#ff985c]">
+                {(ticket.price || 0).toLocaleString("vi-VN")} đ
+              </p>
+              <p className="text-xs text-white/40">1 vé</p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export default TicketSelector;
