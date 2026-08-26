@@ -193,6 +193,6 @@ export default function RegisterPage() {
         onResend={handleResendOtp}
         onClose={() => setShowOtpModal(false)}
       />
-    </main>
+    </main> 
   );
 }
