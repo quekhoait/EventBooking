@@ -9,12 +9,11 @@ from authlib.integrations.flask_client import OAuth
 import cloudinary
 from flask_migrate import Migrate
 
-
 from app.utils.exception import init_error_handlers
 from config import config
 from flask_mail import Mail
-
 mail = Mail()
+
 db = SQLAlchemy()
 cache = Cache()
 jwt = JWTManager()
@@ -28,12 +27,12 @@ def create_app(config_name=None):
     selected_config = config_name or os.environ.get('FLASK_ENV', 'development')
     config_obj = config.get(selected_config, config['default'])
     app.config.from_object(config_obj)
-
+    mail.init_app(app)
     db.init_app(app)
     migrate.init_app(app, db)
     cache.init_app(app)
     jwt.init_app(app)
-    mail.init_app(app)
+
     CORS(app)
     oauth.init_app(app)
     init_error_handlers(app)

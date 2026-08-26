@@ -51,7 +51,7 @@ def use_discount(discount_id, price):
 
 def create(data: CreateTicketRequestDTO):
     # user_id = check_authorization()
-    user_id = 1
+    user_id = 6
     event = event_repo.find_event_by_id(data.event_id)
     if not event:
         raise AppException(ErrorCode.NOT_FOUND)

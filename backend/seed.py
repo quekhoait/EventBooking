@@ -1,4 +1,5 @@
 import datetime
+from werkzeug.security import generate_password_hash
 from app import create_app, db
 from app.models import (
     LocationModel, Company, Notification,
@@ -8,11 +9,15 @@ from app.models import (
     PaymentModel, PaymentStatus, PaymentType,
     User, RoleEnum
 )
+
 app = create_app()
 
 def seed_data():
     with app.app_context():
-        # Xóa dữ liệu cũ (tùy chọn theo thứ tự ngược lại để tránh lỗi FK)
+        # 0. Tắt kiểm tra khóa ngoại để dọn dẹp dữ liệu
+        db.session.execute(db.text("SET FOREIGN_KEY_CHECKS = 0;"))
+        db.session.commit()
+
         print("Đang dọn dẹp dữ liệu cũ...")
         db.session.query(PaymentModel).delete()
         db.session.query(TicketModel).delete()
@@ -57,10 +62,12 @@ def seed_data():
         db.session.add(company_a)
         db.session.flush()
 
-        # 3. User
+        # 3. User (Hash mật khẩu thật để login được)
+        default_password = generate_password_hash("123456")
+
         admin_user = User(
             username="admin",
-            password="pbkdf2:sha256:...",  # Giả lập mật khẩu hash
+            password=default_password,
             full_name="Quản Trị Viên",
             phone_number="0987654321",
             email="admin@skyline.vn",
@@ -71,7 +78,7 @@ def seed_data():
         )
         staff_user = User(
             username="staff_hung",
-            password="pbkdf2:sha256:...",
+            password=default_password,
             full_name="Nguyễn Văn Hùng",
             phone_number="0912345678",
             email="hung.nv@skyline.vn",
@@ -82,7 +89,7 @@ def seed_data():
         )
         customer_user = User(
             username="khachhang01",
-            password="pbkdf2:sha256:...",
+            password=default_password,
             full_name="Trần Thị Lan",
             phone_number="0905123456",
             email="lan.tran@gmail.com",
@@ -106,7 +113,7 @@ def seed_data():
             image="https://example.com/images/acoustic-night.jpg",
             description="Đêm nhạc quy tụ các ca sĩ indie nổi tiếng cùng không gian ấm cúng.",
             max_per_user=4,
-            start_time=now,  # Mở bán vé
+            start_time=now,
             end_time=now + datetime.timedelta(days=15),
             event_start_time=now + datetime.timedelta(days=20, hours=19),
             event_end_time=now + datetime.timedelta(days=20, hours=22),
@@ -119,7 +126,7 @@ def seed_data():
         db.session.add(event_1)
         db.session.flush()
 
-        # 6. Ticket Types & Quy định chỗ ngồi (EventTicketType & EventSeat)
+        # 6. Ticket Types & Quy định chỗ ngồi
         ticket_type_vip = EventTicketType(name="VIP", description="Ghế hàng đầu, kèm đồ uống miễn phí.")
         ticket_type_std = EventTicketType(name="Standard", description="Ghế ngồi khu vực trung tâm.")
         db.session.add_all([ticket_type_vip, ticket_type_std])
@@ -141,7 +148,8 @@ def seed_data():
         db.session.flush()
 
         # 7. Danh sách ghế thực tế (Seat)
-        seat_v1 = Seat(seat_code="VIP-01", event_id=event_1.id, event_ticket_type_id=ticket_type_vip.id, is_active=True)
+        # Ghế VIP-01 đã được đặt nên is_active = False (hoặc True tùy quy ước của bạn)
+        seat_v1 = Seat(seat_code="VIP-01", event_id=event_1.id, event_ticket_type_id=ticket_type_vip.id, is_active=False)
         seat_v2 = Seat(seat_code="VIP-02", event_id=event_1.id, event_ticket_type_id=ticket_type_vip.id, is_active=True)
         seat_s1 = Seat(seat_code="STD-01", event_id=event_1.id, event_ticket_type_id=ticket_type_std.id, is_active=True)
         seat_s2 = Seat(seat_code="STD-02", event_id=event_1.id, event_ticket_type_id=ticket_type_std.id, is_active=True)
@@ -160,8 +168,7 @@ def seed_data():
         db.session.add(discount_code)
         db.session.flush()
 
-        # 9. Vé & Giao dịch thanh toán (TicketModel & PaymentModel)
-        # Khách hàng 'lan.tran' mua ghế VIP-01 áp mã giảm giá 20% (1.500.000 -> 1.200.000)
+        # 9. Vé & Giao dịch thanh toán
         ticket_1 = TicketModel(
             code="TCK00001",
             user_id=customer_user.id,
@@ -176,10 +183,10 @@ def seed_data():
         payment_1 = PaymentModel(
             code="PAY000000001",
             ticket_code=ticket_1.code,
-            payment_method="VNPAY",
+            payment_method="MOMO",
             transaction_id="TXN_20260825_001",
             amount=1200000.0,
-            pay_url="https://vnpay.vn/pay/example_url",
+            pay_url="https://test-payment.momo.vn/pay/example",
             expired_time=now + datetime.timedelta(minutes=15),
             status=PaymentStatus.SUCCESS,
             type=PaymentType.PAYMENT
@@ -195,9 +202,11 @@ def seed_data():
         )
         db.session.add(noti)
 
+        # 11. Bật lại kiểm tra khóa ngoại và commit toàn bộ
+        db.session.execute(db.text("SET FOREIGN_KEY_CHECKS = 1;"))
         db.session.commit()
-        print("Đã tạo xong dữ liệu mẫu thành công!")
 
+        print("Đã tạo xong dữ liệu mẫu thành công!")
 
 if __name__ == "__main__":
     seed_data()

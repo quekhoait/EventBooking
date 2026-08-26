@@ -24,6 +24,7 @@ def check_authorization():
 
 def create(data):
     # check_authorization()
+    print(data)
     payment = check_payment(data.ticket_code)
     # Nếu thanh toán lại
     if payment:
