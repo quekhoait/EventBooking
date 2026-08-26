@@ -6,6 +6,7 @@ import TicketSelector from "../components/TicketSelector";
 import { EventContext } from "../context/EventContext";
 import { eventServices } from "../services/eventServices";
 import { ticketService } from "../services/ticketServices";
+import DigitalTicketPage from "./DigitalTicketPage";
 
 function BookingPage({ onBack }) {
   const navigate = useNavigate();
@@ -148,21 +149,21 @@ function BookingPage({ onBack }) {
           </div>
           <BookingProgress currentStep={step} />
         </div>
-        {/* <DigitalTicketPage result={ticketResult} onHome={handleBack} /> */}
+        <DigitalTicketPage result={ticketResult} onHome={handleBack} />
       </main>
     );
   }
 
   if (step === 1) {
-    // const previewTicket = {
-    //   event,
-    //   face_image: faceImage,
-    //   ticketName: selectedTicket?.ticket_type?.name || "Vé",
-    //   quantity: 1,
-    //   total,
-    //   seats: [],
-    //   code: "Chưa thanh toán",
-    // };
+    const previewTicket = {
+      event,
+      face_image: faceImage,
+      ticketName: selectedTicket?.ticket_type?.name || "Vé",
+      quantity: 1,
+      total,
+      seats: [],
+      code: "Chưa thanh toán",
+    };
 
     return (
       <main className="mx-auto max-w-[1240px] px-5 py-8 lg:px-10 lg:py-12">
@@ -182,12 +183,12 @@ function BookingPage({ onBack }) {
         </div>
 
         <div className="grid items-start gap-7 lg:grid-cols-[1fr_340px]">
-          {/* <DigitalTicketPage
+          <DigitalTicketPage
             result={previewTicket}
             preview
             capturedFaceImage={faceImage}
             onFaceCapture={setFaceImage}
-          /> */}
+          />
           <OrderSummary
             event={event}
             quantity={1}

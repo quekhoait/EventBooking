@@ -1,5 +1,11 @@
-const formatEventData = (time) => {
-  const date = new Date(time);
+
+const formatEventData = (timestamp) => {
+  const date = new Date(timestamp);
+
+
+  if (isNaN(date.getTime())) {
+    return { date: "", time: "" };
+  }
 
   const formattedDate = date.toLocaleDateString("vi-VN", {
     day: "2-digit",
@@ -7,16 +13,16 @@ const formatEventData = (time) => {
     year: "numeric",
   });
 
-  const timeStr = date.toLocaleTimeString("vi-VN", {
+  const formattedTime = date.toLocaleTimeString("vi-VN", {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false, 
   });
 
   return {
-    ...time,
     date: formattedDate,
-    time: `${timeStr}`
+    time: formattedTime,
   };
 };
 
-export default formatEventData
+export default formatEventData;
