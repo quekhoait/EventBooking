@@ -1,8 +1,48 @@
-import { Apis, authApis, endpoints } from "../config/Apis.js"
+import Apis from "../config/Apis";
 
+const authService = {
+  register: async (data) => {
+    const response = await Apis().post("/auth/register", data);
+    return response.data;
+  },
 
-export const authService = {
-    loginWithEmail: async () => {
-        return await Apis().get(endpoints.login_email); 
-    },
-}
+  verifyOtp: async ({ email, verification_code }) => {
+    const res = await Apis().post("/auth/verify-otp", {
+      email,
+      verification_code,
+    });
+    return res.data;
+  },
+
+  resendOtp: async ({ email }) => {
+    const res = await Apis().post("/auth/resend-otp", { email });
+    return res.data;
+  },
+
+  login: async (data) => {
+    const response = await Apis().post("/auth/login", data);
+    return response.data;
+  },
+
+  googleLogin: async () => {
+    const response = await Apis().get("/auth/google/login");
+    return response.data;
+  },
+
+  googleCallback: async (data) => {
+    const response = await Apis().post("/auth/google/callback", data);
+    return response.data;
+  },
+
+  refreshToken: async () => {
+    const response = await Apis().post("/auth/refresh_token");
+    return response.data;
+  },
+
+  logout: async () => {
+    const response = await Apis().post("/auth/logout");
+    return response.data;
+  },
+};
+
+export default authService;

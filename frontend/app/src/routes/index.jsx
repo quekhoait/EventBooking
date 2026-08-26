@@ -7,7 +7,7 @@ import RegisterPage from "../pages/Auth/RegisterPage";
 import PreferencePage from "../pages/Auth/PreferencePage";
 import UserProfilePage from "../pages/User/UserProfilePage";
 import CompanyProfilePage from "../pages/User/CompanyProfilePage";
-
+import LoginCallbackPage from "../pages/Auth/LoginCallbackPage";
 export const routes = [
   { path: "/", name: "home", page: HomePage },
   { path: "/events", name: "events", page: EventPage },
@@ -17,7 +17,7 @@ export const routes = [
   { path: "/login", name: "login", page: LoginPage },
   { path: "/register", name: "register", page: RegisterPage },
   { path: "/preference", name: "preference", page: PreferencePage },
-
+  { path: "/auth/google/callback", name: "google-callback", page: LoginCallbackPage },
   // User routes
   { path: "/profile", name: "profile", page: UserProfilePage },
   {

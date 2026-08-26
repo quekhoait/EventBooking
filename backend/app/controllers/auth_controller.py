@@ -1,9 +1,10 @@
 from http.client import responses
 
 from flask_jwt_extended import jwt_required
+import urllib
 from app.dto.user_dto import UserResponseDto
 
-from flask import Blueprint
+from flask import Blueprint, redirect
 from flask import request
 from marshmallow import ValidationError
 from app.dto import auth_dto, user_dto
@@ -141,19 +142,17 @@ def initiate_google_login():
 @auth_api.route("/google/callback", methods=["POST", "GET"])
 def handle_google_callback():
 
+    frontend_base_url = "http://localhost:5173"
+
     if request.method == "GET":
+        error = request.args.get("error")
+        if error:
+            error_params = urllib.parse.urlencode({"error": error})
+            return redirect(f"{frontend_base_url}/login?{error_params}")
         data = {
             "code": request.args.get("code"),
             "state": request.args.get("state"),
         }
-
-        error = request.args.get("error")
-        if error:
-            return NewPackage(
-                status=StatusResponse.ERROR,
-                message=f"Google Auth Error: {error}",
-                status_code=400,
-            )
     else:
         data = request.get_json(silent=True) or {}
 
@@ -162,9 +161,24 @@ def handle_google_callback():
     result = UserResponseDto().dump(user_response)
     print(f"User data to be sent in response: {result}")
 
+    if request.method == "GET":
+        role_val = result.get("role")
+        if hasattr(role_val, "value"):
+            role_val = role_val.value
+
+        params = urllib.parse.urlencode(
+            {
+                "token": result.get("access_token", ""),
+                "role": str(role_val) if role_val else "",
+                "username": result.get("username", ""),
+                "id": result.get("id", ""),
+            }
+        )
+        return redirect(f"{frontend_base_url}/auth/google/callback?{params}")
+
     return NewPackage(
         status=StatusResponse.SUCCESS,
-        message="Đang nhập bằng Google thành công",
+        message="Đăng nhập bằng Google thành công",
         data=result,
         status_code=200,
     )
@@ -198,6 +212,7 @@ def login():
             status_code=400,
         )
 
+
 @auth_api.route("/refresh_token", methods=["POST"])
 @jwt_required()
 def refresh_token():
@@ -208,6 +223,7 @@ def refresh_token():
         message=result,
         status_code=200,
     )
+
 
 @auth_api.route("/logout", methods=["POST"])
 @jwt_required()
