@@ -111,7 +111,7 @@ def register_with_email(data):
         user = user_repo.create_user_email(
             email=email,
             username=username,
-            password=generate_hash_password,
+            password=generate_hash_password(password=data.password),
             role=data.role,
         )
 
