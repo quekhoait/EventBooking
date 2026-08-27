@@ -1,11 +1,17 @@
 from datetime import datetime, timedelta
 import email
+import traceback
 from types import SimpleNamespace
 from urllib.parse import urlencode
 
 import requests
 from config import Config
-from flask_jwt_extended import create_access_token, create_refresh_token, current_user, get_jwt_identity
+from flask_jwt_extended import (
+    create_access_token,
+    create_refresh_token,
+    current_user,
+    get_jwt_identity,
+)
 
 from app.utils.exception import AppException
 from app.repositories import user_repo
@@ -37,9 +43,10 @@ def _generate_otp(length=6):
 
 def send_otp(email, otp_code):
     try:
-        verify_url = url_for(
-            "api.auth_api.verify_email_page", email=email, _external=True
+        frontend_base_url = current_app.config.get(
+            "FRONTEND_URL", "http://localhost:5173"
         )
+        verify_url = f"{frontend_base_url}/verify-otp?email={email}"
 
         message = Message(
             subject="EventBooking - Verify your email",
@@ -74,65 +81,98 @@ def send_otp(email, otp_code):
 
 
 def register_with_email(data):
-    user = user_repo.find_one(email=data.email)
+    # Lấy dữ liệu an toàn từ dict
+    email = (
+        data.get("email") if isinstance(data, dict) else getattr(data, "email", None)
+    )
+    username_input = (
+        data.get("username")
+        if isinstance(data, dict)
+        else getattr(data, "username", None)
+    )
+    password = (
+        data.get("password")
+        if isinstance(data, dict)
+        else getattr(data, "password", None)
+    )
+    role = (
+        data.get("role", "user")
+        if isinstance(data, dict)
+        else getattr(data, "role", "user")
+    )
 
+    user = user_repo.find_one(email=email)
     if user:
         raise AppException("Email này đã được sử dụng", status_code=400)
 
-    user = user_repo.find_one(username=data.username)
+    user = user_repo.find_one(username=username_input)
     if user:
         raise AppException("Tên người dùng đã tồn tại", status_code=400)
 
     try:
-        otp_code = _generate_otp(6)  # Generate a random OTP code
-        password_hash = bcrypt.hashpw(data.password.encode("utf-8"), bcrypt.gensalt())
-        username = user_repo.generate_username_unique(data.email, data.username)
+
+        password_hash = bcrypt.hashpw(
+            password.encode("utf-8"), bcrypt.gensalt()
+        ).decode("utf-8")
+
+        username = user_repo.generate_username_unique(email, username_input)
+
         user = user_repo.create_user_email(
-            email=data.email,
+            email=email,
             username=username,
             password=password_hash,
-            role=data.role,
+            role=role,
         )
 
         user_repo.create_user_provider(
             user_id=user.id,
-            provider=UserProvider.EMAIL.value,
-            provider_id=data.email,
+            provider=(
+                UserProvider.EMAIL.value if hasattr(UserProvider, "EMAIL") else "EMAIL"
+            ),
+            provider_id=email,
             refresh_token=None,
         )
 
-        otp = user_repo.create_email_otp(
+        otp_code = str(_generate_otp(6)).strip()
+        otp_hash = bcrypt.hashpw(otp_code.encode("utf-8"), bcrypt.gensalt()).decode(
+            "utf-8"
+        )
+
+        user_repo.create_email_otp(
             user_id=user.id,
-            email=data.email,
-            otp_code_hash=bcrypt.hashpw(otp_code.encode("utf-8"), bcrypt.gensalt()),
-            expires_at=datetime.now()
-                       + timedelta(minutes=2),  # Set the expiration time as needed
+            email=email,
+            otp_code_hash=otp_hash,
+            expires_at=datetime.now() + timedelta(minutes=2),
         )
 
         db.session.commit()
 
-        send_otp(data.email, otp_code)
+        send_otp(email, otp_code)
         return user
+
+    except AppException as e:
+        db.session.rollback()
+        raise e
     except Exception as e:
+        db.session.rollback()
+        traceback.print_exc()
         raise AppException(
-            f"Đã xảy ra lỗi khi đăng ký người dùng: {str(e)}", status_code=500
+            f"Đã xảy ra lỗi khi đăng ký người dùng: {repr(e)}", status_code=500
         )
+
 
 def refresh_token():
     identity = get_jwt_identity()
 
-    user = user_repo.find_one(id = identity)
+    user = user_repo.find_one(id=identity)
 
     if not user:
-        raise AppException(
-            "Người dùng không tồn tại", status_code=404
-        )
+        raise AppException("Người dùng không tồn tại", status_code=404)
 
     access_token = generate_token(user.id)[1]
 
-    return {
-        "access_token": access_token
-    }
+    return {"access_token": access_token}
+
 
 def verify_email_otp(data):
     user = user_repo.find_one(email=data.email)
@@ -152,8 +192,8 @@ def verify_email_otp(data):
         raise AppException("Mã OTP không tồn tại", status_code=404)
 
     if not bcrypt.checkpw(
-            data.verification_code.encode("utf-8"),
-            email_otp.otp_code_hash.encode("utf-8"),
+        data.verification_code.encode("utf-8"),
+        email_otp.otp_code_hash.encode("utf-8"),
     ):
         raise AppException("Mã OTP không hợp lệ", status_code=400)
 
@@ -182,7 +222,7 @@ def re_send_otp(email: str):
         email=email,
         otp_code_hash=bcrypt.hashpw(otp_code.encode("utf-8"), bcrypt.gensalt()),
         expires_at=datetime.now()
-                   + timedelta(minutes=2),  # Set the expiration time as needed
+        + timedelta(minutes=2),  # Set the expiration time as needed
     )
 
     db.session.commit()
@@ -225,7 +265,7 @@ def login_with_google(data):
     token_json = token_res.json()
 
     if token_res.status_code != 200 or "error" in token_json:
-        raise AppException("Failed to exchange code with Google",status_code=400 )
+        raise AppException("Failed to exchange code with Google", status_code=400)
 
     access_token = token_json.get("access_token")
 
@@ -262,7 +302,7 @@ def login_with_google(data):
 
     if not user:
         # lấy user name trước @
-        username = user_repo.generate_unique_username(data.email, data.username)
+        username = user_repo.generate_username_unique(data.email, data.username)
         user = user_repo.create_user_email(
             email=data.email,
             username=username,

@@ -12,8 +12,8 @@ from flask_migrate import Migrate
 from app.utils.exception import init_error_handlers
 from config import config
 from flask_mail import Mail
-mail = Mail()
 
+mail = Mail()
 db = SQLAlchemy()
 cache = Cache()
 jwt = JWTManager()
@@ -32,8 +32,14 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     cache.init_app(app)
     jwt.init_app(app)
-
-    CORS(app)
+    mail.init_app(app)
+    CORS(
+        app,
+        resources={
+            r"/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}
+        },
+        supports_credentials=True,
+    )
     oauth.init_app(app)
     init_error_handlers(app)
 
