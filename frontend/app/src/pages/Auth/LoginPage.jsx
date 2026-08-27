@@ -270,7 +270,7 @@ export default function LoginPage() {
       setLoadingProgress(30);
       setLoadingMessage("Đang chuyển hướng tới Google...");
 
-      const response = await authServices.loginWithGoogle();
+      const response = await authServices.googleLogin();
       const authUrl =
         response?.data?.auth_url ||
         response?.auth_url ||

@@ -36,8 +36,7 @@ function HomePage({ onCategorySelect }) {
                 id: cat.id,
                 name: cat.name,
                 image: cat.image || 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=700&q=80',
-                // Màu random nếu backend không trả về
-                color: `from-[#${Math.floor(Math.random()*16777215).toString(16)}] to-[#${Math.floor(Math.random()*16777215).toString(16)}]`
+                    color: `from-[#${Math.floor(Math.random()*16777215).toString(16)}] to-[#${Math.floor(Math.random()*16777215).toString(16)}]`
             }));
             
             setCategories(formattedCategories);

@@ -13,6 +13,13 @@ function OrderSummary({
   continueLoading = false,
   canContinue = true,
 }) {
+
+  const formattedDate = new Date(Date.now()).toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
   return (
     <aside className="h-fit rounded-2xl bg-[#ffe6d2] p-5 text-[#241d1a] shadow-[8px_8px_0_rgba(255,107,18,.14)] lg:sticky lg:top-28">
       <div className="mb-5 flex items-start justify-between border-b border-[#d8b7a0] pb-4">
@@ -29,7 +36,7 @@ function OrderSummary({
       <div className="space-y-2 text-sm">
         <div className="flex justify-between">
           <span>Ngày</span>
-          <b>{event.date}</b>
+          <b>{formattedDate}</b>
         </div>
         <div className="flex justify-between">
           <span>Hạng vé</span>

@@ -196,7 +196,7 @@ def seed_more_events():
                 company_id=company.id,
                 category_id=category.id,
                 location_name=location.name,
-                image=f"https://images.unsplash.com/photo-{1500000000000 + i * 100000}?auto=format&fit=crop&w=900&q=80"
+                image=f"https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=700&q=80"
             )
             db.session.add(event)
             db.session.flush()

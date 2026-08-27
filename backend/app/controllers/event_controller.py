@@ -44,13 +44,10 @@ def create_event():
 
 @event_bp.route('/events/<int:event_id>', methods=['GET'])
 def get_event_detail(event_id: int):
-    # 1. Gọi service lấy dữ liệu sự kiện
     event = event_service.get_event_detail(event_id)
 
-    # 2. Serialize model thành dict JSON
     event_data = event_detail_schema.dump(event)
 
-    # 3. Trả về response chuẩn
     return NewPackage(
         status=StatusResponse.SUCCESS,
         data=event_data,
