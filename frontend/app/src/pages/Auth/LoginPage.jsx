@@ -1,43 +1,97 @@
-// src/pages/Auth/LoginPage.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthInput from "../../components/Auth/AuthInput";
 import AuthButton from "../../components/Auth/AuthButton";
 import AuthGoogleButton from "../../components/Auth/AuthGoogleButton";
 import RoleSelectionModal from "../../components/Auth/RoleSelectionModal";
+import PreferenceModal from "../../components/User/PreferenceModal";
 import authServices from "../../services/authServices";
 import { useAuth } from "../../context/AuthContext";
+import { useCategories } from "../../hooks/useCategories";
 import { isPendingRole } from "../../utils/authHelper";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { loginUser } = useAuth();
+  const { categories, loading: categoriesLoading } = useCategories();
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Role Selection Modal State
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [tempAuthData, setTempAuthData] = useState(null);
 
-  const routeByRoleAndPreferences = (role, hasPreferences) => {
-    const cleanRole = String(role || "").toUpperCase();
+  // Preference Modal State
+  const [showPrefModal, setShowPrefModal] = useState(false);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
+
+  // Lọc bỏ danh mục "Tất cả" (id: null)
+  const validCategories = (categories || []).filter((cat) => cat.id !== null);
+
+  // [LOG THEO DÕI STATE MODAL]
+  useEffect(() => {
+    console.log("[STATE DEBUG] Trạng thái showPrefModal hiện tại:", showPrefModal);
+    console.log("[STATE DEBUG] Dữ liệu tempAuthData:", tempAuthData);
+    console.log("[STATE DEBUG] Danh sách validCategories:", validCategories);
+  }, [showPrefModal, tempAuthData, validCategories]);
+
+  const routeByRoleAndPreferences = (authData) => {
+    console.log("\n--- [BẮT ĐẦU KIỂM TRA ĐIỀU HƯỚNG] ---");
+    console.log("1. authData nhận vào:", authData);
+
+    const cleanRole = String(authData.role || "")
+      .toUpperCase()
+      .replace("ROLEENUM.", "")
+      .trim();
+
+    // Chuyển đổi linh hoạt giá trị has_preferences về boolean
+    const hasPreferences =
+      authData.has_preferences === true ||
+      authData.has_preferences === "true" ||
+      authData.has_preferences === 1;
+
+    console.log("2. Role sau khi làm sạch:", cleanRole);
+    console.log("3. hasPreferences (boolean):", hasPreferences);
+
+    // 1. Quản trị viên / Nhân viên
     if (cleanRole === "STAFF" || cleanRole === "ADMIN") {
+      console.log("-> Nhánh STAFF/ADMIN: Điều hướng sang /dashboard/organizer");
+      loginUser(authData);
       navigate("/dashboard/organizer");
-    } else if (cleanRole === "USER") {
-      if (!hasPreferences) {
-        navigate("/select-preferences");
-      } else {
-        navigate("/");
-      }
-    } else {
-      navigate("/");
+      return;
     }
+
+    // 2. Người dùng thông thường (USER hoặc mặc định)
+    if (cleanRole === "USER" || cleanRole === "") {
+      console.log("-> Nhánh USER");
+
+      if (!hasPreferences) {
+        console.log("🔥 ĐIỀU KIỆN THỎA MÃN: USER chưa có preferences -> KÍCH HOẠT MODAL!");
+        setTempAuthData(authData);
+        setShowPrefModal(true); // BẬT MODAL
+        return;
+      }
+
+      console.log("-> USER đã có preferences -> Điều hướng sang /");
+      loginUser(authData);
+      navigate("/");
+      return;
+    }
+
+    console.log("-> Role khác -> Điều hướng sang /");
+    loginUser(authData);
+    navigate("/");
   };
 
   const handleLoginSuccess = (resPayload) => {
-    console.log("Payload nhận được từ Login:", resPayload);
+    console.log("\n================ [LOGIN THÀNH CÔNG] ================");
+    console.log("Payload gốc từ Backend:", resPayload);
+
     const rawUser = resPayload.data || resPayload.user || resPayload;
 
     if (!rawUser) {
+      console.error("❌ Không tìm thấy thông tin rawUser trong payload!");
       throw new Error("Không tìm thấy thông tin tài khoản hợp lệ từ máy chủ!");
     }
 
@@ -63,25 +117,30 @@ export default function LoginPage() {
       has_preferences: hasPreferences,
     };
 
-    // KIỂM TRA ROLE PENDING ĐỂ MỞ MODAL
+    console.log("authData đóng gói chuẩn bị xử lý:", authData);
+
+    // Kiểm tra nếu tài khoản đang Pending Role
     if (isPendingRole(rawRole)) {
-      console.log("Tài khoản PENDING -> Kích hoạt Modal chọn role");
+      console.log("⚠️ Tài khoản PENDING ROLE -> Mở RoleSelectionModal");
       setTempAuthData(authData);
       setShowRoleModal(true);
       return;
     }
 
-    loginUser(authData);
-    routeByRoleAndPreferences(rawRole, hasPreferences);
+    routeByRoleAndPreferences(authData);
   };
 
   const handleSelectRole = async (selectedRole) => {
     try {
       setLoading(true);
       setErrorMsg("");
+      console.log("Đang cập nhật role thành:", selectedRole);
 
       if (authServices.updateRole) {
-        await authServices.updateRole({ role: selectedRole.toLowerCase() });
+        await authServices.updateRole({
+          userId: tempAuthData?.id,
+          role: selectedRole.toLowerCase(),
+        });
       }
 
       const updatedAuthData = {
@@ -89,12 +148,53 @@ export default function LoginPage() {
         role: selectedRole,
       };
 
-      loginUser(updatedAuthData);
       setShowRoleModal(false);
-      routeByRoleAndPreferences(selectedRole, updatedAuthData.has_preferences);
+      routeByRoleAndPreferences(updatedAuthData);
     } catch (err) {
-      console.error("Lỗi khi chọn role:", err);
+      console.error("❌ Lỗi khi chọn role:", err);
       setErrorMsg("Không thể cập nhật loại tài khoản. Vui lòng thử lại!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleCategory = (id) => {
+    setSelectedCategoryIds((prev) => {
+      const updated = prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id];
+      console.log("[MODAL] Danh sách ID đã chọn hiện tại:", updated);
+      return updated;
+    });
+  };
+
+  const handleSavePreferences = async () => {
+    console.log("[MODAL] Bấm xác nhận với danh sách ID:", selectedCategoryIds);
+    if (selectedCategoryIds.length === 0) {
+      alert("Vui lòng chọn ít nhất 1 thể loại yêu thích!");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      if (authServices.savePreferences) {
+        await authServices.savePreferences({
+          userId: tempAuthData?.id,
+          categories: selectedCategoryIds,
+        });
+      }
+
+      const finalAuthData = {
+        ...tempAuthData,
+        has_preferences: true,
+      };
+
+      console.log("✅ Lưu thành công! Tiến hành loginUser và vào trang chủ:", finalAuthData);
+      loginUser(finalAuthData);
+      setShowPrefModal(false);
+      navigate("/");
+    } catch (err) {
+      console.error("❌ Lỗi khi lưu preferences:", err);
+      setErrorMsg("Không thể lưu sở thích lúc này. Vui lòng thử lại!");
     } finally {
       setLoading(false);
     }
@@ -115,6 +215,7 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
+      console.log("Gửi request login thường...");
       const response = await authServices.login({ email, password });
       const resPayload = response.data !== undefined ? response.data : response;
       handleLoginSuccess(resPayload);
@@ -137,6 +238,7 @@ export default function LoginPage() {
 
       const response = await authServices.googleLogin();
       const authUrl =
+<<<<<<< HEAD
         response?.auth_url ||
         response?.data?.auth_url ||
         response?.url ||
@@ -144,6 +246,15 @@ export default function LoginPage() {
 
       if (!authUrl) {
         throw new Error("Không nhận được đường dẫn xác thực Google!");
+=======
+        response?.data?.auth_url ||
+        response?.auth_url ||
+        response?.data?.url ||
+        response?.url;
+
+      if (!authUrl) {
+        throw new Error("Không nhận được đường dẫn xác thực Google từ máy chủ!");
+>>>>>>> 85d4f31 (N20-80 [BE] Cập nhật thông tin cá nhân và khảo sát sở thích)
       }
 
       window.location.href = authUrl;
@@ -230,11 +341,21 @@ export default function LoginPage() {
         </footer>
       </section>
 
-      {/* Component Modal chọn role */}
+      {/* Modal 1: Chọn Role */}
       <RoleSelectionModal
         isOpen={showRoleModal}
         onSelectRole={handleSelectRole}
         loading={loading}
+      />
+
+      {/* Modal 2: Bắt buộc chọn Sở thích */}
+      <PreferenceModal
+        isOpen={showPrefModal}
+        categories={validCategories}
+        selectedIds={selectedCategoryIds}
+        onToggleCategory={handleToggleCategory}
+        onSave={handleSavePreferences}
+        loading={loading || categoriesLoading}
       />
     </main>
   );

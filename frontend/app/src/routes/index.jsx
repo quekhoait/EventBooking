@@ -9,7 +9,8 @@ import UserProfilePage from "../pages/User/UserProfilePage";
 import CompanyProfilePage from "../pages/User/CompanyProfilePage";
 import LoginCallbackPage from "../pages/Auth/LoginCallbackPage";
 import { PreviewTicket } from "../pages/PreviewTicket";
-
+import SelectPreferencesPage from "../pages/Auth/SelectPreferencesPage";
+import RegisterCompanyPage from "../pages/User/registerCompanyPage";
 export const routes = [
   { path: "/", name: "home", page: HomePage },
   { path: "/events", name: "events", page: EventPage },
@@ -19,6 +20,7 @@ export const routes = [
   { path: "/register", name: "register", page: RegisterPage },
   { path: "/preference", name: "preference", page: PreferencePage },
   { path: "/auth/google/callback", name: "google-callback", page: LoginCallbackPage },
+  { path: "/select-preferences", name: "select-preferences", page: SelectPreferencesPage },
   // User routes
   { path: "/profile", name: "profile", page: UserProfilePage },
   {
@@ -26,6 +28,7 @@ export const routes = [
     name: "company",
     page: CompanyProfilePage,
   },
+  {path: "/register-company", name: "register-company", page: RegisterCompanyPage},
   { path: "/ticket", name: "ticket", page: PreviewTicket },
 ];
 

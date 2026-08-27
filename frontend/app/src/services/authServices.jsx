@@ -2,12 +2,12 @@ import Apis from "../config/Apis";
 import { endpoints } from "../config/Apis";
 const authService = {
   register: async (data) => {
-    const response = await Apis().post("/auth/register", data);
+    const response = await Apis().post(endpoints.register, data);
     return response.data;
   },
 
   verifyOtp: async ({ email, verification_code }) => {
-    const res = await Apis().post("/auth/verify-otp", {
+    const res = await Apis().post(endpoints.verifyOtp, {
       email,
       verification_code,
     });
@@ -15,17 +15,24 @@ const authService = {
   },
 
   resendOtp: async ({ email }) => {
-    const res = await Apis().post("/auth/resend-otp", { email });
+    const res = await Apis().post(endpoints.resendOtp, { email });
     return res.data;
   },
 
   login: async (data) => {
-    const response = await Apis().post("/auth/login", data);
+    const response = await Apis().post(endpoints.login, data);
+
+    console.log("[DEBUG] Login response:", response.data); // Debugging line
     return response.data;
   },
 
   googleLogin: async () => {
+<<<<<<< HEAD
     const response = await Apis().get("/auth/google/login");
+=======
+    const response = await Apis().get(endpoints.googleLogin);
+    console.log("[DEBUG] Google login response:", response.data); // Debugging line
+>>>>>>> 85d4f31 (N20-80 [BE] Cập nhật thông tin cá nhân và khảo sát sở thích)
     return response.data;
   },
 
@@ -44,12 +51,36 @@ const authService = {
   },
 
   refreshToken: async () => {
-    const response = await Apis().post("/auth/refresh_token");
+    const response = await Apis().post(endpoints.refreshToken);
     return response.data;
   },
 
   logout: async () => {
-    const response = await Apis().post("/auth/logout");
+    const response = await Apis().post(endpoints.logout);
+    return response.data;
+  },
+
+  getUserPreferences: async (userId) => {
+    const response = await Apis().get(endpoints.user_preferences, {
+      params: { user_id: userId },
+    });
+    return response.data;
+  },
+
+  // Cập nhật toàn bộ sở thích (ghi đè)
+  updatePreferences: async ({ userId, categoryIds }) => {
+    const response = await Apis().post(endpoints.user_preferences, {
+      user_id: userId,
+      category_ids: categoryIds,
+    });
+    return response.data;
+  },
+
+  // Xóa 1 sở thích
+  deletePreference: async (categoryId, userId) => {
+    const response = await Apis().delete(
+      `${endpoints.user_preference_detail(categoryId)}?user_id=${userId}`,
+    );
     return response.data;
   },
 };
