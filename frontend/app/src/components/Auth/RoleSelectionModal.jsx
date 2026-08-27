@@ -25,7 +25,7 @@ export default function RoleSelectionModal({ isOpen, onSelectRole, loading }) {
             type="button"
             onClick={() => onSelectRole("USER")}
             disabled={loading}
-            className="group flex items-center gap-4 rounded-xl border border-[#2E2E2E] bg-[#242424] p-4 text-left transition hover:border-[#E85B2A] hover:bg-[#2A2A2A] disabled:opacity-50"
+            className="cursor-pointer group flex items-center gap-4 rounded-xl border border-[#2E2E2E] bg-[#242424] p-4 text-left transition hover:border-[#E85B2A] hover:bg-[#2A2A2A] disabled:opacity-50"
           >
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#E85B2A]/10 text-[#E85B2A] transition group-hover:bg-[#E85B2A] group-hover:text-white">
               <FaUser className="text-xl" />
@@ -45,7 +45,7 @@ export default function RoleSelectionModal({ isOpen, onSelectRole, loading }) {
             type="button"
             onClick={() => onSelectRole("STAFF")}
             disabled={loading}
-            className="group flex items-center gap-4 rounded-xl border border-[#2E2E2E] bg-[#242424] p-4 text-left transition hover:border-[#E85B2A] hover:bg-[#2A2A2A] disabled:opacity-50"
+            className= "cursor-pointer group flex items-center gap-4 rounded-xl border border-[#2E2E2E] bg-[#242424] p-4 text-left transition hover:border-[#E85B2A] hover:bg-[#2A2A2A] disabled:opacity-50"
           >
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#E85B2A]/10 text-[#E85B2A] transition group-hover:bg-[#E85B2A] group-hover:text-white">
               <FaBuilding className="text-xl" />

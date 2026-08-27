@@ -5,7 +5,7 @@ export default function AuthGoogleButton({ onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex h-[52px] w-full items-center justify-center gap-3 rounded-lg border border-[#C8C3BA] bg-white text-sm font-semibold text-[#202124] transition hover:bg-[#F8F8F8] active:scale-[0.99]"
+      className="cursor-pointer flex h-[52px] w-full items-center justify-center gap-3 rounded-lg border border-[#C8C3BA] bg-white text-sm font-semibold text-[#202124] transition hover:bg-[#F8F8F8] active:scale-[0.99]"
     >
       <FcGoogle className="text-[20px]" />
 

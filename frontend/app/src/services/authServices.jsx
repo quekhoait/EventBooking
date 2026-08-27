@@ -27,7 +27,8 @@ const authService = {
   },
 
   googleLogin: async () => {
-const response = await Apis().get(endpoints.googleLogin);
+    const response = await Apis().get(endpoints.googleLogin);
+    console.log("[DEBUG] Google login response:", response.data); // Debugging line
     return response.data;
   },
 
