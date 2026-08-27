@@ -9,6 +9,8 @@ export const endpoints = {
   googleLogin: "/auth/google/login",
   googleCallback: "/auth/google/callback",
 
+  updateRole: "/auth/update-role",
+
   refreshToken: "/auth/refresh_token",
   logout: "/auth/logout",
   me: "/auth/me",

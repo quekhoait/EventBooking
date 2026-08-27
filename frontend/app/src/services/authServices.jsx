@@ -1,5 +1,5 @@
 import Apis from "../config/Apis";
-
+import { endpoints } from "../config/Apis";
 const authService = {
   register: async (data) => {
     const response = await Apis().post("/auth/register", data);
@@ -32,6 +32,15 @@ const authService = {
   googleCallback: async (data) => {
     const response = await Apis().post("/auth/google/callback", data);
     return response.data;
+  },
+
+  updateRole: async ({ userId, role }) => {
+    const payload = {
+      user_id: String(userId),
+      role: String(role).trim().toUpperCase(),
+    };
+    console.log("[DEBUG] Sending payload to /api/auth/update-role:", payload);
+    return await Apis().post(endpoints.updateRole, payload);
   },
 
   refreshToken: async () => {

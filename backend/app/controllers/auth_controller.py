@@ -12,6 +12,7 @@ from app.dto import auth_dto, user_dto
 from app.utils.exception import AppException
 from app.services import auth_services
 from app.utils.json import NewPackage, StatusResponse
+from app.models.UserModel import RoleEnum
 
 auth_api = Blueprint("auth_api", __name__, url_prefix="/auth")
 
@@ -140,7 +141,6 @@ def initiate_google_login():
 
 @auth_api.route("/google/callback", methods=["POST", "GET"])
 def handle_google_callback():
-
     frontend_base_url = "http://localhost:5173"
 
     if request.method == "GET":
@@ -161,16 +161,22 @@ def handle_google_callback():
     print(f"User data to be sent in response: {result}")
 
     if request.method == "GET":
-        role_val = result.get("role")
-        if hasattr(role_val, "value"):
-            role_val = role_val.value
+        raw_role = result.get("role")
+        if isinstance(raw_role, RoleEnum):
+            clean_role = raw_role.value
+        elif isinstance(raw_role, str):
+            clean_role = raw_role.replace("RoleEnum.", "").lower()
+        else:
+            clean_role = "pending"
 
         params = urllib.parse.urlencode(
             {
-                "token": result.get("access_token", ""),
-                "role": str(role_val) if role_val else "",
+                "token": result.get("access_token", "dummy_token"),
+                "role": clean_role,  # Trả về chuỗi sạch: "pending"
                 "username": result.get("username", ""),
                 "id": result.get("id", ""),
+                "email": result.get("email", ""),
+                "has_preferences": "true" if result.get("has_preferences") else "false",
             }
         )
         return redirect(f"{frontend_base_url}/auth/google/callback?{params}")
@@ -178,6 +184,20 @@ def handle_google_callback():
     return NewPackage(
         status=StatusResponse.SUCCESS,
         message="Đăng nhập bằng Google thành công",
+        data=result,
+        status_code=200,
+    )
+
+
+@auth_api.route("/update-role", methods=["POST"])
+def update_user_role():
+    data = request.get_json(silent=True) or {}
+
+    result = auth_services.update_user_role(data)
+
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        message="Cập nhật vai trò thành công",
         data=result,
         status_code=200,
     )

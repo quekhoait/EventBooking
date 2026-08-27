@@ -7,6 +7,7 @@ class RoleEnum(Enum):
     ADMIN = "admin"
     USER = "user"
     STAFF = "staff"
+    PENDING = "pending"
 
 
 class UserProvider(Enum):
@@ -24,7 +25,7 @@ class User(BaseModel):
     phone_number = db.Column(db.String(15), nullable=True)
     email = db.Column(db.String(50), unique=True, nullable=False)
     avatar = db.Column(db.String(255), default="/static/image/icon_user.png")
-    role = db.Column(db.Enum(RoleEnum), default=RoleEnum.USER, nullable=False)
+    role = db.Column(db.Enum(RoleEnum), default=RoleEnum.PENDING, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
 
     is_verified = db.Column(db.Boolean, default=False)
@@ -32,6 +33,9 @@ class User(BaseModel):
     auth_methods = db.relationship("UserAuthMethod", backref="user", lazy=True)
     tickets = db.relationship(
         "TicketModel", foreign_keys="TicketModel.user_id", backref="user", lazy=True
+    )
+    preferences = db.relationship(
+        "UserPreference", backref="user", cascade="all, delete-orphan", lazy=True
     )
 
 
@@ -51,3 +55,25 @@ class EmailOTP(BaseModel):
     email = db.Column(db.String(50), nullable=False)
     otp_code_hash = db.Column(db.String(255), nullable=False)
     expires_at = db.Column(db.DateTime, nullable=False)
+
+
+class UserPreference(BaseModel):
+    __tablename__ = "user_preference"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    category_id = db.Column(
+        db.Integer, db.ForeignKey("event_category.id"), nullable=False
+    )
+
+    # Khóa ngoại tham chiếu đến category để query dễ dàng
+    category = db.relationship(
+        "EventCategory", backref="user_preferences", lazy="joined"
+    )
+
+    # Đảm bảo 1 user không chọn trùng 1 category nhiều lần
+    __table_args__ = (
+        db.UniqueConstraint(
+            "user_id", "category_id", name="uq_user_category_preference"
+        ),
+    )

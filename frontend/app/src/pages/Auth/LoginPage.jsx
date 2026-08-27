@@ -1,16 +1,104 @@
+// src/pages/Auth/LoginPage.jsx
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthInput from "../../components/Auth/AuthInput";
 import AuthButton from "../../components/Auth/AuthButton";
+import AuthGoogleButton from "../../components/Auth/AuthGoogleButton";
+import RoleSelectionModal from "../../components/Auth/RoleSelectionModal";
 import authServices from "../../services/authServices";
 import { useAuth } from "../../context/AuthContext";
+import { isPendingRole } from "../../utils/authHelper";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { loginUser } = useAuth(); // Sử dụng đúng hàm loginUser từ AuthContext
+  const { loginUser } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [tempAuthData, setTempAuthData] = useState(null);
+
+  const routeByRoleAndPreferences = (role, hasPreferences) => {
+    const cleanRole = String(role || "").toUpperCase();
+    if (cleanRole === "STAFF" || cleanRole === "ADMIN") {
+      navigate("/dashboard/organizer");
+    } else if (cleanRole === "USER") {
+      if (!hasPreferences) {
+        navigate("/select-preferences");
+      } else {
+        navigate("/");
+      }
+    } else {
+      navigate("/");
+    }
+  };
+
+  const handleLoginSuccess = (resPayload) => {
+    console.log("Payload nhận được từ Login:", resPayload);
+    const rawUser = resPayload.data || resPayload.user || resPayload;
+
+    if (!rawUser) {
+      throw new Error("Không tìm thấy thông tin tài khoản hợp lệ từ máy chủ!");
+    }
+
+    const rawRole = rawUser.role;
+    const tokenValue =
+      resPayload.access_token ||
+      rawUser.access_token ||
+      rawUser.token ||
+      "authenticated_session";
+
+    const hasPreferences = Boolean(
+      rawUser.has_preferences ?? !resPayload.needs_setup_preferences
+    );
+
+    const authData = {
+      token: tokenValue,
+      id: String(rawUser.id || ""),
+      username: rawUser.username || "",
+      role: rawRole,
+      email: rawUser.email || "",
+      avatar: rawUser.avatar || "",
+      full_name: rawUser.full_name || "",
+      has_preferences: hasPreferences,
+    };
+
+    // KIỂM TRA ROLE PENDING ĐỂ MỞ MODAL
+    if (isPendingRole(rawRole)) {
+      console.log("Tài khoản PENDING -> Kích hoạt Modal chọn role");
+      setTempAuthData(authData);
+      setShowRoleModal(true);
+      return;
+    }
+
+    loginUser(authData);
+    routeByRoleAndPreferences(rawRole, hasPreferences);
+  };
+
+  const handleSelectRole = async (selectedRole) => {
+    try {
+      setLoading(true);
+      setErrorMsg("");
+
+      if (authServices.updateRole) {
+        await authServices.updateRole({ role: selectedRole.toLowerCase() });
+      }
+
+      const updatedAuthData = {
+        ...tempAuthData,
+        role: selectedRole,
+      };
+
+      loginUser(updatedAuthData);
+      setShowRoleModal(false);
+      routeByRoleAndPreferences(selectedRole, updatedAuthData.has_preferences);
+    } catch (err) {
+      console.error("Lỗi khi chọn role:", err);
+      setErrorMsg("Không thể cập nhật loại tài khoản. Vui lòng thử lại!");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -27,43 +115,9 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-
       const response = await authServices.login({ email, password });
-      console.log("Login API response:", response);
-
-      // 1. Trích xuất object data từ backend
       const resPayload = response.data !== undefined ? response.data : response;
-      const rawUser = resPayload.data || resPayload;
-
-      if (!rawUser || !rawUser.id) {
-        throw new Error("Không tìm thấy thông tin tài khoản hợp lệ từ máy chủ!");
-      }
-
-      // 2. Chuẩn hóa Role và Token
-      const cleanRole = String(rawUser.role || "USER").replace("RoleEnum.", "");
-      // Lấy token nếu backend trả về, hoặc dùng cookie_session giả lập để vượt qua điều kiện (if token)
-      const tokenValue =
-        resPayload.access_token ||
-        rawUser.access_token ||
-        rawUser.token ||
-        "authenticated_session";
-
-      // 3. Chuẩn bị Object khớp với AuthContext
-      const authData = {
-        token: tokenValue,
-        id: String(rawUser.id),
-        username: rawUser.username,
-        role: cleanRole,
-        email: rawUser.email,
-        avatar: rawUser.avatar,
-        full_name: rawUser.full_name,
-      };
-
-      // 4. Gọi hàm loginUser của Context (Context sẽ tự lưu localStorage và setUser)
-      loginUser(authData);
-
-      // 5. Chuyển hướng sang trang chủ
-      navigate("/");
+      handleLoginSuccess(resPayload);
     } catch (err) {
       console.error("Login error:", err);
       const message =
@@ -76,8 +130,37 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      setErrorMsg("");
+      setLoading(true);
+
+      const response = await authServices.googleLogin();
+      const authUrl =
+        response?.auth_url ||
+        response?.data?.auth_url ||
+        response?.url ||
+        response?.data?.url;
+
+      if (!authUrl) {
+        throw new Error("Không nhận được đường dẫn xác thực Google!");
+      }
+
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error("Google login error:", error);
+      setErrorMsg(
+        error.response?.data?.message ||
+          error.message ||
+          "Đăng nhập Google thất bại. Vui lòng thử lại sau!"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#0D0D0D] px-6 py-12">
+    <main className="relative flex min-h-screen items-center justify-center bg-[#0D0D0D] px-6 py-12">
       <section className="w-full max-w-[440px] rounded-2xl border border-[#2A2A2A] bg-[#F4F1EB] p-8 shadow-[0_25px_80px_rgba(0,0,0,0.45)] sm:p-10">
         <header className="mb-8">
           <span className="text-[10px] font-bold tracking-[4px] text-[#171717]">
@@ -128,6 +211,14 @@ export default function LoginPage() {
           </AuthButton>
         </form>
 
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-[1px] flex-1 bg-[#D5D0C7]" />
+          <span className="text-[11px] font-semibold text-[#8C8881]">HOẶC</span>
+          <div className="h-[1px] flex-1 bg-[#D5D0C7]" />
+        </div>
+
+        <AuthGoogleButton onClick={handleGoogleLogin} disabled={loading} />
+
         <footer className="mt-7 text-center text-xs text-[#5F5C57]">
           Chưa có tài khoản?
           <Link
@@ -138,6 +229,13 @@ export default function LoginPage() {
           </Link>
         </footer>
       </section>
+
+      {/* Component Modal chọn role */}
+      <RoleSelectionModal
+        isOpen={showRoleModal}
+        onSelectRole={handleSelectRole}
+        loading={loading}
+      />
     </main>
   );
 }

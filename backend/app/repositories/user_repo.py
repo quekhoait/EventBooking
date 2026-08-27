@@ -4,7 +4,8 @@ import uuid
 
 from app.models import User
 from app import db
-from app.models.UserModel import EmailOTP, UserAuthMethod, UserProvider
+from app.models.UserModel import EmailOTP, UserAuthMethod, UserPreference, UserProvider
+from app.models.EventModel import EventCategory
 
 
 def find_one(**kwargs):
@@ -114,3 +115,40 @@ def update_user_profile(user, profile_data):
         setattr(user, key, value)
     db.session.commit()
     return user
+
+
+def find_user_preferences(user_id):
+    return UserPreference.query.filter_by(user_id=user_id).all()
+
+
+def check_user_has_preferences(user_id):
+    return UserPreference.query.filter_by(user_id=user_id).first() is not None
+
+
+def get_user_preferred_category_ids(user_id):
+    preferences = find_user_preferences(user_id)
+    return [p.category_id for p in preferences]
+
+
+def get_all_active_categories():
+    return EventCategory.query.all()
+
+
+def find_valid_category_ids(category_ids):
+    categories = EventCategory.query.filter(EventCategory.id.in_(category_ids)).all()
+    return [c.id for c in categories]
+
+
+def add_user_preferences(user_id, category_ids):
+    existing_ids = set(get_user_preferred_category_ids(user_id))
+    valid_ids = find_valid_category_ids(category_ids)
+
+    new_records = []
+    for cat_id in valid_ids:
+        if cat_id not in existing_ids:
+            pref = UserPreference(user_id=user_id, category_id=cat_id)
+            db.session.add(pref)
+            new_records.append(pref)
+
+    db.session.commit()
+    return [p.category_id for p in new_records]
