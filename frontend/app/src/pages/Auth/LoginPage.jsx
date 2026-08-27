@@ -67,7 +67,7 @@ export default function LoginPage() {
       console.log("-> Nhánh USER");
 
       if (!hasPreferences) {
-        console.log("🔥 ĐIỀU KIỆN THỎA MÃN: USER chưa có preferences -> KÍCH HOẠT MODAL!");
+        console.log("ĐIỀU KIỆN THỎA MÃN: USER chưa có preferences -> KÍCH HOẠT MODAL!");
         setTempAuthData(authData);
         setShowPrefModal(true); // BẬT MODAL
         return;
@@ -91,7 +91,7 @@ export default function LoginPage() {
     const rawUser = resPayload.data || resPayload.user || resPayload;
 
     if (!rawUser) {
-      console.error("❌ Không tìm thấy thông tin rawUser trong payload!");
+      console.error("Không tìm thấy thông tin rawUser trong payload!");
       throw new Error("Không tìm thấy thông tin tài khoản hợp lệ từ máy chủ!");
     }
 
@@ -121,7 +121,7 @@ export default function LoginPage() {
 
     // Kiểm tra nếu tài khoản đang Pending Role
     if (isPendingRole(rawRole)) {
-      console.log("⚠️ Tài khoản PENDING ROLE -> Mở RoleSelectionModal");
+      console.log("Tài khoản PENDING ROLE -> Mở RoleSelectionModal");
       setTempAuthData(authData);
       setShowRoleModal(true);
       return;
@@ -237,24 +237,13 @@ export default function LoginPage() {
       setLoading(true);
 
       const response = await authServices.googleLogin();
-      const authUrl =
-<<<<<<< HEAD
-        response?.auth_url ||
-        response?.data?.auth_url ||
-        response?.url ||
-        response?.data?.url;
-
-      if (!authUrl) {
-        throw new Error("Không nhận được đường dẫn xác thực Google!");
-=======
-        response?.data?.auth_url ||
+      const authUrl =response?.data?.auth_url ||
         response?.auth_url ||
         response?.data?.url ||
         response?.url;
 
       if (!authUrl) {
         throw new Error("Không nhận được đường dẫn xác thực Google từ máy chủ!");
->>>>>>> 85d4f31 (N20-80 [BE] Cập nhật thông tin cá nhân và khảo sát sở thích)
       }
 
       window.location.href = authUrl;
