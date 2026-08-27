@@ -112,7 +112,7 @@ def register_with_email(data):
             email=email,
             username=username,
             password=generate_hash_password(password=data.password),
-            role=data.role,
+            role=RoleEnum.PENDING,
         )
 
         user_repo.create_user_provider(

@@ -33,12 +33,8 @@ export const endpoints = {
   get_location_tree: "/data/locations/tree",
 };
 
-<<<<<<< HEAD
-export const BASE_URL = import.meta.env.VITE_BACKEND_API_URL;
-=======
 export const BASE_URL =
   import.meta.env.VITE_BACKEND_API_URL || "http://127.0.0.1:8000/api";
->>>>>>> 85d4f31 (N20-80 [BE] Cập nhật thông tin cá nhân và khảo sát sở thích)
 
 export const Apis = () => {
   return axios.create({

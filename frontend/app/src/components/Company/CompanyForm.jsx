@@ -48,7 +48,7 @@ export default function CompanyForm({
       </div>
 
       {/* Địa chỉ & Tỉnh / Thành phố */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 cursor-text">
         <div>
           <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-[#171717]">
             Địa Chỉ Trụ Sở Chính <span className="text-[#E85B2A]">*</span>
@@ -66,7 +66,7 @@ export default function CompanyForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-[#171717]">
+          <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-[#171717] ">
             Khu Vực Hoạt Động Chính
           </label>
           <select
@@ -74,11 +74,11 @@ export default function CompanyForm({
             disabled={loading}
             value={formData.location_id}
             onChange={onChange}
-            className="w-full rounded-xl border border-[#D6D1C8] bg-white px-3.5 py-2.5 text-xs text-[#171717] outline-none transition focus:border-[#E85B2A] focus:ring-1 focus:ring-[#E85B2A] disabled:bg-[#EAE6DF]"
+            className="cursor-pointer w-full rounded-xl border border-[#D6D1C8] bg-white px-3.5 py-2.5 text-xs text-[#171717] outline-none transition focus:border-[#E85B2A] focus:ring-1 focus:ring-[#E85B2A] disabled:bg-[#EAE6DF]"
           >
-            <option value="">-- Chọn Tỉnh / Thành phố --</option>
+            <option className="cursor-pointer" value="">-- Chọn Tỉnh / Thành phố --</option>
             {locations.map((loc) => (
-              <option key={loc.id} value={loc.id}>
+              <option key={loc.id} value={loc.id} className="cursor-pointer">
                 {loc.name}
               </option>
             ))}

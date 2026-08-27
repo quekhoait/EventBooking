@@ -27,12 +27,8 @@ const authService = {
   },
 
   googleLogin: async () => {
-<<<<<<< HEAD
-    const response = await Apis().get("/auth/google/login");
-=======
     const response = await Apis().get(endpoints.googleLogin);
     console.log("[DEBUG] Google login response:", response.data); // Debugging line
->>>>>>> 85d4f31 (N20-80 [BE] Cập nhật thông tin cá nhân và khảo sát sở thích)
     return response.data;
   },
 

@@ -7,7 +7,9 @@ class RegisterRequestDto(BaseSchema):
     username = fields.String(required=True)
     email = fields.Email(required=True)
     password = fields.String(required=True)
-    role = fields.String(required=True, validate=validate.OneOf(["admin", "user"]))
+    role = fields.String(
+        required=True, validate=validate.OneOf(["admin", "user", "pending"])
+    )
     confirm_password = fields.String(required=True)
 
     @validates_schema

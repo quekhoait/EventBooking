@@ -177,7 +177,7 @@ export default function RegisterPage() {
           Đã có tài khoản?
           <Link
             to="/login"
-            className="ml-2 font-bold text-[#E85B2A] hover:underline"
+            className="ml-2 font-bold text-[#E85B2A] hover:underline cursor-pointer"
           >
             ĐĂNG NHẬP
           </Link>
