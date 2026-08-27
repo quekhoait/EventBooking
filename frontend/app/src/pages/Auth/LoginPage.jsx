@@ -49,7 +49,7 @@ export default function LoginPage() {
       "authenticated_session";
 
     const hasPreferences = Boolean(
-      rawUser.has_preferences ?? !resPayload.needs_setup_preferences
+      rawUser.has_preferences ?? !resPayload.needs_setup_preferences,
     );
 
     const authData = {
@@ -131,33 +131,37 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-    try {
-      setErrorMsg("");
-      setLoading(true);
+  try {
+    setErrorMsg("");
+    setLoading(true);
 
-      const response = await authServices.googleLogin();
-      const authUrl =
-        response?.auth_url ||
-        response?.data?.auth_url ||
-        response?.url ||
-        response?.data?.url;
+    const response = await authServices.googleLogin();
+    console.log("Response từ server:", response);
 
-      if (!authUrl) {
-        throw new Error("Không nhận được đường dẫn xác thực Google!");
-      }
+    // Lấy link xác thực từ cấu trúc NewPackage (response.data.auth_url)
+    const authUrl =
+      response?.data?.auth_url ||
+      response?.auth_url ||
+      response?.data?.url ||
+      response?.url;
 
-      window.location.href = authUrl;
-    } catch (error) {
-      console.error("Google login error:", error);
-      setErrorMsg(
-        error.response?.data?.message ||
-          error.message ||
-          "Đăng nhập Google thất bại. Vui lòng thử lại sau!"
-      );
-    } finally {
-      setLoading(false);
+    if (!authUrl) {
+      throw new Error("Không nhận được đường dẫn xác thực Google từ máy chủ!");
     }
-  };
+
+    // Chuyển hướng người dùng sang trang đăng nhập của Google
+    window.location.href = authUrl;
+  } catch (error) {
+    console.error("Google login error:", error);
+    setErrorMsg(
+      error.response?.data?.message ||
+        error.message ||
+        "Đăng nhập Google thất bại. Vui lòng thử lại sau!"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <main className="relative flex min-h-screen items-center justify-center bg-[#0D0D0D] px-6 py-12">

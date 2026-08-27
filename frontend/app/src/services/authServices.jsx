@@ -25,12 +25,12 @@ const authService = {
   },
 
   googleLogin: async () => {
-    const response = await Apis().get("/auth/google/login");
+    const response = await Apis().get(endpoints.googleLogin);
     return response.data;
   },
 
   googleCallback: async (data) => {
-    const response = await Apis().post("/auth/google/callback", data);
+    const response = await Apis().post(endpoints.googleCallback, data);
     return response.data;
   },
 
