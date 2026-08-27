@@ -29,4 +29,3 @@ export default function Nav() {
   );
 }
 
-export default Nav;
