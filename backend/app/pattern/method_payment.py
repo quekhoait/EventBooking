@@ -48,25 +48,19 @@ class MomoPaymentStrategy(PaymentStrategy):
         request_id = str(uuid.uuid4())
         order_id = "HD" + uuid.uuid4().hex[:10].upper()
         order_info = "Pay with MoMo"
-        request_type = "captureWallet"
+        # request_type = "captureWallet"
         safe_amount = int(round(float(amount)))
         extract_data = ticket_code
-        expiry_time = self.expire_after if self.expire_after else 1
+        expiry_time = 15
         request_type = "payWithATM"
         # Momo
-        # raw_signature = (
-        #     f"accessKey={self.access_key}&amount={safe_amount}&extraData={extract_data}"
-        #     f"&ipnUrl={self.ipn_url}&orderId={order_id}&orderInfo={order_info}"
-        #     f"&partnerCode={self.partner_code}&redirectUrl={self.return_url}"
-        #     f"&requestId={request_id}&requestType={request_type}"
-        # )
-        # ATM
         raw_signature = (
             f"accessKey={self.access_key}&amount={safe_amount}&extraData={extract_data}"
             f"&ipnUrl={self.ipn_url}&orderId={order_id}&orderInfo={order_info}"
             f"&partnerCode={self.partner_code}&redirectUrl={self.return_url}"
             f"&requestId={request_id}&requestType={request_type}"
         )
+
         signature = self._create_signature(raw_signature)
         payload = {
             "partnerCode": self.partner_code,
@@ -84,6 +78,7 @@ class MomoPaymentStrategy(PaymentStrategy):
             "lang": "vi"
         }
         res = requests.post(self.endpoint_create, json=payload).json()
+        print(">>> MOMO RESPONSE:", res)
         payment_repo.create_new_payment_with_momo(ticket_code, res)
         return CreatePaymentResponse().load(res)
 
@@ -109,12 +104,12 @@ class MomoPaymentStrategy(PaymentStrategy):
             raise PaymentsError("Chữ ký MoMo không hợp lệ!")
         try:
             validated_data = MomoPaymentCallbackRequest().load(data)
+            print("val", validated_data)
             if not isinstance(validated_data, dict):
                 validated_data = vars(validated_data)
         except ValidationError as err:
             raise PaymentsError(f"Dữ liệu MoMo không hợp lệ: {err.messages}")
         return payment_repo.update_payment_result_momo(validated_data)
-
 
     # {
     #     "method": "momo",

@@ -1,5 +1,48 @@
 function EventList({ events, category, onBack, onSelect }) {
-  return <main className="mx-auto max-w-[1240px] px-5 py-9 lg:px-10 lg:py-12"><button onClick={onBack} className="mb-7 text-xs font-bold uppercase text-[#ff985c]">← Tất cả danh mục</button><div className="mb-8"><p className="mb-2 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">Danh mục sự kiện</p><h1 className="font-display text-5xl font-extrabold uppercase text-white">{category}</h1></div><div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">{events.map((event) => <button key={event.id} onClick={() => onSelect(event)} className="group overflow-hidden rounded-2xl bg-[#1b1c1d] text-left panel-border"><div className="h-52 bg-cover bg-center transition duration-500 group-hover:scale-105" style={{ backgroundImage: `url(${event.image})` }} /><div className="p-5"><p className="text-xs font-bold uppercase tracking-widest text-[#ff985c]">{event.date}</p><h2 className="mt-2 font-display text-3xl font-bold uppercase text-white">{event.name}</h2><p className="mt-2 text-sm text-white/50">{event.location}</p><span className="mt-4 inline-block text-xs font-bold text-[#ff985c]">XEM CHI TIẾT →</span></div></button>)}</div></main>
+  return (
+    <main className="mx-auto max-w-[1240px] px-5 py-9 lg:px-10 lg:py-12">
+      <button
+        onClick={onBack}
+        className="mb-7 text-xs font-bold uppercase text-[#ff985c]"
+      >
+        ← Tất cả danh mục
+      </button>
+      <div className="mb-8">
+        <p className="mb-2 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">
+          Danh mục sự kiện
+        </p>
+        <h1 className="font-display text-5xl font-extrabold uppercase text-white">
+          {category}
+        </h1>
+      </div>
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        {events.map((event) => (
+          <button
+            key={event.id}
+            onClick={() => onSelect(event)}
+            className="group overflow-hidden rounded-2xl bg-[#1b1c1d] text-left panel-border"
+          >
+            <div
+              className="h-52 bg-cover bg-center transition duration-500 group-hover:scale-105"
+              style={{ backgroundImage: `url(${event.image})` }}
+            />
+            <div className="p-5">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#ff985c]">
+                {event.date}
+              </p>
+              <h2 className="mt-2 font-display text-3xl font-bold uppercase text-white">
+                {event.name}
+              </h2>
+              <p className="mt-2 text-sm text-white/50">{event.location}</p>
+              <span className="mt-4 inline-block text-xs font-bold text-[#ff985c]">
+                XEM CHI TIẾT →
+              </span>
+            </div>
+          </button>
+        ))}
+      </div>
+    </main>
+  );
 }
 
-export default EventList
+export default EventList;

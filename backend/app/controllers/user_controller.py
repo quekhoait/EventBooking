@@ -1,10 +1,34 @@
 from flask import Blueprint, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, current_user
 
+from app.dto import user_dto
 from app.utils.json import NewPackage, StatusResponse
 from app.services import user_services
 
 user_api = Blueprint("user_api", __name__, url_prefix="/user")
+
+
+@user_api.route("users/<int:id>/company", methods=["POST"])
+@jwt_required()
+def create_user_company(id):
+    data = request.get_json()
+    validated_data = user_dto.CompanyRequestDto().load(data)
+    response = user_services.create_user_company(validated_data, id)
+    result = user_dto.UserResponseDto().dump(response)
+
+    if not result:
+        return NewPackage(
+            status=StatusResponse.ERROR,
+            message="Company not created",
+            status_code=400,
+            data={"user_id": id},
+        )
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        message="Company created successfully",
+        data=result,cd
+        status_code=200,
+    )
 
 
 @user_api.route("/profile", methods=["GET"])
@@ -74,3 +98,9 @@ def update_profile():
         },
         status_code=200,
     )
+
+
+@user_api.route("/preference", methods=["PUT", "PATCH"])
+@jwt_required()
+def update_preference():
+    pass

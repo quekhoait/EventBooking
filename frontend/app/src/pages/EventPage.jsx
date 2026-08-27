@@ -42,8 +42,12 @@ function EventPage() {
     applyFilters({ ...tempFilters, location: locationId });
   };
 
-  const handleBook = (eventId) => {
-    navigate(`/events/${eventId}`);
+
+  const handleBook = (event) => {
+    const selectedEvent = event;
+    navigate('/booking', {
+      state: { event: selectedEvent },
+    });
   };
 
   if (loading) {
@@ -121,7 +125,6 @@ function EventPage() {
         </div>
       )}
 
-      {/* Event Grid */}
       <EventGrid events={events} onBook={handleBook} />
 
       {/* Empty State Action */}

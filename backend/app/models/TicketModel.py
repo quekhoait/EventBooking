@@ -27,7 +27,7 @@ class TicketModel(BaseModel):
     price = db.Column(db.Float, nullable=False)
     discount_id = db.Column(db.Integer, db.ForeignKey('discount.id'), nullable=True)
     status = db.Column(db.Enum(TicketStatus), default=TicketStatus.PENDING, nullable=False)
-
+    face_image = db.Column(db.String(255), nullable=False)
     seat = db.relationship('Seat', backref='tickets', lazy=True)
     payments = db.relationship('PaymentModel', backref='ticket', lazy=True)
 

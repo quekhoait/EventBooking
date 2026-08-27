@@ -1,12 +1,12 @@
 import "./App.css";
 import { Route, Routes } from "react-router-dom";
-import Nav from "./layouts/nav";
+import Header from "./layouts/header";
 import routes from "./routes";
 
 function App() {
   return (
     <div className="booking-shell min-h-screen">
-      <Nav />
+      <Header />
       <Routes>
         {routes.map((route, index) => {
           const Page = route.page;

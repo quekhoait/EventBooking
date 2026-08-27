@@ -9,6 +9,9 @@ function OrderSummary({
   onApplyDiscount,
   onContinue,
   completed,
+  continueLabel = "Tiếp tục",
+  continueLoading = false,
+  canContinue = true,
 }) {
   return (
     <aside className="h-fit rounded-2xl bg-[#ffe6d2] p-5 text-[#241d1a] shadow-[8px_8px_0_rgba(255,107,18,.14)] lg:sticky lg:top-28">
@@ -72,10 +75,10 @@ function OrderSummary({
       {!completed && (
         <button
           onClick={onContinue}
-          disabled={!quantity}
+          disabled={!quantity || !canContinue || continueLoading}
           className="mt-5 w-full rounded-xl bg-[#ff6b12] py-3 text-sm font-extrabold text-white transition hover:bg-[#e95b0c] disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Thanh toán ngay →
+          {continueLoading ? "Đang lưu vé..." : continueLabel}
         </button>
       )}
 

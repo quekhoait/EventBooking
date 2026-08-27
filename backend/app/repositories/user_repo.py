@@ -4,7 +4,8 @@ import uuid
 
 from app.models import User
 from app import db
-from app.models.UserModel import EmailOTP, UserAuthMethod, UserProvider
+from app.models.UserModel import EmailOTP, UserAuthMethod, UserPreference, UserProvider
+from app.models.EventModel import EventCategory
 
 
 def find_one(**kwargs):
@@ -24,14 +25,26 @@ def generate_username_unique(email, username=None):
     return unique_username
 
 
-def create_user_email(email, username, password, role=None, is_verified=False):
+def create_user_email(
+    email,
+    username,
+    password,
+    full_name=None,
+    role=None,
+    avatar=None,
+    is_verified=False,
+    is_active=True,
+):
 
     user = User(
         email=email,
         username=username,
+        full_name=full_name,
         password=password,
         role=role,
         is_verified=is_verified,
+        avatar=avatar,
+        is_active=is_active,
     )
 
     db.session.add(user)
@@ -114,3 +127,40 @@ def update_user_profile(user, profile_data):
         setattr(user, key, value)
     db.session.commit()
     return user
+
+
+def find_user_preferences(user_id):
+    return UserPreference.query.filter_by(user_id=user_id).all()
+
+
+def check_user_has_preferences(user_id):
+    return UserPreference.query.filter_by(user_id=user_id).first() is not None
+
+
+def get_user_preferred_category_ids(user_id):
+    preferences = find_user_preferences(user_id)
+    return [p.category_id for p in preferences]
+
+
+def get_all_active_categories():
+    return EventCategory.query.all()
+
+
+def find_valid_category_ids(category_ids):
+    categories = EventCategory.query.filter(EventCategory.id.in_(category_ids)).all()
+    return [c.id for c in categories]
+
+
+def add_user_preferences(user_id, category_ids):
+    existing_ids = set(get_user_preferred_category_ids(user_id))
+    valid_ids = find_valid_category_ids(category_ids)
+
+    new_records = []
+    for cat_id in valid_ids:
+        if cat_id not in existing_ids:
+            pref = UserPreference(user_id=user_id, category_id=cat_id)
+            db.session.add(pref)
+            new_records.append(pref)
+
+    db.session.commit()
+    return [p.category_id for p in new_records]

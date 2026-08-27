@@ -1,13 +1,14 @@
 from marshmallow import Schema, fields, validate
 
 from app.dto import BaseSchema
+from app.utils.validation import CloudinaryImageField
 
 
 class CreateTicketRequestDTO(BaseSchema):
-    user_id = fields.Int(required=True, error_messages={"required": "user_id là bắt buộc"})
     event_id = fields.Int(required=True, error_messages={"required": "seat_id là bắt buộc"})
     discount_id = fields.Int(required=False, allow_none=True)
     seat_type_id = fields.Int(required=False, allow_none=True, load_default=None)
+    face_image = CloudinaryImageField(folder="tickets/face_image", required=False, allow_none=True)
 
 class TicketResponse(BaseSchema):
     code = fields.Str(dump_only=True)
@@ -15,7 +16,7 @@ class TicketResponse(BaseSchema):
     seat_id = fields.Int(dump_only=True)
     price = fields.Float(dump_only=True)
     discount_id = fields.Int(dump_only=True, allow_none=True)
-
+    face_image = CloudinaryImageField(folder='face_image')
 
 
 class TicketDetailRequest(BaseSchema):
@@ -56,6 +57,7 @@ class TicketDetailResponse(BaseSchema):
     price = fields.Float()
     status = fields.Str()
     seat = fields.Nested(SeatSchema)
+    face_image = CloudinaryImageField(folder='face_image')
     discount = fields.Nested(DiscountDetailResponse, dump_only=True)
     user = fields.Nested(UserDetailResponse, dump_only=True)
 

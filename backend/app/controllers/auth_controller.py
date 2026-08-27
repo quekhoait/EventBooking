@@ -1,9 +1,10 @@
 from http.client import responses
 
 from flask_jwt_extended import jwt_required
+import urllib
 from app.dto.user_dto import UserResponseDto
 
-from flask import Blueprint
+from flask import Blueprint, redirect
 from flask import request
 from marshmallow import ValidationError
 from app.dto import auth_dto, user_dto
@@ -11,15 +12,16 @@ from app.dto import auth_dto, user_dto
 from app.utils.exception import AppException
 from app.services import auth_services
 from app.utils.json import NewPackage, StatusResponse
+from app.models.UserModel import RoleEnum, UserPreference
 
 auth_api = Blueprint("auth_api", __name__, url_prefix="/auth")
 
 
 @auth_api.route("/register", methods=["POST"])
 def register():
-
     try:
         data = request.get_json()
+        print(f"Received registration data: {data}")
         validated_data = auth_dto.RegisterRequestDto().load(data)
         user_response = auth_services.register_with_email(validated_data)
         result = UserResponseDto().dump(user_response)
@@ -140,31 +142,75 @@ def initiate_google_login():
 
 @auth_api.route("/google/callback", methods=["POST", "GET"])
 def handle_google_callback():
+    frontend_base_url = "http://localhost:5173"
 
     if request.method == "GET":
+        error = request.args.get("error")
+        if error:
+            error_params = urllib.parse.urlencode({"error": error})
+            return redirect(f"{frontend_base_url}/login?{error_params}")
         data = {
             "code": request.args.get("code"),
             "state": request.args.get("state"),
         }
-
-        error = request.args.get("error")
-        if error:
-            return NewPackage(
-                status=StatusResponse.ERROR,
-                message=f"Google Auth Error: {error}",
-                status_code=400,
-            )
     else:
         data = request.get_json(silent=True) or {}
 
     print(f"Received data from Google callback: {data}")
+
     user_response = auth_services.login_with_google(data)
     result = UserResponseDto().dump(user_response)
-    print(f"User data to be sent in response: {result}")
+
+    user_id = result.get("id")
+
+    # Kiểm tra trực tiếp tại DB xem user_id này có bao nhiêu preferences
+    pref_count = UserPreference.query.filter_by(user_id=user_id).count()
+    has_pref_db = pref_count > 0
+
+    print(
+        f"🔥 [DEBUG BACKEND] User ID: {user_id} - Số preference trong DB: {pref_count} -> has_pref: {has_pref_db}"
+    )
+
+    if request.method == "GET":
+        raw_role = result.get("role")
+        clean_role = str(raw_role).replace("RoleEnum.", "").strip().upper()
+
+        params = urllib.parse.urlencode(
+            {
+                "token": result.get("access_token") or "dummy_token",
+                "role": clean_role,
+                "username": result.get("username") or "",
+                "full_name": result.get("full_name") or result.get("username") or "",
+                "id": str(user_id),
+                "email": result.get("email") or "",
+                "avatar": result.get("avatar") or "",
+                "phone_number": result.get("phone_number") or "",
+                "is_active": "true" if result.get("is_active", True) else "false",
+                "is_verified": "true" if result.get("is_verified", False) else "false",
+                # Ép giá trị thực từ DB vào param
+                "has_preferences": "true" if has_pref_db else "false",
+            }
+        )
+        print(f"🚀 [DEBUG REDIRECT URL] params: {params}")
+        return redirect(f"{frontend_base_url}/auth/google/callback?{params}")
 
     return NewPackage(
         status=StatusResponse.SUCCESS,
-        message="Đang nhập bằng Google thành công",
+        message="Đăng nhập bằng Google thành công",
+        data=result,
+        status_code=200,
+    )
+
+
+@auth_api.route("/update-role", methods=["POST"])
+def update_user_role():
+    data = request.get_json(silent=True) or {}
+
+    result = auth_services.update_user_role(data)
+
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        message="Cập nhật vai trò thành công",
         data=result,
         status_code=200,
     )
@@ -198,6 +244,7 @@ def login():
             status_code=400,
         )
 
+
 @auth_api.route("/refresh_token", methods=["POST"])
 @jwt_required()
 def refresh_token():
@@ -208,6 +255,7 @@ def refresh_token():
         message=result,
         status_code=200,
     )
+
 
 @auth_api.route("/logout", methods=["POST"])
 @jwt_required()

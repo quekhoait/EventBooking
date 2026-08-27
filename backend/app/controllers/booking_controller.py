@@ -16,6 +16,7 @@ booking_api = Blueprint('booking_api', __name__, url_prefix='/bookings')
 def create():
     data = request.get_json()
     data = CreateTicketRequestDTO().load(data)
+    print(data)
     response = booking_services.create(data)
     result = TicketResponse().dump(response)
     return NewPackage(
@@ -26,17 +27,17 @@ def create():
     )
 
 #xem chi tiet vé
-@booking_api.route('/details', methods=['GET'])
+@booking_api.route('/details/<string:code>', methods=['GET'])
 # @jwt_required()
-def get_details():
-    data = request.get_json()
-    validated_data = TicketDetailRequest().load(data)
-    response = booking_services.get_by_code(validated_data)
+def get_details(code):
+    response = booking_services.get_by_code(code)
     result = TicketDetailResponse().dump(response)
-    return NewPackage(status=StatusResponse.SUCCESS,
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
         message="Lấy dữ liệu thành công",
         data=result,
-        status_code=200 )
+        status_code=200
+    )
 
 
 

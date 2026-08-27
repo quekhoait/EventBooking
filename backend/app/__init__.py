@@ -27,13 +27,19 @@ def create_app(config_name=None):
     selected_config = config_name or os.environ.get('FLASK_ENV', 'development')
     config_obj = config.get(selected_config, config['default'])
     app.config.from_object(config_obj)
-
+    mail.init_app(app)
     db.init_app(app)
     migrate.init_app(app, db)
     cache.init_app(app)
     jwt.init_app(app)
     mail.init_app(app)
-    CORS(app)
+    CORS(
+        app,
+        resources={
+            r"/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}
+        },
+        supports_credentials=True,
+    )
     oauth.init_app(app)
     init_error_handlers(app)
 
@@ -57,4 +63,6 @@ def create_app(config_name=None):
     from .routes import routes
     app.register_blueprint(controller_blueprint)
     app.register_blueprint(routes)
+    from app.pattern.method_payment import payment_context
+    payment_context.init_app(app.config)
     return app

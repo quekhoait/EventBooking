@@ -1,5 +1,5 @@
 from flask import Blueprint
-
+from .event_controller import event_bp
 from .booking_controller import booking_api
 from .auth_controller import auth_api
 from .event_controller import event_bp

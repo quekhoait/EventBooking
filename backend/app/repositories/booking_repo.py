@@ -5,6 +5,7 @@ from app.models import TicketModel, PaymentModel, Seat, PaymentStatus, DiscountM
 
 
 def get_seat_isempty_for_event(event, seatTypeId):
+
     seat = Seat.query.filter(
         Seat.event_id == event.id,
         Seat.event_ticket_type_id == seatTypeId,

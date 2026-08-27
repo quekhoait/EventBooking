@@ -5,7 +5,8 @@ from flask import current_app
 from app import db
 from app.dto.pagination_dto import LoadMoreResponse
 from app.errors.error_code import ErrorCode
-from app.models import EventModel, LocationModel, Company, EventCategory, EventSeat, EventStatus, EventTicketType
+from app.models import EventModel, LocationModel, Company, EventCategory, EventSeat, EventStatus, EventTicketType, \
+    TicketModel
 from app.repositories import base_repo, event_repo
 from app.utils.exception import AppException
 from app.utils.signals import event_cancelled_signal
@@ -262,3 +263,8 @@ def _get_location_name(location_id: int | None) -> str | None:
     if not location:
         return None
     return location.full_name
+
+def get_tickets(id)->EventTicketType:
+    if not id:
+        return None
+    return event_repo.get_tickets(id)
