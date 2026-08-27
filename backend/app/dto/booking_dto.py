@@ -57,6 +57,7 @@ class TicketDetailResponse(BaseSchema):
     price = fields.Float()
     status = fields.Str()
     seat = fields.Nested(SeatSchema)
+    face_image = CloudinaryImageField(folder='face_image')
     discount = fields.Nested(DiscountDetailResponse, dump_only=True)
     user = fields.Nested(UserDetailResponse, dump_only=True)
 

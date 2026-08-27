@@ -51,7 +51,7 @@ def use_discount(discount_id, price):
 
 def create(data: CreateTicketRequestDTO):
     # user_id = check_authorization()
-    user_id = 6
+    user_id = 1
     event = event_repo.find_event_by_id(data.event_id)
     if not event:
         raise AppException(ErrorCode.NOT_FOUND)
@@ -88,14 +88,19 @@ def create(data: CreateTicketRequestDTO):
 
     return new_ticket
 
-def get_by_code(data: TicketResponse):
-    user_id = check_authorization()
-    # user_id = 1
-    ticket = booking_repo.get_ticket_details(data.code)
+
+def get_by_code(code: str):
+    # user_id = check_authorization()
+    user_id = 1
+
+    ticket = booking_repo.get_ticket_details(code)
+
     if not ticket:
         raise AppException(ErrorCode.NOT_FOUND)
+
     if user_id != ticket.user_id:
         raise AppException(ErrorCode.NOT_FOUND)
+
     return ticket
 
 def list_tickets():
@@ -134,8 +139,8 @@ def send_ticket(ticket_code):
 
 
 def cancel_ticket(data):
-    user_id = check_authorization()
-    # user_id = 1
+    # user_id = check_authorization()
+    user_id = 1
     ticket_code = data.get('ticket_code') if isinstance(data, dict) else getattr(data, 'ticket_code', None)
     ticket = booking_repo.find_ticket_by_code(ticket_code)
     if not ticket:

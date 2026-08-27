@@ -175,7 +175,8 @@ def seed_data():
             seat_id=seat_v1.id,
             price=1200000.0,
             discount_id=discount_code.id,
-            status=TicketStatus.SUCCESS
+            status=TicketStatus.SUCCESS,
+            face_image="1234"
         )
         db.session.add(ticket_1)
         db.session.flush()

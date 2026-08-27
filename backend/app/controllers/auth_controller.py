@@ -17,7 +17,6 @@ auth_api = Blueprint("auth_api", __name__, url_prefix="/auth")
 
 @auth_api.route("/register", methods=["POST"])
 def register():
-
     try:
         data = request.get_json()
         validated_data = auth_dto.RegisterRequestDto().load(data)

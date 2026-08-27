@@ -4,6 +4,7 @@ export const endpoints = {
        'get_event': `/events`,
        'get_event_detail': (id) => `/events/${id}`,
        'get_tickets': (id)=> `/events/${id}/tickets`,
+        get_ticket_detail: (code) => `/bookings/details/${code}`,
        'create_ticket': '/bookings/create',
        'create_payment': '/payments/create'
 };

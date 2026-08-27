@@ -13,21 +13,17 @@ function DigitalTicketPage({
   const ticketRef = useRef(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isFaceCaptureOpen, setIsFaceCaptureOpen] = useState(false);
-  console.log(result);
-  const event = result.event || {};
+  const event = result.event || result.seat.event;
   const user = {
     fullname: "Huỳnh Khoa",
     phone_number: "098789878",
   };
-  const seats = Array.isArray(result.seats)
-    ? result.seats
-    : result.seat
-      ? [result.seat]
-      : [];
+  const seats = result?.seat
+  console.log(result)
   const faceImage = capturedFaceImage || result.face_image;
   const ticketName = result.ticketName;
   const quantity = result.quantity;
-  const total = Number(result.total);
+  const total = result.price - result.discount;
 
   const startTime = formatEventData(event.event_start_time);
   const endTime = formatEventData(event.event_end_time);
@@ -36,7 +32,7 @@ function DigitalTicketPage({
 
   const eventLocation = event.location_name;
   const qrData = encodeURIComponent(
-    `HOKIHUVA|${result.code || ""}|${event.name || ""}|${seats.join(",")}`,
+    `HOKIHUVA|${result.code || ""}|${event.name || ""}|${seats.seat_code}`,
   );
 
   const downloadTicketImage = async () => {
@@ -172,9 +168,8 @@ function DigitalTicketPage({
               <div>
                 <span className="block text-xs text-[#806b60]">Ghế</span>
                 <b className="text-[#d94f0d]">
-                  {seats.length
-                    ? seats.join(", ")
-                    : "Sẽ được cấp sau khi thanh toán"}
+                   {seats.seat_code
+                    || "Sẽ được cấp sau khi thanh toán"}
                 </b>
               </div>
             </div>

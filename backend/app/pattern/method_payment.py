@@ -51,22 +51,16 @@ class MomoPaymentStrategy(PaymentStrategy):
         # request_type = "captureWallet"
         safe_amount = int(round(float(amount)))
         extract_data = ticket_code
-        expiry_time = self.expire_after if self.expire_after else 15
+        expiry_time = 15
         request_type = "payWithATM"
         # Momo
-        # raw_signature = (
-        #     f"accessKey={self.access_key}&amount={safe_amount}&extraData={extract_data}"
-        #     f"&ipnUrl={self.ipn_url}&orderId={order_id}&orderInfo={order_info}"
-        #     f"&partnerCode={self.partner_code}&redirectUrl={self.return_url}"
-        #     f"&requestId={request_id}&requestType={request_type}"
-        # )
-        # ATM
         raw_signature = (
             f"accessKey={self.access_key}&amount={safe_amount}&extraData={extract_data}"
             f"&ipnUrl={self.ipn_url}&orderId={order_id}&orderInfo={order_info}"
             f"&partnerCode={self.partner_code}&redirectUrl={self.return_url}"
             f"&requestId={request_id}&requestType={request_type}"
         )
+
         signature = self._create_signature(raw_signature)
         payload = {
             "partnerCode": self.partner_code,
@@ -89,7 +83,6 @@ class MomoPaymentStrategy(PaymentStrategy):
         return CreatePaymentResponse().load(res)
 
     def callback(self, data):
-
         received_signature = data.get('signature')
         raw_signature = (
             f"accessKey={self.access_key}"

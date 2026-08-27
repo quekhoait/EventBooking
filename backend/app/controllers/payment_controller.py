@@ -18,7 +18,6 @@ def create():
 
 @payment_api.route('/<string:method>/callback', methods=['POST'])
 def callback(method):
-    print(">>> ĐÃ NHẬN ĐƯỢC IPN TỪ MOMO! <<<")
     payment = payment_services.callback(method, request.get_json())
     booking_services.send_ticket(payment.ticket_code)
     return NewPackage(status=StatusResponse.SUCCESS, message="Payment successful",status_code=200)

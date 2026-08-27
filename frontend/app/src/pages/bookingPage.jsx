@@ -86,10 +86,9 @@ function BookingPage({ onBack }) {
     setSaveError("");
 
     try {
-      // 1. Gửi request tạo vé
       const bookingPayload = {
-        event_id: Number(eventId),
-        seat_type_id: Number(selectedTicket.id),
+        event_id: eventId,
+        seat_type_id: selectedTicket.id,
         discount_id: discount > 0 ? 1 : null,
         face_image: faceImage,
       };
@@ -98,9 +97,6 @@ function BookingPage({ onBack }) {
       const ticketData = ticketRes?.data?.data;
       const ticketCode = ticketData?.code;
 
-      if (!ticketCode) {
-        throw new Error("Không nhận được mã vé từ hệ thống.");
-      }
 
       setTicketResult(ticketData);
 
@@ -108,7 +104,6 @@ function BookingPage({ onBack }) {
         ticket_code: ticketCode,
         method: "momo", 
       };
-
       const paymentRes = await ticketService.createPayment(paymentPayload);
       const paymentData = paymentRes?.data?.data;
       if (paymentData?.payUrl) {
@@ -116,11 +111,10 @@ function BookingPage({ onBack }) {
         return;
       }
 
-      setStep(2);
     } catch (error) {
-      console.error("Lỗi quy trình đặt vé và thanh toán:", error);
+      console.error("Backend Error Details:", error.response?.data);
       setSaveError(
-        error.response?.data?.message || error.message || "Giao dịch thất bại. Vui lòng thử lại."
+        error.response?.data?.detail || error.message || "Không thể tạo vé.",
       );
     } finally {
       setIsSavingTicket(false);

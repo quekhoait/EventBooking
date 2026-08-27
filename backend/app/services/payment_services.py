@@ -39,7 +39,7 @@ def create(data):
         elif payment.expired_time and payment.expired_time < datetime.now():
             raise AppException("Đã hết thời gian thanh toán vé!", status_code=400)
         else:
-            return payment.pay_url
+            return CreatePaymentResponse().dump(payment)
 
     ticket = booking_repo.find_ticket_by_code(data.ticket_code)
     if not ticket:
@@ -47,6 +47,7 @@ def create(data):
 
     try:
         res = payment_context.create(data.method, data.ticket_code, ticket.price)
+        print(">>> MOMO RESPONSE1211:", res)
         db.session.commit()
         return CreatePaymentResponse().dump(res)
     except Exception as e:
