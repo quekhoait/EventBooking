@@ -8,6 +8,249 @@ from app.models import (
     Seat, DiscountModel
 )
 
+
+# app/seed.py (thêm vào phần seed_events_and_details hoặc tạo hàm mới)
+
+def seed_more_events():
+    """Seed thêm nhiều sự kiện đa dạng."""
+    print("🌱 Bắt đầu seed thêm sự kiện...")
+    try:
+        # Lấy thông tin phụ thuộc
+        locations = LocationModel.query.filter(LocationModel.parent_id.isnot(None)).all()
+        companies = Company.query.all()
+        categories = EventCategory.query.all()
+        ticket_types = EventTicketType.query.all()
+
+        if not locations or not companies or not categories or not ticket_types:
+            print("⚠️ Thiếu dữ liệu phụ thuộc, bỏ qua seed thêm sự kiện")
+            return
+
+        # Dữ liệu sự kiện mẫu
+        events_data = [
+            {
+                "name": "Rock Fest 2026",
+                "description": "Đêm nhạc Rock sôi động với các ban nhạc nổi tiếng",
+                "max_per_user": 4,
+                "days_from_now": 5,
+                "duration_hours": 5,
+                "ticket_types": [
+                    {"type": "Vé VIP", "seat_total": 50, "price": 800000},
+                    {"type": "Vé Thường (Standard)", "seat_total": 150, "price": 300000},
+                    {"type": "Vé Early Bird", "seat_total": 30, "price": 150000}
+                ]
+            },
+            {
+                "name": "Tech Summit 2026",
+                "description": "Hội nghị công nghệ hàng đầu với sự tham gia của các chuyên gia",
+                "max_per_user": 3,
+                "days_from_now": 7,
+                "duration_hours": 8,
+                "ticket_types": [
+                    {"type": "Vé VIP", "seat_total": 30, "price": 1200000},
+                    {"type": "Vé Thường (Standard)", "seat_total": 100, "price": 500000}
+                ]
+            },
+            {
+                "name": "Marathon TP.HCM 2026",
+                "description": "Giải chạy marathon thường niên tại TP.HCM",
+                "max_per_user": 2,
+                "days_from_now": 14,
+                "duration_hours": 6,
+                "ticket_types": [
+                    {"type": "Vé VIP", "seat_total": 20, "price": 1000000},
+                    {"type": "Vé Thường (Standard)", "seat_total": 200, "price": 350000}
+                ]
+            },
+            {
+                "name": "Art Exhibition 2026",
+                "description": "Triển lãm nghệ thuật đương đại với các tác phẩm độc đáo",
+                "max_per_user": 5,
+                "days_from_now": 3,
+                "duration_hours": 10,
+                "ticket_types": [
+                    {"type": "Vé VIP", "seat_total": 20, "price": 600000},
+                    {"type": "Vé Thường (Standard)", "seat_total": 80, "price": 200000}
+                ]
+            },
+            {
+                "name": "Food Festival 2026",
+                "description": "Lễ hội ẩm thực với đa dạng món ăn từ khắp nơi",
+                "max_per_user": 5,
+                "days_from_now": 10,
+                "duration_hours": 8,
+                "ticket_types": [
+                    {"type": "Vé VIP", "seat_total": 40, "price": 500000},
+                    {"type": "Vé Thường (Standard)", "seat_total": 120, "price": 150000}
+                ]
+            },
+            {
+                "name": "Startup Pitch Night",
+                "description": "Đêm gọi vốn cho các startup công nghệ tiềm năng",
+                "max_per_user": 3,
+                "days_from_now": 12,
+                "duration_hours": 4,
+                "ticket_types": [
+                    {"type": "Vé VIP", "seat_total": 15, "price": 1500000},
+                    {"type": "Vé Thường (Standard)", "seat_total": 60, "price": 400000}
+                ]
+            },
+            {
+                "name": "Jazz Night 2026",
+                "description": "Đêm nhạc Jazz lãng mạn với các nghệ sĩ hàng đầu",
+                "max_per_user": 4,
+                "days_from_now": 8,
+                "duration_hours": 4,
+                "ticket_types": [
+                    {"type": "Vé VIP", "seat_total": 25, "price": 700000},
+                    {"type": "Vé Thường (Standard)", "seat_total": 80, "price": 250000}
+                ]
+            },
+            {
+                "name": "Workshop AI & Machine Learning",
+                "description": "Workshop thực hành về AI và Machine Learning",
+                "max_per_user": 2,
+                "days_from_now": 6,
+                "duration_hours": 6,
+                "ticket_types": [
+                    {"type": "Vé VIP", "seat_total": 10, "price": 2000000},
+                    {"type": "Vé Thường (Standard)", "seat_total": 40, "price": 800000},
+                    {"type": "Vé Sinh viên", "seat_total": 20, "price": 300000}
+                ]
+            },
+            {
+                "name": "Fashion Show 2026",
+                "description": "Show diễn thời trang với các nhà thiết kế nổi tiếng",
+                "max_per_user": 4,
+                "days_from_now": 15,
+                "duration_hours": 3,
+                "ticket_types": [
+                    {"type": "Vé VVIP (Super VIP)", "seat_total": 10, "price": 3000000},
+                    {"type": "Vé VIP", "seat_total": 30, "price": 1500000},
+                    {"type": "Vé Thường (Standard)", "seat_total": 100, "price": 500000}
+                ]
+            },
+            {
+                "name": "E-Sports Tournament 2026",
+                "description": "Giải đấu E-Sports chuyên nghiệp với giải thưởng lớn",
+                "max_per_user": 3,
+                "days_from_now": 20,
+                "duration_hours": 10,
+                "ticket_types": [
+                    {"type": "Vé VIP", "seat_total": 30, "price": 1000000},
+                    {"type": "Vé Thường (Standard)", "seat_total": 150, "price": 300000}
+                ]
+            },
+            {
+                "name": "Book Fair 2026",
+                "description": "Hội sách lớn nhất năm với hàng ngàn đầu sách",
+                "max_per_user": 5,
+                "days_from_now": 25,
+                "duration_hours": 12,
+                "ticket_types": [
+                    {"type": "Vé Thường (Standard)", "seat_total": 200, "price": 50000}
+                ]
+            },
+            {
+                "name": "New Year Countdown 2027",
+                "description": "Đếm ngược chào năm mới 2027 với âm nhạc và pháo hoa",
+                "max_per_user": 6,
+                "days_from_now": 90,
+                "duration_hours": 6,
+                "ticket_types": [
+                    {"type": "Vé VVIP (Super VIP)", "seat_total": 20, "price": 5000000},
+                    {"type": "Vé VIP", "seat_total": 50, "price": 2000000},
+                    {"type": "Vé Thường (Standard)", "seat_total": 300, "price": 500000}
+                ]
+            }
+        ]
+
+        # Lấy danh sách các category names để map
+        category_names = [cat.name for cat in categories]
+        company_names = [comp.name for comp in companies]
+        location_names = [loc.name for loc in locations]
+
+        # Tạo sự kiện
+        for i, event_data in enumerate(events_data):
+            # Chọn location, company, category ngẫu nhiên
+            location = locations[i % len(locations)]
+            company = companies[i % len(companies)]
+            category = categories[i % len(categories)]
+
+            # Thời gian
+            start_time = datetime.now() + timedelta(days=event_data["days_from_now"])
+            end_time = start_time + timedelta(hours=event_data["duration_hours"])
+            ticket_start = datetime.now() + timedelta(days=1)
+            ticket_end = start_time - timedelta(hours=1)
+
+            # Tạo event
+            event = EventModel(
+                name=event_data["name"],
+                description=event_data["description"],
+                max_per_user=event_data["max_per_user"],
+                start_time=ticket_start,
+                end_time=ticket_end,
+                event_start_time=start_time,
+                event_end_time=end_time,
+                status=EventStatus.PUBLISHED if i % 3 != 0 else EventStatus.DRAFT,
+                location_id=location.id,
+                company_id=company.id,
+                category_id=category.id,
+                location_name=location.name,
+                image=f"https://images.unsplash.com/photo-{1500000000000 + i * 100000}?auto=format&fit=crop&w=900&q=80"
+            )
+            db.session.add(event)
+            db.session.flush()
+
+            # Tạo EventSeat và Seat cho từng loại vé
+            for ticket_data in event_data["ticket_types"]:
+                # Tìm ticket type
+                ticket_type = next(
+                    (t for t in ticket_types if t.name == ticket_data["type"]),
+                    ticket_types[0]
+                )
+
+                # Tạo EventSeat
+                event_seat = EventSeat(
+                    event_id=event.id,
+                    event_ticket_type_id=ticket_type.id,
+                    seat_total=ticket_data["seat_total"],
+                    price=ticket_data["price"]
+                )
+                db.session.add(event_seat)
+                db.session.flush()
+
+                # Tạo Seat cho từng ghế
+                prefix = ticket_type.name[:3].upper()
+                for j in range(1, ticket_data["seat_total"] + 1):
+                    seat = Seat(
+                        seat_code=f"{prefix}-{j:03d}",
+                        is_active=True,
+                        event_id=event.id,
+                        event_ticket_type_id=ticket_type.id
+                    )
+                    db.session.add(seat)
+
+            # Tạo Discount cho 1 số event
+            if i % 2 == 0:
+                discount = DiscountModel(
+                    code=f"DISCOUNT{i + 1:03d}",
+                    value=10 + (i * 5) % 30,
+                    unit="%",
+                    start_time=datetime.now(),
+                    end_time=start_time - timedelta(days=1),
+                    event_id=event.id
+                )
+                db.session.add(discount)
+
+            print(f"  ✅ Đã tạo event: {event_data['name']}")
+
+        db.session.commit()
+        print(f"✅ Seed thêm {len(events_data)} sự kiện thành công!")
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Seed thêm sự kiện thất bại: {e}")
+
 # ----------------------------------------------------------------------
 # 1. DỮ LIỆU MẪU (SEED DATA)
 # ----------------------------------------------------------------------
@@ -346,4 +589,5 @@ if __name__ == '__main__':
         seed_companies()  # Step 5: Seed Công ty
         seed_users()  # Step 6: Seed User
         seed_events_and_details()  # Step 7: Seed Event, Seat, Discount
+        seed_more_events()
         print("✨ Hoàn tất toàn bộ quy trình!")

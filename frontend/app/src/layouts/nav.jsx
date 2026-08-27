@@ -12,7 +12,7 @@ function Nav({ onProfileClick, profileOpen, onHome }) {
           </div>          
         </button>
         <div className="mx-auto hidden min-w-0 max-w-xl flex-1 items-center rounded-full bg-white px-4 py-2 text-[#9d9696] shadow-[5px_5px_0_rgba(150,46,0,.35)] md:flex">
-  <span className="mr-3 text-2xl leading-none select-none cursor-pointer"><i class="fa-solid fa-magnifying-glass text-lg"></i></span>
+  <span className="mr-3 text-2xl leading-none select-none cursor-pointer"><i className="fa-solid fa-magnifying-glass text-lg"></i></span>
   <input
     type="text"
     placeholder="BẠN TÌM GÌ HÔM NAY?"
@@ -23,10 +23,10 @@ function Nav({ onProfileClick, profileOpen, onHome }) {
           onClick={onProfileClick}
          className="relative ml-auto flex items-center gap-2 whitespace-nowrap text-xs font-bold uppercase italic cursor-pointer hover:text-white">
           <span className="flex h-7 w-7 items-center justify-center">
-            <i class="fa-regular fa-circle-user text-xl"></i>
+            <i className="fa-regular fa-circle-user text-xl"></i>
           </span>
           <span className="hidden sm:inline">XIN CHÀO, V</span>
-          <span><i class="fa-solid fa-angle-down"></i></span>
+          <span><i className="fa-solid fa-angle-down"></i></span>
           {profileOpen && (
             <div className="absolute right-0 top-10 w-44 rounded-b-3xl rounded-tl-2xl bg-[#ffe6d2] p-4 text-left text-sm font-normal normal-case italic text-[#3b302b] shadow-xl">
               <div className="border-b border-[#e5b99c] pb-3">
