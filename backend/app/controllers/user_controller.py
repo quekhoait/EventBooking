@@ -26,7 +26,7 @@ def create_user_company(id):
     return NewPackage(
         status=StatusResponse.SUCCESS,
         message="Company created successfully",
-        data=result,
+        data=result,cd
         status_code=200,
     )
 
