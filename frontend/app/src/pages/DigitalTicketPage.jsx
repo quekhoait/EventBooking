@@ -19,7 +19,6 @@ function DigitalTicketPage({
     phone_number: "098789878",
   };
   const seats = result?.seat
-  console.log(result)
   const faceImage = capturedFaceImage || result.face_image;
   const ticketName = result.ticketName;
   const quantity = result.quantity;
