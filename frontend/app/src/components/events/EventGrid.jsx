@@ -40,7 +40,7 @@ const EventCard = ({ event, onBook }) => {
           · {event.location_name || 'Địa điểm chưa cập nhật'}
         </p>
         <button
-          onClick={() => onBook(event.id)}
+          onClick={() => onBook(event)}
           className="mt-5 w-full rounded-xl bg-[#ff6b12] py-3 text-xs font-extrabold text-white hover:bg-[#e95b0c] transition-colors"
         >
           ĐẶT VÉ NGAY →

@@ -1,17 +1,16 @@
-import { useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useEvents } from '../hooks/useEvents';
 import { useFilters } from '../hooks/useFilters';
 import { useCategories } from '../hooks/useCategories';
-import { useLocations } from '../hooks/useLocations';
 import CategoryFilter from '../components/events/CategoryFilter';
 import FilterBar from '../components/events/FilterBar';
 import ActiveFilters from '../components/events/ActiveFilters';
 import EventGrid from '../components/events/EventGrid';
 import LoadMoreButton from '../components/events/LoadMoreButton';
+import { useLocations } from "../hooks/useLocations";
+import { useNavigate } from 'react-router-dom';
 
 function EventPage() {
   const navigate = useNavigate();
@@ -48,8 +47,11 @@ function EventPage() {
     }
   }, [filters, categories]);
 
-  const handleBook = (eventId) => {
-    navigate(`/events/${eventId}`);
+  const handleBook = (event) => {
+    const selectedEvent = event;
+    navigate('/booking', {
+      state: { event: selectedEvent },
+    });
   };
 
   if (loading) {
@@ -85,14 +87,12 @@ function EventPage() {
         </p>
       </div>
 
-      {/* Category Filter */}
       <CategoryFilter
         categories={categories}
         activeCategory={filters.category}
         onCategoryChange={handleCategoryChange}
       />
 
-      {/* Filter Bar */}
       <FilterBar
         tempKeyword={tempFilters.keyword}
         tempLocation={tempFilters.location}
@@ -107,7 +107,6 @@ function EventPage() {
         onDateBlur={handleDateBlur}
       />
 
-      {/* Active Filters */}
       <ActiveFilters
         keyword={filters.keyword}
         locationFilter={filters.location}
@@ -117,7 +116,6 @@ function EventPage() {
         onClear={clearFilters}
       />
 
-      {/* Results */}
       <div className="mb-5 flex items-center justify-between">
         <h2 className="font-display text-3xl font-bold uppercase text-white">
           {filters.category}
@@ -125,7 +123,6 @@ function EventPage() {
         <span className="text-xs text-white/40">{total} sự kiện</span>
       </div>
 
-      {/* Error State */}
       {error && (
         <div className="text-center py-16">
           <p className="text-red-500">{error}</p>
@@ -144,10 +141,8 @@ function EventPage() {
         </div>
       )}
 
-      {/* Event Grid */}
       <EventGrid events={events} onBook={handleBook} />
 
-      {/* Empty State */}
       {!error && events.length === 0 && (
         <div className="text-center py-16">
           <p className="text-white/50">Không tìm thấy sự kiện nào</p>
@@ -162,7 +157,6 @@ function EventPage() {
         </div>
       )}
 
-      {/* Load More */}
       <LoadMoreButton
         hasNext={hasNext}
         loadingMore={loadingMore}

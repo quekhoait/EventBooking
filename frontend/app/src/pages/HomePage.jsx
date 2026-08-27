@@ -2,7 +2,7 @@
 
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { baseDataService } from "../services/baseDataService";
+import { baseDataService } from "../services/baseDataService.jsx";
 
 function HomePage({ onCategorySelect }) {
     const navigate = useNavigate();

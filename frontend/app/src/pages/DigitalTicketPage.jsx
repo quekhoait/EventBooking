@@ -22,7 +22,7 @@ function DigitalTicketPage({
   const faceImage = capturedFaceImage || result.face_image;
   const ticketName = result.ticketName;
   const quantity = result.quantity;
-  const total = result.price - result.discount;
+  const total = result.price - result.discount || result.total;
 
   const startTime = formatEventData(event.event_start_time);
   const endTime = formatEventData(event.event_end_time);
@@ -31,7 +31,7 @@ function DigitalTicketPage({
 
   const eventLocation = event.location_name;
   const qrData = encodeURIComponent(
-    `HOKIHUVA|${result.code || ""}|${event.name || ""}|${seats.seat_code}`,
+    `HOKIHUVA|${result.code || ""}|${event.name || ""}|${seats?.seat_code ||""}`,
   );
 
   const downloadTicketImage = async () => {
@@ -167,8 +167,7 @@ function DigitalTicketPage({
               <div>
                 <span className="block text-xs text-[#806b60]">Ghế</span>
                 <b className="text-[#d94f0d]">
-                   {seats.seat_code
-                    || "Sẽ được cấp sau khi thanh toán"}
+                   {seats?.seat_code || "Sẽ được cấp sau khi thanh toán"}
                 </b>
               </div>
             </div>

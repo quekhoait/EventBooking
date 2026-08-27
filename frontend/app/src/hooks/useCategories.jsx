@@ -1,7 +1,7 @@
 // src/hooks/useCategories.js
 
 import { useState, useEffect } from 'react';
-import { baseDataService } from '../services/baseDataService';
+import { baseDataService } from '../services/baseDataService.jsx';
 
 export const useCategories = () => {
   const [categories, setCategories] = useState([{ id: null, name: 'Tất cả' }]);

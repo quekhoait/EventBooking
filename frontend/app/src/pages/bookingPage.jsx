@@ -7,6 +7,7 @@ import { EventContext } from "../context/EventContext";
 import { eventServices } from "../services/eventServices";
 import { ticketService } from "../services/ticketServices";
 import DigitalTicketPage from "./DigitalTicketPage";
+import { logError } from "../utils/log";
 
 function BookingPage({ onBack }) {
   const navigate = useNavigate();
@@ -84,19 +85,17 @@ function BookingPage({ onBack }) {
 
     setIsSavingTicket(true);
     setSaveError("");
-
     try {
       const bookingPayload = {
         event_id: eventId,
-        seat_type_id: selectedTicket.id,
+        seat_type_id: selectedTicket.event_ticket_type_id,
         discount_id: discount > 0 ? 1 : null,
         face_image: faceImage,
       };
-
+      
       const ticketRes = await ticketService.createTicket(bookingPayload);
       const ticketData = ticketRes?.data?.data;
       const ticketCode = ticketData?.code;
-
 
       setTicketResult(ticketData);
 
@@ -112,6 +111,7 @@ function BookingPage({ onBack }) {
       }
 
     } catch (error) {
+      logError(error)
       console.error("Backend Error Details:", error.response?.data);
       setSaveError(
         error.response?.data?.detail || error.message || "Không thể tạo vé.",

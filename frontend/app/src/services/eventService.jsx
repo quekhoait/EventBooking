@@ -1,6 +1,6 @@
 // src/services/eventService.js
 
-import Apis from "../config/Apis.js";
+import Apis, { endpoints } from "../config/Apis.jsx";
 
 export const eventService = {
     // Lấy danh sách sự kiện với filter và phân trang
@@ -41,5 +41,11 @@ export const eventService = {
             console.error('Error fetching event detail:', error);
             throw error;
         }
+    },
+
+    
+
+    getTicketsType: async (id)=> {
+        return await Apis().get(endpoints.get_tickets(id))
     }
 };
