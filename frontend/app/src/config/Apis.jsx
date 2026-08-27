@@ -1,6 +1,9 @@
+import 'dotenv/config'; 
 import axios from "axios";
 
 export const endpoints = {
+    'login_email': '/auth/login',
+    'categories': '/data/categories',
        'get_event': `/events`,
        'get_event_detail': (id) => `/events/${id}`,
        'get_tickets': (id)=> `/events/${id}/tickets`,

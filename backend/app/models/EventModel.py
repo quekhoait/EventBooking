@@ -15,6 +15,7 @@ class EventCategory(BaseModel):
     __tablename__ = 'event_category'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False)
+    image = db.Column(db.String(255), nullable=True)
 
 class EventModel(SoftDeleteModel):
     __tablename__ = 'event'
