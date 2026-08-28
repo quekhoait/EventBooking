@@ -1,4 +1,3 @@
-from encodings.punycode import T
 
 import pytest
 

@@ -14,11 +14,8 @@ function BookingPage({ onBack }) {
   const location = useLocation();
   const { id: paramId } = useParams();
   const { eventDetail, fetchEventDetail } = useContext(EventContext);
-
   const eventFromState = location.state?.event;
   const eventId = eventFromState?.id || paramId;
-  const event = eventFromState || eventDetail;
-
   const [tickets, setTickets] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [discountCode, setDiscountCode] = useState("");
@@ -98,7 +95,7 @@ function BookingPage({ onBack }) {
       const ticketCode = ticketData?.code;
 
       setTicketResult(ticketData);
-
+      console.log(ticketResult)
       const paymentPayload = {
         ticket_code: ticketCode,
         method: "momo", 
@@ -121,6 +118,15 @@ function BookingPage({ onBack }) {
     }
   };
 
+
+useEffect(() => {
+  const loadEvent = async () => {
+    await fetchEventDetail(eventId);
+  };
+  if (eventId) {
+    loadEvent();
+  }
+}, [eventId]);
 
 
   const handleBack = () => (onBack ? onBack() : navigate(-1));
@@ -149,14 +155,16 @@ function BookingPage({ onBack }) {
   }
 
   if (step === 1) {
-    const previewTicket = {
-      event,
-      face_image: faceImage,
-      ticketName: selectedTicket?.ticket_type?.name || "Vé",
+    const preview = {
+      ...eventDetail,
+      ticketName: selectedTicket?.ticket_type?.name || "Vé Tiêu Chuẩn",
+      price: selectedTicket?.price || 0,
+      discount: discount,
+      total: total,
       quantity: 1,
-      total,
-      seats: [],
-      code: "Chưa thanh toán",
+      status: "CHỜ THANH TOÁN",
+      seat: { seat_code: "Cấp sau khi thanh toán" },
+      face_image: faceImage,
     };
 
     return (
@@ -178,13 +186,13 @@ function BookingPage({ onBack }) {
 
         <div className="grid items-start gap-7 lg:grid-cols-[1fr_340px]">
           <DigitalTicketPage
-            result={previewTicket}
+            result={preview}
             preview
             capturedFaceImage={faceImage}
             onFaceCapture={setFaceImage}
           />
           <OrderSummary
-            event={event}
+            event={eventDetail}
             quantity={1}
             ticketName={selectedTicket?.ticket_type?.name || "Chưa chọn vé"}
             total={total}
@@ -215,20 +223,73 @@ function BookingPage({ onBack }) {
       <div className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
           <p className="mb-2 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">Đặt vé sự kiện</p>
-          <h1 className="font-display text-4xl font-extrabold uppercase text-white sm:text-5xl">Chọn loại vé</h1>
+          <h1 className="font-display text-4xl font-extrabold uppercase text-white sm:text-4xl">Chọn loại vé</h1>
         </div>
         <BookingProgress currentStep={step} />
       </div>
 
-      <div className="mb-8 grid overflow-hidden rounded-2xl border border-white/10 bg-[#1b1c1d] md:grid-cols-[1.3fr_1fr]">
-        <div className="min-h-48 bg-cover bg-center" style={{ backgroundImage: `url(${event.image || "/placeholder.jpg"})` }} />
-        <div className="flex flex-col justify-center p-6">
-          <span className="mb-1 text-xs font-bold uppercase text-[#ff985c]">{event.category?.name || "Sự kiện"}</span>
-          <h2 className="font-display text-2xl font-bold uppercase text-white">{event.name}</h2>
-          <p className="mt-2 text-sm text-white/60">{event.event_start_time || event.date || "Chưa cập nhật ngày"}</p>
-          <p className="text-sm text-white/60">{event.location_name || event.location || "Địa điểm chưa xác định"}</p>
-        </div>
+    <div className="mb-8 grid overflow-hidden rounded-2xl border border-white/10 bg-[#1b1c1d] md:grid-cols-[1.3fr_1fr]">
+  <div 
+    className="min-h-[360px] w-full bg-cover bg-center" 
+    style={{ backgroundImage: `url(${eventDetail?.image})` }} 
+  />
+<div className="flex h-full flex-col justify-between p-6">
+  {/* Header: Category & Status */}
+  <div className="flex items-center gap-2">
+    <span className="rounded bg-[#ff985c]/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-[#ff985c]">
+      {eventDetail?.category?.name}
+    </span>
+    {eventDetail?.status && (
+      <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-xs font-medium uppercase text-emerald-400">
+        {eventDetail.status}
+      </span>
+    )}
+  </div>
+
+  {/* Main content: Title & Description */}
+  <div className="my-auto py-4">
+    <h2 className="font-display text-2xl font-bold uppercase text-white">
+      {eventDetail?.name}
+    </h2>
+    {eventDetail?.description && (
+      <p className="mt-2 line-clamp-2 text-sm text-white/70">
+        {eventDetail.description}
+      </p>
+    )}
+  </div>
+
+  {/* Footer: Metadata list */}
+  <div className="flex flex-col gap-2 border-t border-white/10 pt-4 text-xs text-white/60">
+    <div className="flex items-center gap-2">
+      <span className="font-semibold text-white/80">⏱ Diễn ra:</span>
+      <span>
+        {eventDetail?.event_start_time ? new Date(eventDetail.event_start_time).toLocaleString('vi-VN') : "Chưa cập nhật"}
+        {eventDetail?.event_end_time && ` - ${new Date(eventDetail.event_end_time).toLocaleTimeString('vi-VN')}`}
+      </span>
+    </div>
+
+    {eventDetail?.start_time && (
+      <div className="flex items-center gap-2">
+        <span className="font-semibold text-white/80">Mở bán:</span>
+        <span>{new Date(eventDetail.start_time).toLocaleString('vi-VN')}</span>
       </div>
+    )}
+
+    <div className="flex items-center gap-2">
+      <span className="font-semibold text-white/80">Địa điểm:</span>
+      <span>{eventDetail?.location_name || "Chưa xác định"}</span>
+    </div>
+
+    {eventDetail?.company && (
+      <div className="flex items-start gap-2">
+        <span className="font-semibold text-white/80">Đơn vị:</span>
+        <span>{eventDetail.company.name} ({eventDetail.company.address})</span>
+      </div>
+    )}
+  </div>
+</div>
+  
+</div>
 
       <div className="grid items-start gap-7 lg:grid-cols-[1fr_340px]">
         <section className="rounded-2xl border border-white/10 bg-[#1b1c1d] p-5 sm:p-7">

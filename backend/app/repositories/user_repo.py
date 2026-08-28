@@ -25,14 +25,26 @@ def generate_username_unique(email, username=None):
     return unique_username
 
 
-def create_user_email(email, username, password, role=None, is_verified=False):
+def create_user_email(
+    email,
+    username,
+    password,
+    full_name=None,
+    role=None,
+    avatar=None,
+    is_verified=False,
+    is_active=True,
+):
 
     user = User(
         email=email,
         username=username,
+        full_name=full_name,
         password=password,
         role=role,
         is_verified=is_verified,
+        avatar=avatar,
+        is_active=is_active,
     )
 
     db.session.add(user)

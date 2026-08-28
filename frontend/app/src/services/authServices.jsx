@@ -33,7 +33,7 @@ const authService = {
   },
 
   googleCallback: async (data) => {
-    const response = await Apis().post("/auth/google/callback", data);
+    const response = await Apis().post(endpoints.googleCallback, data);
     return response.data;
   },
 

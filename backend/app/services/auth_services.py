@@ -244,6 +244,8 @@ def login_with_google(data):
     if not code:
         raise AppException("Missing authorization code", status_code=400)
 
+    print(f"data received in login_with_google: {data}")
+
     # Đổi auth code lấy Google tokens
     token_url = "https://oauth2.googleapis.com/token"
     token_data = {
@@ -268,6 +270,8 @@ def login_with_google(data):
         userinfo_url, headers={"Authorization": f"Bearer {google_access_token}"}
     )
     google_user = userinfo_res.json()
+
+    print(f"Google user info: {google_user}")  # Debugging line
 
     if userinfo_res.status_code != 200:
         raise AppException("Failed to fetch user profile from Google", status_code=400)

@@ -4,7 +4,7 @@ import FaceCaptureModal from "../components/FaceCaptureModal";
 import formatEventData from "../utils/format";
 
 function DigitalTicketPage({
-  result,
+  result, // Nhận trực tiếp eventDetail
   onHome,
   preview = false,
   capturedFaceImage = "",
@@ -13,47 +13,7 @@ function DigitalTicketPage({
   const ticketRef = useRef(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isFaceCaptureOpen, setIsFaceCaptureOpen] = useState(false);
-  const event = result.event || result.seat.event;
-  const user = {
-    fullname: "Huỳnh Khoa",
-    phone_number: "098789878",
-  };
-  const seats = result?.seat
-  const faceImage = capturedFaceImage || result.face_image;
-  const ticketName = result.ticketName;
-  const quantity = result.quantity;
-  const total = result.price - result.discount || result.total;
-
-  const startTime = formatEventData(event.event_start_time);
-  const endTime = formatEventData(event.event_end_time);
-  const eventDate = `${startTime.date}`;
-  const eventTime = `${startTime.time} - ${endTime.time}`;
-
-  const eventLocation = event.location_name;
-  const qrData = encodeURIComponent(
-    `HOKIHUVA|${result.code || ""}|${event.name || ""}|${seats?.seat_code ||""}`,
-  );
-
-  const downloadTicketImage = async () => {
-    if (!ticketRef.current || isDownloading) return;
-    setIsDownloading(true);
-    try {
-      const canvas = await html2canvas(ticketRef.current, {
-        backgroundColor: "#ffe6d2",
-        scale: 2,
-        useCORS: true,
-      });
-      const link = document.createElement("a");
-      link.download = `ve-${result.code || "dien-tu"}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-    } catch (error) {
-      console.error("Không thể chụp vé:", error);
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
+ 
   if (!result) {
     return (
       <main className="mx-auto max-w-2xl px-5 py-20 text-center">
@@ -70,9 +30,54 @@ function DigitalTicketPage({
     );
   }
 
+  // Đọc trực tiếp từ result (eventDetail) hoặc fallback nếu sau này bọc trong result.event
+  const event = result.event || result.seat?.event || result;
+
+  const user = {
+    fullname: "Huỳnh Khoa",
+    phone_number: "098789878",
+  };
+
+  const seats = result?.seat;
+  const faceImage = capturedFaceImage || result.face_image;
+  const ticketName = result.ticketName || result.category?.name || "Vé Tiêu Chuẩn";
+  const quantity = result.quantity || 1;
+  const total = (result.price ? result.price - (result.discount || 0) : result.total) || 0;
+
+  const startTime = formatEventData(event?.event_start_time);
+  const endTime = formatEventData(event?.event_end_time);
+  const eventDate = startTime?.date || "Chưa cập nhật";
+  const eventTime = startTime?.time && endTime?.time ? `${startTime.time} - ${endTime.time}` : "Đang cập nhật";
+
+  const eventLocation = event?.location_name || event?.location || "Địa điểm chưa xác định";
+  const qrData = encodeURIComponent(
+    `HOKIHUVA|${result?.id || result?.code || "PREVIEW"}|${event?.name || ""}|${seats?.seat_code || "AUTO"}`
+  );
+
+  const downloadTicketImage = async () => {
+    if (!ticketRef.current || isDownloading) return;
+    setIsDownloading(true);
+    try {
+      const canvas = await html2canvas(ticketRef.current, {
+        backgroundColor: "#ffe6d2",
+        scale: 2,
+        useCORS: true,
+      });
+      const link = document.createElement("a");
+      link.download = `ve-${result?.code || event?.id || "dien-tu"}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (error) {
+      console.error("Không thể chụp vé:", error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <main className="mx-auto max-w-[1100px] px-5 py-6 lg:px-10 lg:py-10">
       <div className="grid items-start gap-6 lg:grid-cols-[170px_minmax(0,760px)] lg:justify-center">
+        {/* Actions Bar */}
         <div className="order-2 flex flex-col gap-3 lg:order-1 lg:pt-8">
           <button
             type="button"
@@ -102,10 +107,12 @@ function DigitalTicketPage({
           )}
         </div>
 
+        {/* Ticket Box */}
         <section
           ref={ticketRef}
           className="order-1 overflow-hidden rounded-3xl bg-[#ffe6d2] text-[#241d1a] shadow-[10px_10px_0_rgba(255,107,18,.18)] lg:order-2"
         >
+          {/* Header */}
           <div className="border-b border-[#d8b7a0] bg-[#fff4e9] px-6 py-5 text-center sm:px-9">
             <p className="text-xs font-bold uppercase tracking-widest text-[#d94f0d]">
               HOKIHUVA / E-TICKET
@@ -131,25 +138,26 @@ function DigitalTicketPage({
             )}
           </div>
 
+          {/* Body */}
           <div className="p-6 sm:p-9">
             <div className="mb-7 flex items-start justify-between gap-4">
               <div>
                 <span className="text-xs font-bold uppercase text-[#d94f0d]">
-                  Sự kiện
+                  {event.category?.name || "Sự kiện"}
                 </span>
                 <h2 className="mt-2 font-display text-4xl font-bold uppercase leading-none sm:text-5xl">
                   {event.name || "Sự kiện"}
                 </h2>
               </div>
-              <span className="shrink-0 rounded-full bg-[#ff6b12] px-3 py-2 text-xs font-bold text-white">
-                {preview ? "CHỜ THANH TOÁN" : "ĐÃ XÁC NHẬN"}
+              <span className="shrink-0 rounded-full bg-[#ff6b12] px-3 py-2 text-xs font-bold text-white uppercase">
+                {event.status || (preview ? "CHỜ THANH TOÁN" : "ĐÃ XÁC NHẬN")}
               </span>
             </div>
 
             <div className="grid gap-5 border-y border-[#d8b7a0] py-6 text-sm sm:grid-cols-2">
               <div>
                 <span className="block text-xs text-[#806b60]">Ngày & giờ</span>
-                <div className="font-bold text-sm text-gray-800">
+                <div className="text-sm font-bold text-gray-800">
                   <p>{eventDate}</p>
                   <p>{eventTime}</p>
                 </div>
@@ -159,24 +167,22 @@ function DigitalTicketPage({
                 <b>{eventLocation}</b>
               </div>
               <div>
-                <span className="block text-xs text-[#806b60]">Hạng vé</span>
-                <b>
-                  {ticketName} × {quantity}
-                </b>
-              </div>
-              <div>
                 <span className="block text-xs text-[#806b60]">Ghế</span>
                 <b className="text-[#d94f0d]">
-                   {seats?.seat_code || "Sẽ được cấp sau khi thanh toán"}
+                  {seats?.seat_code || "Sẽ được cấp sau khi thanh toán"}
                 </b>
               </div>
             </div>
 
             <div className="mt-6 grid gap-6 sm:grid-cols-[1fr_180px] sm:items-end">
               <div>
-                <span className="block text-xs text-[#806b60]">Mã vé</span>
+              <span className="block text-xs text-[#806b60]">Trang thái</span>
                 <b className="font-mono text-lg">
-                  {result.code || "Đang cập nhật"}
+                  {result.status}
+                </b>
+                <span className="block text-xs text-[#806b60]">Mã vé / Mã sự kiện</span>
+                <b className="font-mono text-lg">
+                  {result.code || `EVT-${event.id || "0000"}`}
                 </b>
                 <span className="mt-4 block text-xs text-[#806b60]">
                   Tổng thanh toán

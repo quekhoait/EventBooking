@@ -1,38 +1,27 @@
-
-
-import React from 'react';
-import { useEvents } from '../hooks/useEvents';
-import { useFilters } from '../hooks/useFilters';
-import { useCategories } from '../hooks/useCategories';
-import CategoryFilter from '../components/events/CategoryFilter';
-import FilterBar from '../components/events/FilterBar';
-import ActiveFilters from '../components/events/ActiveFilters';
-import EventGrid from '../components/events/EventGrid';
-import LoadMoreButton from '../components/events/LoadMoreButton';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { useEvents } from "../hooks/useEvents";
+import { useFilters } from "../hooks/useFilters";
+import { useCategories } from "../hooks/useCategories";
 import { useLocations } from "../hooks/useLocations";
-import { useNavigate } from 'react-router-dom';
+import CategoryFilter from "../components/events/CategoryFilter";
+import FilterBar from "../components/events/FilterBar";
+import ActiveFilters from "../components/events/ActiveFilters";
+import EventGrid from "../components/events/EventGrid";
+import LoadMoreButton from "../components/events/LoadMoreButton";
 
 function EventPage() {
   const navigate = useNavigate();
 
-  // Custom hooks
   const { categories, getCategoryId } = useCategories();
   const { flatLocations, getLocationName } = useLocations();
-  const {
-    filters,
-    tempFilters,
-    updateTempFilter,
-    applyFilters,
-    clearFilters,
-    handleCategoryChange,
-    handleSearchKeyDown,
-    handleDateBlur,
-  } = useFilters();
 
-  const { events, loading, loadingMore, hasNext, total, error, fetchEvents, loadMore } =
-    useEvents();
+  const { filters, tempFilters, updateTempFilter, applyFilters, clearFilters, handleCategoryChange, handleDateBlur } =
+    useFilters();
 
-  // Fetch events when filters change
+  const { events, loading, loadingMore, hasNext, total, error, fetchEvents, loadMore } = useEvents();
+
+  // Fetch lại sự kiện mỗi khi state filters (đã đồng bộ với URL) thay đổi
   React.useEffect(() => {
     if (categories.length > 0) {
       const categoryId = getCategoryId(filters.category);
@@ -46,6 +35,13 @@ function EventPage() {
       fetchEvents(1, true, eventFilters);
     }
   }, [filters, categories]);
+
+  // Xử lý lọc địa điểm ngay lập tức khi thay đổi Select Box
+  const handleLocationChange = (locationId) => {
+    updateTempFilter("location", locationId);
+    applyFilters({ ...tempFilters, location: locationId });
+  };
+
 
   const handleBook = (event) => {
     const selectedEvent = event;
@@ -70,43 +66,38 @@ function EventPage() {
       <div className="mb-9 flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div>
           <button
-            onClick={() => navigate('/')}
-            className="mb-6 text-xs font-bold uppercase text-[#ff985c] hover:text-[#ff6b12] transition-colors"
-          >
+            onClick={() => navigate("/")}
+            className="mb-6 text-xs font-bold uppercase text-[#ff985c] hover:text-[#ff6b12] transition-colors">
             ← Về trang chủ
           </button>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">
-            Khám phá sự kiện
-          </p>
-          <h1 className="font-display text-6xl font-extrabold uppercase leading-none text-white">
-            Event collection
-          </h1>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">Khám phá sự kiện</p>
+          <h1 className="font-display text-6xl font-extrabold uppercase leading-none text-white">Event collection</h1>
         </div>
-        <p className="max-w-xs text-sm text-white/45">
-          Tìm cảm hứng cho lịch trình tiếp theo của bạn.
-        </p>
+        <p className="max-w-xs text-sm text-white/45">Tìm cảm hứng cho lịch trình tiếp theo của bạn.</p>
       </div>
 
+      {/* Category Filter */}
       <CategoryFilter
         categories={categories}
         activeCategory={filters.category}
         onCategoryChange={handleCategoryChange}
       />
 
+      {/* Filter Bar */}
       <FilterBar
-        tempKeyword={tempFilters.keyword}
+        category={filters.category}
+        total={total}
         tempLocation={tempFilters.location}
         tempFromDate={tempFilters.fromDate}
         tempToDate={tempFilters.toDate}
         flatLocations={flatLocations}
-        onKeywordChange={(value) => updateTempFilter('keyword', value)}
-        onLocationChange={(value) => updateTempFilter('location', value)}
-        onFromDateChange={(value) => updateTempFilter('fromDate', value)}
-        onToDateChange={(value) => updateTempFilter('toDate', value)}
-        onSearchKeyDown={handleSearchKeyDown}
+        onLocationChange={handleLocationChange}
+        onFromDateChange={(value) => updateTempFilter("fromDate", value)}
+        onToDateChange={(value) => updateTempFilter("toDate", value)}
         onDateBlur={handleDateBlur}
       />
 
+      {/* Active Filters */}
       <ActiveFilters
         keyword={filters.keyword}
         locationFilter={filters.location}
@@ -116,13 +107,7 @@ function EventPage() {
         onClear={clearFilters}
       />
 
-      <div className="mb-5 flex items-center justify-between">
-        <h2 className="font-display text-3xl font-bold uppercase text-white">
-          {filters.category}
-        </h2>
-        <span className="text-xs text-white/40">{total} sự kiện</span>
-      </div>
-
+      {/* Error State */}
       {error && (
         <div className="text-center py-16">
           <p className="text-red-500">{error}</p>
@@ -134,8 +119,7 @@ function EventPage() {
                 location_id: filters.location ? parseInt(filters.location) : undefined,
               })
             }
-            className="mt-4 text-[#ff985c] hover:text-[#ff6b12] transition-colors"
-          >
+            className="mt-4 text-[#ff985c] hover:text-[#ff6b12] transition-colors">
             Thử lại
           </button>
         </div>
@@ -143,25 +127,19 @@ function EventPage() {
 
       <EventGrid events={events} onBook={handleBook} />
 
+      {/* Empty State Action */}
       {!error && events.length === 0 && (
-        <div className="text-center py-16">
-          <p className="text-white/50">Không tìm thấy sự kiện nào</p>
+        <div className="text-center pb-16 -mt-8">
           {(filters.keyword || filters.location || filters.fromDate || filters.toDate) && (
-            <button
-              onClick={clearFilters}
-              className="mt-4 text-[#ff985c] hover:text-[#ff6b12] transition-colors"
-            >
+            <button onClick={clearFilters} className="text-[#ff985c] hover:text-[#ff6b12] transition-colors">
               Xóa bộ lọc
             </button>
           )}
         </div>
       )}
 
-      <LoadMoreButton
-        hasNext={hasNext}
-        loadingMore={loadingMore}
-        onLoadMore={loadMore}
-      />
+      {/* Load More */}
+      <LoadMoreButton hasNext={hasNext} loadingMore={loadingMore} onLoadMore={loadMore} />
     </main>
   );
 }

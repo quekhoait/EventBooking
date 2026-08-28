@@ -40,6 +40,8 @@ export function PreviewTicket() {
 		return <main className="mx-auto max-w-2xl px-5 py-20 text-center text-white/60">Đang tải thông tin vé...</main>;
 	}
 
+	console.log("result",result)
+
 	if (error || !result) {
 		return (
 			<main className="mx-auto max-w-2xl px-5 py-20 text-center">

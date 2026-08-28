@@ -21,6 +21,7 @@ auth_api = Blueprint("auth_api", __name__, url_prefix="/auth")
 def register():
     try:
         data = request.get_json()
+        print(f"Received registration data: {data}")
         validated_data = auth_dto.RegisterRequestDto().load(data)
         user_response = auth_services.register_with_email(validated_data)
         result = UserResponseDto().dump(user_response)
@@ -156,6 +157,7 @@ def handle_google_callback():
         data = request.get_json(silent=True) or {}
 
     print(f"Received data from Google callback: {data}")
+
     user_response = auth_services.login_with_google(data)
     result = UserResponseDto().dump(user_response)
 

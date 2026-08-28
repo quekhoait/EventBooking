@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import Nav from "./nav";
+// import Nav from "./nav";
 import GlobalLoadingOverlay from "../components/Common/GlobalLoadingOverlay";
 
 export default function Header() {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(""); // State quản lý ô tìm kiếm
   const navigate = useNavigate();
   const { user, logoutUser } = useAuth();
 
@@ -35,6 +36,14 @@ export default function Header() {
         navigate(targetPath);
       }, 150);
     }, 250);
+  };
+
+  // Logic xử lý submit Tìm kiếm
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    const query = searchTerm.trim();
+    const targetPath = query ? `/events?keyword=${encodeURIComponent(query)}` : "/events";
+    handleNavigateWithLoading(targetPath, "Đang tìm kiếm sự kiện...");
   };
 
   const handleLogout = (e) => {
@@ -82,16 +91,22 @@ export default function Header() {
             </div>
           </button>
 
-          <div className="mx-auto hidden min-w-0 max-w-xl flex-1 items-center rounded-full bg-white px-4 py-2 text-[#9d9696] shadow-[5px_5px_0_rgba(150,46,0,.35)] md:flex">
-            <span className="mr-3 cursor-pointer text-2xl leading-none select-none">
+          {/* Form tìm kiếm được nhúng ở Header hoặc truyền qua Nav */}
+          <form
+            onSubmit={handleSearchSubmit}
+            className="mx-auto hidden min-w-0 max-w-xl flex-1 items-center rounded-full bg-white px-4 py-2 text-[#9d9696] shadow-[5px_5px_0_rgba(150,46,0,.35)] md:flex"
+          >
+            <button type="submit" className="mr-3 text-2xl leading-none select-none cursor-pointer">
               <i className="fa-solid fa-magnifying-glass text-lg"></i>
-            </span>
+            </button>
             <input
               type="text"
-              placeholder="BẠN TÌM GÌ HÔM NAY?"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="BẠN TÌM GÌ HÔM NAY? (ENTER ĐỂ TÌM)"
               className="w-full bg-transparent text-sm italic text-gray-800 placeholder-[#9d9696] outline-none"
             />
-          </div>
+          </form>
 
           {user ? (
             <div className="relative ml-auto">
@@ -180,7 +195,12 @@ export default function Header() {
           )}
         </div>
 
-        <Nav onNavigate={handleNavigateWithLoading} />
+        {/* <Nav
+          onNavigate={handleNavigateWithLoading}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          onSearchSubmit={handleSearchSubmit}
+        /> */}
       </header>
     </>
   );

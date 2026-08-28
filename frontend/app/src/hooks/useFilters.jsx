@@ -1,80 +1,71 @@
-
-import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export const useFilters = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const query = new URLSearchParams(location.search);
 
-  const [filters, setFilters] = useState({
-    keyword: query.get('keyword') || '',
-    category: query.get('category') || 'Tất cả',
-    location: query.get('location') || '',
-    fromDate: query.get('from_date') || '',
-    toDate: query.get('to_date') || '',
-  });
-
-  const [tempFilters, setTempFilters] = useState({
-    keyword: filters.keyword,
-    location: filters.location,
-    fromDate: filters.fromDate,
-    toDate: filters.toDate,
-  });
-
-  // Sync temp filters with URL params
-  useEffect(() => {
-    setTempFilters({
-      keyword: filters.keyword,
-      location: filters.location,
-      fromDate: filters.fromDate,
-      toDate: filters.toDate,
-    });
-  }, [filters]);
-
-  const updateFilter = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+  // Đọc query params từ URL
+  const getURLFilters = () => {
+    const query = new URLSearchParams(location.search);
+    return {
+      keyword: query.get("keyword") || "",
+      category: query.get("category") || "Tất cả",
+      location: query.get("location") || "",
+      fromDate: query.get("from_date") || "",
+      toDate: query.get("to_date") || "",
+    };
   };
+
+  const [filters, setFilters] = useState(getURLFilters);
+  const [tempFilters, setTempFilters] = useState(getURLFilters);
+
+  useEffect(() => {
+    const urlFilters = getURLFilters();
+    setFilters(urlFilters);
+    setTempFilters(urlFilters);
+  }, [location.search]);
 
   const updateTempFilter = (key, value) => {
-    setTempFilters(prev => ({ ...prev, [key]: value }));
+    setTempFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  const applyFilters = () => {
+  const applyFilters = (overrideTemp) => {
+    const activeTemp = overrideTemp || tempFilters;
     const params = new URLSearchParams();
-    if (filters.category !== 'Tất cả') params.append('category', filters.category);
-    if (tempFilters.keyword.trim()) params.append('keyword', tempFilters.keyword.trim());
-    if (tempFilters.location) params.append('location', tempFilters.location);
-    if (tempFilters.fromDate) params.append('from_date', tempFilters.fromDate);
-    if (tempFilters.toDate) params.append('to_date', tempFilters.toDate);
-    navigate(`/events?${params.toString()}`);
+
+    if (filters.category && filters.category !== "Tất cả") {
+      params.append("category", filters.category);
+    }
+    if (activeTemp.keyword?.trim()) {
+      params.append("keyword", activeTemp.keyword.trim());
+    }
+    if (activeTemp.location) {
+      params.append("location", activeTemp.location);
+    }
+    if (activeTemp.fromDate) {
+      params.append("from_date", activeTemp.fromDate);
+    }
+    if (activeTemp.toDate) {
+      params.append("to_date", activeTemp.toDate);
+    }
+
+    const searchString = params.toString();
+    navigate(`/events${searchString ? `?${searchString}` : ""}`);
   };
 
   const clearFilters = () => {
-    setTempFilters({
-      keyword: '',
-      location: '',
-      fromDate: '',
-      toDate: '',
-    });
-    setFilters({
-      keyword: '',
-      category: 'Tất cả',
-      location: '',
-      fromDate: '',
-      toDate: '',
-    });
-    navigate('/events');
+    navigate("/events");
   };
 
   const handleCategoryChange = (category) => {
-    setFilters(prev => ({ ...prev, category }));
-  };
-
-  const handleSearchKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      applyFilters();
+    const params = new URLSearchParams(location.search);
+    if (category && category !== "Tất cả") {
+      params.set("category", category);
+    } else {
+      params.delete("category");
     }
+    navigate(`/events?${params.toString()}`);
   };
 
   const handleDateBlur = () => {
@@ -86,12 +77,10 @@ export const useFilters = () => {
   return {
     filters,
     tempFilters,
-    updateFilter,
     updateTempFilter,
     applyFilters,
     clearFilters,
     handleCategoryChange,
-    handleSearchKeyDown,
     handleDateBlur,
   };
 };
