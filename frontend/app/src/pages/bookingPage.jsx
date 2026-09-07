@@ -21,6 +21,7 @@ function BookingPage({ onBack }) {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [discountCode, setDiscountCode] = useState("");
   const [discount, setDiscount] = useState(0);
+  const [disountId, setDiscountId] = useState();
   const [faceImage, setFaceImage] = useState("");
   const [ticketResult, setTicketResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -52,20 +53,37 @@ function BookingPage({ onBack }) {
     fetchData();
   }, [eventId, eventFromState, fetchEventDetail]);
 
+
   // Tính tổng tiền: Giá vé - Giảm giá
   const total = useMemo(() => {
     if (!selectedTicket) return 0;
     return selectedTicket.price -discount;
   }, [selectedTicket, discount]);
 
-  // Áp dụng mã giảm giá
-  const applyDiscount = () => {
-    if (discountCode.trim().toUpperCase() === "FLASHY") {
-      setDiscount(50000);
-    } else {
-      alert("Mã giảm giá không hợp lệ");
+ const applyDiscount = async () => {
+  try {
+    const code = discountCode.trim().toUpperCase();
+    const res = await ticketService.getDiscount({
+      code: code,
+      event_id: eventId,
+    });
+    const discountInfo = res.data?.data;
+    if (!discountInfo) return;
+    const originalPrice = selectedTicket?.price ;
+    let discountAmount = 0; 
+    if (discountInfo.unit === "%") {
+      discountAmount = (originalPrice * discountInfo.value) / 100;
+    } else if(discountInfo.unit === "vnd"){
+      discountAmount = discountInfo.value;
     }
-  };
+    discountAmount = Math.min(discountAmount, originalPrice);
+    setDiscount(discountAmount)
+    setDiscountId(res.data?.data.id)
+
+  } catch (err) {
+    console.error("Lỗi áp dụng mã giảm giá:", err);
+  }
+};
 
   const handleReport = async (reportData) => {
     try {
@@ -85,20 +103,18 @@ function BookingPage({ onBack }) {
     }
     setStep(1);
   };
-
   const saveBookingAndViewTicket = async () => {
     if (!faceImage) {
       alert("Vui lòng chụp ảnh khuôn mặt trước.");
       return;
     }
-
     setIsSavingTicket(true);
     setSaveError("");
     try {
       const bookingPayload = {
         event_id: eventId,
         seat_type_id: selectedTicket.event_ticket_type_id,
-        discount_id: discount > 0 ? 1 : null,
+        discount_id: disountId,
         face_image: faceImage,
       };
       

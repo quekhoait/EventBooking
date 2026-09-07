@@ -32,10 +32,12 @@ def get_price_for_seat(event, seatTypeId):
         raise AppException("Chưa có cấu hình cho vé này", status_code=400)
     return price_config.price
 
-def use_discount(discount_id, price):
-    if not discount_id:
+
+
+def use_discount(id, price):
+    if not id:
         return price, None
-    discount = booking_repo.find_discount_by_id(discount_id)
+    discount = booking_repo.find_discount_by_id(id)
     if not discount:
         return price, None
     now = datetime.now()
@@ -48,11 +50,17 @@ def use_discount(discount_id, price):
 
     return price, None
 
+def get_discount(data):
+    discount =  booking_repo.find_discount_by_code(event_id=data.event_id, code=data.code)
+    if discount.start_time <= datetime.now() <= discount.end_time:
+        return discount
+    raise AppException("Thời gian sử dụng không hợp lệ")
 
 def create(data: CreateTicketRequestDTO):
     # user_id = check_authorization()
     user_id = 1
     event = event_repo.find_event_by_id(data.event_id)
+    print(data)
     if not event:
         raise AppException(ErrorCode.NOT_FOUND)
     if event.max_per_user:

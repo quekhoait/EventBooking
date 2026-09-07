@@ -9,6 +9,7 @@ export const endpoints = {
   get_event_by_creator: (creatorId) => `/events/creator/${creatorId}`,
   create_report: (eventId) => `/events/${eventId}/report`,
   get_report_by_user: "events/report_user",
+  get_discount: "bookings/discount",
 
   googleLogin: "/auth/google/login",
   googleCallback: "/auth/google/callback",

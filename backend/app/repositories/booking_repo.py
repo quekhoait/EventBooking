@@ -30,6 +30,11 @@ def find_discounts_by_event_id(event_id):
         DiscountModel.event_id == event_id,
     ).all()
 
+def find_discount_by_code(event_id, code):
+     return DiscountModel.query.filter(
+            DiscountModel.event_id == event_id,
+            DiscountModel.code == code
+        ).first()
 
 def count_user_successful_tickets(user_id, event_id):
     return (

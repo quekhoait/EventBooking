@@ -67,3 +67,14 @@ class TicketListResponse(BaseSchema):
     price = fields.Float()
     status = fields.Str()
     seat = fields.Nested(SeatSchema)
+
+class DiscountEvent(BaseSchema):
+    code= fields.String()
+    event_id= fields.Integer()
+    
+class DiscountEventResponse(BaseSchema):
+    id=fields.Integer()
+    code= fields.String()
+    event_id= fields.Integer()
+    value = fields.Integer()
+    unit = fields.String()

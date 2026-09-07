@@ -1,3 +1,4 @@
+import { data } from "react-router-dom";
 import { Apis, endpoints } from "../config/Apis.jsx";
 
     export const ticketService = {
@@ -11,5 +12,11 @@ import { Apis, endpoints } from "../config/Apis.jsx";
 
         createPayment: async(payload)=> {
             return await Apis().post(endpoints.create_payment, payload)
-        }
+        },
+
+       getDiscount: async ({ code, event_id }) => {
+        return await Apis().get(endpoints.get_discount, {
+            params: { code, event_id },
+        });
+        },
     };
