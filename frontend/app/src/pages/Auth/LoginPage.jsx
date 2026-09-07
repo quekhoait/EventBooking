@@ -122,7 +122,7 @@ export default function LoginPage() {
     }
 
     const hasPreferences = rawHasPreferences;
-    const hasCompany = Boolean(rawUser.has_company);
+    const hasCompany = rawHasCompany;
 
     const authData = {
       token: tokenValue,

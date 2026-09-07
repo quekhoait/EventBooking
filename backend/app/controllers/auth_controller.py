@@ -212,11 +212,10 @@ def login():
         validated_data = auth_dto.LoginRequestDto().load(data)
         user_response = auth_services.login(validated_data)
         access_token = user_response.get("access_token")
-        result = user_dto.UserResponseDto().dump(user_response["user"])
         has_preferences = user_response.get("has_preferences")
+        has_company = user_response.get("has_company")
+        result = user_dto.UserResponseDto().dump(user_response["user"])
         print(f"User data to be sent in response: {result}")
-        print(f"Access token to be sent in response: {access_token}")
-        print(f"Has preferences: {has_preferences}")
 
         return NewPackage(
             status=StatusResponse.SUCCESS,
@@ -225,6 +224,7 @@ def login():
                 "user": result,
                 "access_token": access_token,
                 "has_preferences": has_preferences,
+                "has_company": has_company,
             },
             status_code=200,
         )

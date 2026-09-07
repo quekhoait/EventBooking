@@ -337,10 +337,13 @@ def login(data):
 
     has_preferences = user_repo.check_user_has_preferences(user.id)
 
+    has_company = user.company_id is not None
+
     payload = {
         "access_token": access_token,
         "user": user,
         "has_preferences": has_preferences,
+        "has_company": has_company,
     }
     return payload
 
