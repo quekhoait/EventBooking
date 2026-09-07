@@ -82,3 +82,4 @@ class Report(BaseModel):
     content = db.Column(db.String(100), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    event = db.relationship('EventModel', backref='reports', lazy=True)

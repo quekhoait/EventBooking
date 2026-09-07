@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import BookingProgress from "../components/BookingProgress";
 import OrderSummary from "../components/OrderSummary";
 import TicketSelector from "../components/TicketSelector";
+import ReportModal from "../components/events/ModelReport";
 import { EventContext } from "../context/EventContext";
 import { ticketService } from "../services/ticketServices";
 import DigitalTicketPage from "./DigitalTicketPage";
@@ -25,9 +26,9 @@ function BookingPage({ onBack }) {
   const [loading, setLoading] = useState(false);
   const [isSavingTicket, setIsSavingTicket] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const [step, setStep] = useState(0);
 
-  // Load danh sách loại vé
   useEffect(() => {
     if (!eventId) return;
 
@@ -66,6 +67,17 @@ function BookingPage({ onBack }) {
     }
   };
 
+  const handleReport = async (reportData) => {
+    try {
+      await eventService.createReport(eventId, reportData);
+      setIsReportOpen(false);
+      alert("Báo cáo đã được gửi thành công.");
+    } catch (error) {
+      console.error("Lỗi gửi báo cáo:", error);
+      alert(error.response?.data?.detail || "Không thể gửi báo cáo.");
+    }
+  };
+
   const continueToInformation = () => {
     if (!selectedTicket) {
       alert("Vui lòng chọn 1 loại vé.");
@@ -95,7 +107,6 @@ function BookingPage({ onBack }) {
       const ticketCode = ticketData?.code;
 
       setTicketResult(ticketData);
-      console.log(ticketResult)
       const paymentPayload = {
         ticket_code: ticketCode,
         method: "momo", 
@@ -106,7 +117,6 @@ function BookingPage({ onBack }) {
         window.location.href = paymentData.payUrl;
         return;
       }
-
     } catch (error) {
       logError(error)
       console.error("Backend Error Details:", error.response?.data);
@@ -213,7 +223,6 @@ useEffect(() => {
     );
   }
 
-  // Bước 0: Chọn vé
   return (
     <main className="mx-auto max-w-[1240px] px-5 py-8 lg:px-10 lg:py-12">
       <button onClick={handleBack} className="mb-6 text-xs font-bold uppercase text-[#ff985c] hover:underline">
@@ -234,19 +243,25 @@ useEffect(() => {
     style={{ backgroundImage: `url(${eventDetail?.image})` }} 
   />
 <div className="flex h-full flex-col justify-between p-6">
-  {/* Header: Category & Status */}
   <div className="flex items-center gap-2">
-    <span className="rounded bg-[#ff985c]/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-[#ff985c]">
-      {eventDetail?.category?.name}
+  <span className="rounded bg-[#ff985c]/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-[#ff985c]">
+    {eventDetail?.category?.name}
+  </span>
+  {eventDetail?.status && (
+    <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-xs font-medium uppercase text-emerald-400">
+      {eventDetail.status}
     </span>
-    {eventDetail?.status && (
-      <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-xs font-medium uppercase text-emerald-400">
-        {eventDetail.status}
-      </span>
-    )}
-  </div>
+  )}
 
-  {/* Main content: Title & Description */}
+  <button
+    type="button"
+    onClick={() => setIsReportOpen(true)}
+    className="cursor-pointer ml-auto rounded bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 transition-colors"
+  >
+    Report
+  </button>
+</div>
+
   <div className="my-auto py-4">
     <h2 className="font-display text-2xl font-bold uppercase text-white">
       {eventDetail?.name}
@@ -314,6 +329,12 @@ useEffect(() => {
           completed={false}
         />
       </div>
+
+      <ReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        onSubmit={handleReport}
+      />
     </main>
   );
 }

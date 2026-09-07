@@ -7,6 +7,8 @@ export const endpoints = {
   resendOtp: "/auth/resend-otp",
   
   get_event_by_creator: (creatorId) => `/events/creator/${creatorId}`,
+  create_report: (eventId) => `/events/${eventId}/report`,
+  get_report_by_user: "events/report_user",
 
   googleLogin: "/auth/google/login",
   googleCallback: "/auth/google/callback",
@@ -36,8 +38,7 @@ export const endpoints = {
   get_location_tree: "/data/locations/tree",
 };
 
-export const BASE_URL =
-  import.meta.env.VITE_BACKEND_API_URL || "http://127.0.0.1:8000/api";
+export const BASE_URL =  import.meta.env.VITE_BACKEND_API_URL || "http://127.0.0.1:8000/api";
 
 export const Apis = () => {
   return axios.create({

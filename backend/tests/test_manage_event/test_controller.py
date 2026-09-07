@@ -44,6 +44,31 @@ class TestCreateEventRoute:
         mock_create_publish.assert_called_once()
 
 
+class TestCreateReportRoute:
+
+    @patch("app.controllers.event_controller.socketio.emit")
+    @patch("app.services.event_service.get_event_creator_id", return_value=2)
+    @patch("app.services.event_service.create_report")
+    def test_create_report_notifies_reporter_and_organizer(
+        self, mock_create_report, mock_get_creator, mock_emit, client
+    ):
+        mock_create_report.return_value = SimpleNamespace(
+            id=10, user_id=1, event_id=5, name="Vấn đề", content="Nội dung"
+        )
+
+        response = client.post(
+            "/api/events/5/report",
+            json={"user_id": 1, "event_id": 5, "name": "Vấn đề", "content": "Nội dung"},
+        )
+
+        assert response.status_code == 200
+        mock_get_creator.assert_called_once_with(5)
+        assert mock_emit.call_count == 2
+        rooms = {call.kwargs["to"] for call in mock_emit.call_args_list}
+        assert rooms == {"user:1", "user:2"}
+        assert all(call.args[0] == "report_created" for call in mock_emit.call_args_list)
+
+
 # ==============================================================================
 # 2. TEST GET /events/<id> (CHI TIẾT SỰ KIỆN)
 # ==============================================================================

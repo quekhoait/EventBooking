@@ -267,3 +267,6 @@ def logout():
         message=result,
         status_code=200,
     )
+
+
+    

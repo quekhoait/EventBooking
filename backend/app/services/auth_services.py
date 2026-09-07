@@ -393,3 +393,4 @@ def update_user_role(data):
             user.role.value if hasattr(user.role, "value") else str(user.role).lower()
         ),
     }
+

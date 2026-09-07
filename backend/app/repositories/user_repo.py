@@ -6,6 +6,7 @@ from app.models import User
 from app import db
 from app.models.UserModel import EmailOTP, UserAuthMethod, UserPreference, UserProvider
 from app.models.EventModel import EventCategory
+from app.models.BaseModel import Notification
 
 
 def find_one(**kwargs):
@@ -164,3 +165,4 @@ def add_user_preferences(user_id, category_ids):
 
     db.session.commit()
     return [p.category_id for p in new_records]
+

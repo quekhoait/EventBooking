@@ -13,6 +13,7 @@ from .EventModel import (
     EventTicketType,
     EventStatus,
     Seat,
+    Report
 )
 from .BaseModel import BaseModel, LocationModel, Company, Notification
 from .TicketModel import (

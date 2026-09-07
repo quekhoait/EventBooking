@@ -1,4 +1,4 @@
-from app import create_app, db
+from app import create_app, db, socketio
 from app.models import *
 
 app = create_app()
@@ -7,4 +7,4 @@ if __name__ == "__main__":
         db.create_all()
 
     print(app.url_map)
-    app.run(debug=True, host="0.0.0.0", port=8000)
+    socketio.run(app, debug=True, host="0.0.0.0", port=8000)

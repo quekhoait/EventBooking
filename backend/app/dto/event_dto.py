@@ -139,6 +139,7 @@ class EventDetailResponseSchema(BaseSchema):
     name = fields.String()
     image = fields.String()
     description = fields.String()
+    max_per_user = fields.Integer()
     status = fields.Enum(EventStatus, by_value=True)
 
     # Thời gian
@@ -156,7 +157,12 @@ class EventDetailResponseSchema(BaseSchema):
     # Relationship Data (Nút mở rộng chi tiết)
     company = fields.Nested(CompanyResponseSchema, dump_only=True)
     category = fields.Nested(EventCategoryResponseSchema, dump_only=True)
-    event_seats = fields.Nested(EventSeatResponseSchema, many=True, dump_only=True)
+    event_seats = fields.Nested(
+        EventSeatResponseSchema,
+        attribute="seats",
+        many=True,
+        dump_only=True,
+    )
 
 
 # =============================================================================
@@ -208,3 +214,20 @@ class EventSeatDetailSchema(BaseSchema):
     price = fields.Float()
     event_ticket_type_id = fields.Integer()
     ticket_type = fields.Nested(EventTicketTypeSchema)
+    
+class ReportEventSchema(BaseSchema):
+    user_id=fields.Integer()
+    event_id=fields.Integer()
+    name=fields.String()
+    content=fields.String()
+
+class ReportEventDetail(BaseSchema):
+    pass
+
+class ReportEventResponse(BaseSchema):
+    user_id=fields.Integer()
+    event_id=fields.Integer()
+    name=fields.String()
+    content=fields.String()
+    event = fields.Nested(EventDetailResponseSchema, dump_only=True)
+    

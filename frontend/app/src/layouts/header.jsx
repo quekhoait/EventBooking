@@ -1,18 +1,92 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { io } from "socket.io-client";
 import { useAuth } from "../context/AuthContext";
 // import Nav from "./nav";
 import GlobalLoadingOverlay from "../components/Common/GlobalLoadingOverlay";
+import NotificationModal from "../components/events/ModelNoti";
+import { BASE_URL } from "../config/Apis";
+import { eventService } from "../services/eventService";
+
+const SOCKET_URL = BASE_URL.replace(/\/api\/?$/, "");
 
 export default function Header() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(""); 
   const navigate = useNavigate();
   const { user, logoutUser } = useAuth();
-  console.log("user in header", user);
   const [isNavigating, setIsNavigating] = useState(false);
   const [navProgress, setNavProgress] = useState(0);
   const [navTitle, setNavTitle] = useState("Đang chuyển trang...");
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  
+  const [notifications, setNotifications] = useState([]);
+  const unreadNotifications = notifications.filter((notification) => !notification.read).length;
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const fetchReports = async () => {
+      try {
+        const res = await eventService.getReportByUser();
+        const rawData = res.data?.data || [];
+          console.log(rawData)
+        const formattedNotifications = rawData.map((item) => ({
+          id: `report-${item.id}`,
+          type: "report_created",
+          title: `Báo cáo mới: ${item.event?.name || item.name || "Sự kiện"}`,
+          message: item.content || "Có báo cáo mới cho sự kiện của bạn",
+          event_id: item.event_id,
+          report: item,
+          created_at: item.created_at || new Date().toISOString(),
+          read: item.is_read || false, 
+        }));
+
+        setNotifications(formattedNotifications);
+      } catch (err) {
+        console.error("Lỗi khi tải thông báo từ database:", err);
+      }
+    };
+
+    fetchReports(); // <-- Bắt buộc phải gọi hàm này
+  }, [user?.id]);
+
+  // 2. Lắng nghe thông báo Realtime từ Socket
+  useEffect(() => {
+    if (!user?.id) return undefined;
+
+    const socket = io(SOCKET_URL, { withCredentials: true });
+
+    const handleConnect = () => {
+      socket.emit("join_user_room", { user_id: user.id });
+    };
+
+    const handleReportCreated = (payload) => {
+      console.log("Socket payload:", payload);
+      setNotifications((currentNotifications) => [
+        {
+          id: `report-${payload.report?.id || Date.now()}`,
+          type: payload.type || "report_created",
+          title: "Báo cáo mới: " + (payload.report?.event?.name || payload.report?.name || ""),
+          message: payload.content || "Có báo cáo mới cho sự kiện của bạn",
+          event_id: payload.event_id,
+          report: payload.report,
+          created_at: new Date().toISOString(),
+          read: false,
+        },
+        ...currentNotifications,
+      ]);
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("report_created", handleReportCreated);
+
+    return () => {
+      socket.off("connect", handleConnect);
+      socket.off("report_created", handleReportCreated);
+      socket.disconnect();
+    };
+  }, [user?.id]);
 
   const handleNavigateWithLoading = (targetPath, title = "Đang chuyển trang...") => {
     setProfileOpen(false);
@@ -36,7 +110,6 @@ export default function Header() {
     }, 250);
   };
 
-  // Logic xử lý submit Tìm kiếm
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     const query = searchTerm.trim();
@@ -47,6 +120,7 @@ export default function Header() {
   const handleLogout = (e) => {
     e.stopPropagation();
     setProfileOpen(false);
+    setNotifications([]);
     setNavTitle("Đang đăng xuất...");
     setIsNavigating(true);
     setNavProgress(30);
@@ -70,7 +144,6 @@ export default function Header() {
 
   return (
     <>
-      {/* Component Loading Toàn Cục khi chuyển trang */}
       <GlobalLoadingOverlay
         isLoading={isNavigating}
         progress={navProgress}
@@ -89,7 +162,6 @@ export default function Header() {
             </div>
           </button>
 
-          {/* Form tìm kiếm được nhúng ở Header hoặc truyền qua Nav */}
           <form
             onSubmit={handleSearchSubmit}
             className="mx-auto hidden min-w-0 max-w-xl flex-1 items-center rounded-full bg-white px-4 py-2 text-[#9d9696] shadow-[5px_5px_0_rgba(150,46,0,.35)] md:flex"
@@ -204,7 +276,34 @@ export default function Header() {
               </button>
             </div>
           )}
+
+
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              setNotificationsOpen((isOpen) => !isOpen);
+              setProfileOpen(false);
+            }}
+            aria-label="Mở thông báo"
+            aria-expanded={notificationsOpen}
+            className="relative inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-all hover:bg-gray-200 hover:text-gray-900"
+          >
+            <i className="fa-solid fa-bell text-lg" />
+            {unreadNotifications > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-3 min-w-3 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white ring-2 ring-white">
+                {unreadNotifications > 9 ? "9+" : unreadNotifications}
+              </span>
+            )}
+          </button>
+          <NotificationModal
+            isOpen={notificationsOpen}
+            onClose={() => setNotificationsOpen(false)}
+            notifications={notifications}
+          />
         </div>
+        </div>
+
 
         {/* <Nav
           onNavigate={handleNavigateWithLoading}

@@ -3,10 +3,12 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from sqlalchemy import true
 
 from app.dto.event_dto import EventDraftSchema, EventPublishSchema, EventDetailResponseSchema, EventUpdateSchema, \
-    EventFilterQuerySchema, EventListResponseSchema, EventTicketTypeSchema, EventSeatDetailSchema
+    EventFilterQuerySchema, EventListResponseSchema, EventTicketTypeSchema,ReportEventResponse, EventSeatDetailSchema, ReportEventSchema
 from app.models import EventStatus
 from app.services import event_service
+from app import socketio, user_room
 from app.utils.json import NewPackage, StatusResponse
+
 
 event_bp = Blueprint('event', __name__)
 
@@ -169,3 +171,54 @@ def get_tickets(event_id: int):
         message="Lấy loại vé thành công!",
         status_code=200
     )
+    
+@event_bp.route('/events/<int:event_id>/report', methods=['POST'])
+def createReport(event_id: int):
+    payload = ReportEventSchema().load(request.get_json()  )
+    result = event_service.create_report(event_id=event_id, data=payload)    
+    schema = ReportEventResponse().dump(result)
+    organizer_id = event_service.get_event_creator_id(event_id)
+    notification = {
+        "type": "report_created",
+        "report": schema,
+        "event_id": event_id,
+        "message": "Có báo cáo mới cho sự kiện của bạn",
+    }
+    recipient_ids = {result.user_id, organizer_id}
+    for recipient_id in recipient_ids:
+        if recipient_id is not None:
+            socketio.emit(
+                "report_created",
+                notification,
+                to=user_room(recipient_id),
+            )
+    return NewPackage(
+            status=StatusResponse.SUCCESS,
+            data=schema,
+            message="Tạo báo cáo thành công",
+            status_code=200
+        )
+
+@event_bp.route('/events/<int:event_id>/report', methods=['GET'])
+def getReport(event_id:int):
+    user_id = 2
+    res = event_service.get_report(event_id=event_id, user_id=user_id)
+    schema = ReportEventResponse(many=True).dump(res)
+    return NewPackage(
+            status=StatusResponse.SUCCESS,
+            data=schema,
+            message="lấy báo cáo thành công",
+            status_code=200
+        )
+    
+@event_bp.route('/events/report_user', methods=['GET'])
+def getReportUser():
+    user_id =1
+    res = event_service.get_report_by_userId(user_id=user_id)
+    schema = ReportEventResponse(many=True).dump(res)
+    return NewPackage(
+            status=StatusResponse.SUCCESS,
+            data=schema,
+            message="lấy báo cáo thành công",
+            status_code=200
+        )

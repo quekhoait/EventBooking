@@ -1,5 +1,6 @@
 // src/services/eventService.js
 
+import { data } from "react-router-dom";
 import Apis, { endpoints } from "../config/Apis.jsx";
 
 export const eventService = {
@@ -62,4 +63,16 @@ export const eventService = {
     deleteEvent: async (eventId) => {
         return await Apis().delete(endpoints.get_event_detail(eventId));
     },
+
+    createReport: async(eventId, data)=> {
+        return await Apis().post(endpoints.create_report(eventId), data)
+    },
+
+    getReport: async(eventId)=> {
+        return await Apis().get(endpoints.get(eventId))
+    },
+    getReportByUser: async()=> {
+        return await Apis().get(endpoints.get_report_by_user)
+    }
+
 }

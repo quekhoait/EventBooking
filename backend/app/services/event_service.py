@@ -286,3 +286,34 @@ def get_events_by_creator(
         creator_id=creator_id,
         include_deleted=include_deleted
     )
+def create_report(event_id, data):
+    user_id = getattr(data, "user_id", None) or 1
+    
+    report_data = {
+        "user_id": user_id,
+        "event_id": event_id,
+        "name": data.name,
+        "content": data.content
+    }
+    
+    report = event_repo.create_report(data=report_data)
+    return report
+
+
+def get_event_creator_id(event_id):
+    event = event_repo.get_event_by_id(event_id=event_id)
+    return event.creator_id if event else None
+
+def get_report(event_id, user_id):
+    event = event_repo.get_event_by_id(event_id=event_id);
+    if event.creator_id != user_id:
+         raise AppException("Thông tin khôn ghợp lệ!", status_code=400)
+    report = event_repo.get_report(event_id=event_id)
+    return report
+
+
+def get_report_by_userId(user_id):
+
+    report = event_repo.get_report_by_userId(user_id=user_id)
+    return report
+

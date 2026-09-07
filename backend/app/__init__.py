@@ -12,6 +12,7 @@ from flask_migrate import Migrate
 from app.utils.exception import init_error_handlers
 from config import config
 from flask_mail import Mail
+from flask_socketio import SocketIO, join_room
 
 mail = Mail()
 db = SQLAlchemy()
@@ -19,6 +20,18 @@ cache = Cache()
 jwt = JWTManager()
 oauth = OAuth()
 migrate = Migrate()
+socketio = SocketIO(manage_session=False)
+
+
+def user_room(user_id):
+    return f"user:{user_id}"
+
+
+@socketio.on('join_user_room')
+def join_user_room(data):
+    user_id = (data or {}).get('user_id')
+    if user_id is not None:
+        join_room(user_room(user_id))
 
 
 def create_app(config_name=None):
@@ -32,6 +45,10 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     cache.init_app(app)
     jwt.init_app(app)
+    socketio.init_app(
+        app,
+        cors_allowed_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    )
     mail.init_app(app)
     CORS(
         app,
