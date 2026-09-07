@@ -159,39 +159,28 @@ def handle_google_callback():
     print(f"Received data from Google callback: {data}")
 
     user_response = auth_services.login_with_google(data)
-    result = UserResponseDto().dump(user_response)
-
-    user_id = result.get("id")
-
-    # Kiểm tra trực tiếp tại DB xem user_id này có bao nhiêu preferences
-    pref_count = UserPreference.query.filter_by(user_id=user_id).count()
-    has_pref_db = pref_count > 0
-
-    print(
-        f"🔥 [DEBUG BACKEND] User ID: {user_id} - Số preference trong DB: {pref_count} -> has_pref: {has_pref_db}"
-    )
+    result = UserResponseDto().dump(user_response["user"])
+    print(f"User data to be sent in response: {result}")
 
     if request.method == "GET":
         raw_role = result.get("role")
-        clean_role = str(raw_role).replace("RoleEnum.", "").strip().upper()
+        if isinstance(raw_role, RoleEnum):
+            clean_role = raw_role.value
+        elif isinstance(raw_role, str):
+            clean_role = raw_role.replace("RoleEnum.", "").lower()
+        else:
+            clean_role = "pending"
 
         params = urllib.parse.urlencode(
             {
-                "token": result.get("access_token") or "dummy_token",
-                "role": clean_role,
-                "username": result.get("username") or "",
-                "full_name": result.get("full_name") or result.get("username") or "",
-                "id": str(user_id),
-                "email": result.get("email") or "",
-                "avatar": result.get("avatar") or "",
-                "phone_number": result.get("phone_number") or "",
-                "is_active": "true" if result.get("is_active", True) else "false",
-                "is_verified": "true" if result.get("is_verified", False) else "false",
-                # Ép giá trị thực từ DB vào param
-                "has_preferences": "true" if has_pref_db else "false",
+                "token": user_response.get("access_token", ""),
+                "role": clean_role,  # Trả về chuỗi sạch: "pending"
+                "username": result.get("username", ""),
+                "id": result.get("id", ""),
+                "email": result.get("email", ""),
+                "has_preferences": "true" if result.get("has_preferences") else "false",
             }
         )
-        print(f"🚀 [DEBUG REDIRECT URL] params: {params}")
         return redirect(f"{frontend_base_url}/auth/google/callback?{params}")
 
     return NewPackage(
@@ -267,6 +256,3 @@ def logout():
         message=result,
         status_code=200,
     )
-
-
-    
