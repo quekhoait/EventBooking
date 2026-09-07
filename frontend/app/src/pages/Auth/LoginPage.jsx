@@ -71,7 +71,9 @@ export default function LoginPage() {
       loginUser(updatedData);
 
       // Nếu chưa có công ty -> vào trang đăng ký công ty, ngược lại vào Profile/Dashboard
-      navigate(hasCompany ? "/profile" : "/register-company", { replace: true });
+      navigate(hasCompany ? "/profile" : "/register-company", {
+        replace: true,
+      });
       return;
     }
 
@@ -99,8 +101,11 @@ export default function LoginPage() {
   };
 
   const handleLoginSuccess = async (resPayload) => {
-    const rawUser = resPayload.data || resPayload.user || resPayload;
-
+    const rawUser = resPayload.user;
+    const rawHasPreferences = resPayload.has_preferences;
+    const rawHasCompany = resPayload.has_company;
+    console.log("Thông tin người dùng nhận được từ máy chủ:", rawUser);
+    console.log("Payload xác thực nhận được từ máy chủ:", resPayload);
     if (!rawUser) {
       throw new Error("Không tìm thấy thông tin tài khoản hợp lệ từ máy chủ!");
     }
@@ -116,9 +121,7 @@ export default function LoginPage() {
       localStorage.setItem("access_token", tokenValue);
     }
 
-    const hasPreferences = Boolean(
-      rawUser.has_preferences ?? !resPayload.needs_setup_preferences
-    );
+    const hasPreferences = rawHasPreferences;
     const hasCompany = Boolean(rawUser.has_company);
 
     const authData = {
@@ -130,11 +133,17 @@ export default function LoginPage() {
       avatar: rawUser.avatar || "",
       full_name: rawUser.full_name || rawUser.username || "",
       phone_number: rawUser.phone_number || "",
-      is_active: rawUser.is_active !== undefined ? Boolean(rawUser.is_active) : true,
-      is_verified: rawUser.is_verified !== undefined ? Boolean(rawUser.is_verified) : false,
+      is_active:
+        rawUser.is_active !== undefined ? Boolean(rawUser.is_active) : true,
+      is_verified:
+        rawUser.is_verified !== undefined
+          ? Boolean(rawUser.is_verified)
+          : false,
       has_preferences: hasPreferences,
       has_company: hasCompany,
     };
+
+    console.log("Thông tin xác thực nhận được:", authData);
 
     // Tài khoản mới chưa chọn Role
     if (isPendingRole(rawRole)) {
@@ -178,7 +187,9 @@ export default function LoginPage() {
   const handleToggleCategory = (id) => {
     const numId = Number(id);
     setSelectedCategoryIds((prev) =>
-      prev.includes(numId) ? prev.filter((item) => item !== numId) : [...prev, numId]
+      prev.includes(numId)
+        ? prev.filter((item) => item !== numId)
+        : [...prev, numId],
     );
   };
 
@@ -256,7 +267,7 @@ export default function LoginPage() {
       setErrorMsg(
         err.response?.data?.message ||
           err.message ||
-          "Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản hoặc mật khẩu!"
+          "Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản hoặc mật khẩu!",
       );
     } finally {
       setLoading(false);
@@ -278,7 +289,9 @@ export default function LoginPage() {
         response?.url;
 
       if (!authUrl) {
-        throw new Error("Không nhận được đường dẫn xác thực Google từ máy chủ!");
+        throw new Error(
+          "Không nhận được đường dẫn xác thực Google từ máy chủ!",
+        );
       }
 
       setLoadingProgress(100);
@@ -290,7 +303,7 @@ export default function LoginPage() {
       setErrorMsg(
         error.response?.data?.message ||
           error.message ||
-          "Đăng nhập Google thất bại. Vui lòng thử lại sau!"
+          "Đăng nhập Google thất bại. Vui lòng thử lại sau!",
       );
     }
   };
@@ -357,7 +370,9 @@ export default function LoginPage() {
 
           <div className="my-6 flex items-center gap-3">
             <div className="h-[1px] flex-1 bg-[#D5D0C7]" />
-            <span className="text-[11px] font-semibold text-[#8C8881]">HOẶC</span>
+            <span className="text-[11px] font-semibold text-[#8C8881]">
+              HOẶC
+            </span>
             <div className="h-[1px] flex-1 bg-[#D5D0C7]" />
           </div>
 

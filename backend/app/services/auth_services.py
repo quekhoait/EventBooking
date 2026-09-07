@@ -323,11 +323,24 @@ def login(data):
     if not bcrypt.checkpw(data.password.encode("utf-8"), user.password.encode("utf-8")):
         raise AppException("Mật khẩu không đúng", status_code=401)
 
-    (access_token,) = generate_token(user.id)
+    print(f"[LOGIN] User {user.email} logged in successfully.")
+    print(
+        f"[LOGIN] User data: {user.id}, {user.username}, {user.email}, {user.role}, {user.is_active}, {user.is_verified}"
+    )
+
+    access_token, refresh_token = generate_token(user.id)
+
+    user_provider = user_repo.find_by_provider(UserProvider.EMAIL.value, user.email)
+    if user_provider:
+        user_provider.refresh_token = refresh_token
+        db.session.commit()
+
+    has_preferences = user_repo.check_user_has_preferences(user.id)
 
     payload = {
         "access_token": access_token,
         "user": user,
+        "has_preferences": has_preferences,
     }
     return payload
 
@@ -375,4 +388,3 @@ def update_user_role(data):
             user.role.value if hasattr(user.role, "value") else str(user.role).lower()
         ),
     }
-

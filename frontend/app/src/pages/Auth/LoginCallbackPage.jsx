@@ -64,6 +64,8 @@ export default function LoginCallbackPage() {
         has_company: hasCompany,
       };
 
+      console.log("Đã xác thực thành công, thông tin người dùng:", userData);
+
       // Timer giả lập tiến trình xác thực mượt mà
       const progressTimer = setInterval(() => {
         setProgress((prev) => (prev >= 80 ? 80 : prev + 15));
