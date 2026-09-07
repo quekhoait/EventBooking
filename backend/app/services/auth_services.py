@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import email
 import traceback
 from types import SimpleNamespace
 from urllib.parse import urlencode
@@ -26,9 +25,9 @@ import secrets
 from urllib.parse import urlencode
 
 
-def generate_token(user):
-    access_token = create_access_token(identity=user.id)
-    refresh_token = create_refresh_token(identity=user.id)
+def generate_token(user_id):
+    access_token = create_access_token(identity=user_id)
+    refresh_token = create_refresh_token(identity=user_id)
     return access_token, refresh_token
 
 
@@ -105,7 +104,6 @@ def register_with_email(data):
         raise AppException("Tên người dùng đã tồn tại", status_code=400)
 
     try:
-        otp_code = _generate_otp(6)  # Generate a random OTP code
         username = user_repo.generate_username_unique(data.email, data.username)
 
         user = user_repo.create_user_email(
@@ -168,13 +166,6 @@ def refresh_token():
 def verify_email_otp(data):
     user = user_repo.find_one(email=data.email)
 
-    print(f"Data :", data)
-
-    print(f"User :", user)
-    print(f"User ID :", user.id if user else None)
-    print(f"User Email :", user.email if user else None)
-    print(f"User is_verified :", user.is_verified if user else None)
-
     if not user:
         raise AppException("Người dùng không tồn tại", status_code=404)
 
@@ -189,10 +180,6 @@ def verify_email_otp(data):
         raise AppException("Mã OTP không hợp lệ", status_code=400)
 
     user.is_verified = True
-    provider = user_repo.find_by_user_provider(user.id, UserProvider.EMAIL.value)
-    if provider:
-        refresh_token = generate_token(user)[1]
-        provider.refresh_token = refresh_token
 
     db.session.commit()
 
@@ -244,9 +231,6 @@ def login_with_google(data):
     if not code:
         raise AppException("Missing authorization code", status_code=400)
 
-    print(f"data received in login_with_google: {data}")
-
-    # Đổi auth code lấy Google tokens
     token_url = "https://oauth2.googleapis.com/token"
     token_data = {
         "code": code,
@@ -264,14 +248,11 @@ def login_with_google(data):
 
     google_access_token = token_json.get("access_token")
 
-    # Lấy thông tin user profile từ Google
     userinfo_url = "https://www.googleapis.com/oauth2/v2/userinfo"
     userinfo_res = requests.get(
         userinfo_url, headers={"Authorization": f"Bearer {google_access_token}"}
     )
     google_user = userinfo_res.json()
-
-    print(f"Google user info: {google_user}")  # Debugging line
 
     if userinfo_res.status_code != 200:
         raise AppException("Failed to fetch user profile from Google", status_code=400)
@@ -289,13 +270,18 @@ def login_with_google(data):
     )
 
     if auth_method:
+        access_token, refresh_token = generate_token(auth_method.user_id)
         user = user_repo.find_one(id=auth_method.user_id)
-        if google_data.refresh_token:
-            auth_method.refresh_token = google_data.refresh_token
-            db.session.commit()
 
-        set_user_session(user)
-        return user
+        auth_method.refresh_token = refresh_token
+        db.session.commit()
+
+        payload = {
+            "access_token": access_token,
+            "user": user,
+        }
+
+        return payload
 
     user = user_repo.find_one(email=google_data.email)
 
@@ -314,27 +300,20 @@ def login_with_google(data):
             is_active=True,
         )
 
+    access_token, refresh_token = generate_token(user.id)
+
     user_repo.create_user_provider(
         user_id=user.id,
         provider=UserProvider.GOOGLE.value,
         provider_id=google_data.provider_id,
-        refresh_token=google_data.refresh_token,
+        refresh_token=refresh_token,
     )
 
     db.session.commit()
 
-    set_user_session(user)
-    return user
+    payload = {"access_token": access_token, "user": user}
 
-
-def set_user_session(user):
-    clean_role = (
-        user.role.value if hasattr(user.role, "value") else str(user.role).lower()
-    )
-    session["user_id"] = user.id
-    session["role"] = clean_role
-    session["username"] = user.username
-    session["email"] = user.email
+    return payload
 
 
 def login(data):
@@ -344,8 +323,13 @@ def login(data):
     if not bcrypt.checkpw(data.password.encode("utf-8"), user.password.encode("utf-8")):
         raise AppException("Mật khẩu không đúng", status_code=401)
 
-    access_token, refresh_token = generate_token(user)
-    return user
+    (access_token,) = generate_token(user.id)
+
+    payload = {
+        "access_token": access_token,
+        "user": user,
+    }
+    return payload
 
 
 def logout():
@@ -384,8 +368,6 @@ def update_user_role(data):
 
     user.role = RoleEnum[new_role_str]
     db.session.commit()
-
-    set_user_session(user)
 
     return {
         "id": user.id,

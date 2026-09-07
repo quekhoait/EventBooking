@@ -26,7 +26,6 @@ export default function LoginCallbackPage() {
     if (username || token) {
       hasProcessed.current = true;
 
-      // Chuẩn hóa role bỏ prefix "RoleEnum." nếu có
       const cleanRole = rawRole.replace("RoleEnum.", "").trim().toUpperCase();
 
       const userData = {
@@ -90,6 +89,10 @@ export default function LoginCallbackPage() {
       setSubmittingRole(false);
     }
   };
+
+  console.log("showRoleModal:", showRoleModal);
+  console.log("submittingRole:", submittingRole);
+  console.log("tempUser:", tempUser);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0D0D0D] text-white">

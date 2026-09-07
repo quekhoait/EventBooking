@@ -159,7 +159,7 @@ def handle_google_callback():
     print(f"Received data from Google callback: {data}")
 
     user_response = auth_services.login_with_google(data)
-    result = UserResponseDto().dump(user_response)
+    result = UserResponseDto().dump(user_response["user"])
     print(f"User data to be sent in response: {result}")
 
     if request.method == "GET":
@@ -173,7 +173,7 @@ def handle_google_callback():
 
         params = urllib.parse.urlencode(
             {
-                "token": result.get("access_token", "dummy_token"),
+                "token": user_response.get("access_token", ""),
                 "role": clean_role,  # Trả về chuỗi sạch: "pending"
                 "username": result.get("username", ""),
                 "id": result.get("id", ""),
