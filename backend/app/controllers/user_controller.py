@@ -26,7 +26,7 @@ def create_user_company(id):
     return NewPackage(
         status=StatusResponse.SUCCESS,
         message="Company created successfully",
-        data=result,cd
+        data=result,
         status_code=200,
     )
 
@@ -35,10 +35,7 @@ def create_user_company(id):
 @jwt_required()
 def get_profile():
     current_user_id = get_jwt_identity()
-    print(f"Current user ID from JWT: {current_user_id}", flush=True)
-
     user = user_services.get_profile(user_id=current_user_id)
-    print(f"Retrieved user profile: {user}", flush=True)
 
     if not user:
         return NewPackage(
@@ -67,6 +64,8 @@ def update_profile():
     current_user_id = get_jwt_identity()
     profile_data = request.get_json()
 
+    print(f"Received profile update data: {profile_data}", flush=True)
+
     if profile_data is None:
         return NewPackage(
             status=StatusResponse.ERROR,
@@ -77,6 +76,8 @@ def update_profile():
     user = user_services.update_profile(
         user_id=current_user_id, profile_data=profile_data
     )
+
+    print(f"Updated user profile: {user.username}", flush=True)
 
     if not user:
         return NewPackage(

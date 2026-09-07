@@ -26,8 +26,8 @@ from urllib.parse import urlencode
 
 
 def generate_token(user_id):
-    access_token = create_access_token(identity=user_id)
-    refresh_token = create_refresh_token(identity=user_id)
+    access_token = create_access_token(identity=str(user_id))
+    refresh_token = create_refresh_token(identity=str(user_id))
     return access_token, refresh_token
 
 
@@ -311,7 +311,11 @@ def login_with_google(data):
 
     db.session.commit()
 
-    payload = {"access_token": access_token, "user": user}
+    payload = {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "user": user,
+    }
 
     return payload
 

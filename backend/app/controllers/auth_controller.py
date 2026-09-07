@@ -1,6 +1,7 @@
 from http.client import responses
+from urllib import response
 
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, set_access_cookies, set_refresh_cookies
 import urllib
 from app.dto.user_dto import UserResponseDto
 
@@ -181,6 +182,9 @@ def handle_google_callback():
                 "has_preferences": "true" if result.get("has_preferences") else "false",
             }
         )
+
+        set_access_cookies(response, user_response.get("access_token"))
+        set_refresh_cookies(response, user_response.get("refresh_token"))
         return redirect(f"{frontend_base_url}/auth/google/callback?{params}")
 
     return NewPackage(

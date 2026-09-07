@@ -5,7 +5,7 @@ from app.repositories import user_repo
 from app.dto.user_dto import UserProfileDto
 from marshmallow import ValidationError
 
-from backend.app.models.UserModel import UserPreference
+from app.models.UserModel import UserPreference
 
 
 def get_profile(user_id):
@@ -21,7 +21,13 @@ def update_profile(user_id, profile_data: UserProfileDto):
         if not user:
             raise AppException("User not found", status_code=404)
 
+        print(
+            f"Updating profile for user {user_id} with data: {profile_data}", flush=True
+        )
+
         updated_profile = user_repo.update_user_profile(user, profile_data)
+
+        print(f"Updated profile for user {user_id}: {updated_profile}", flush=True)
         db.session.commit()
         return updated_profile
     except Exception as e:

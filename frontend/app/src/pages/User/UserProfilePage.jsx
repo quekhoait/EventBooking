@@ -9,6 +9,7 @@ import ProfileInfoForm from "../../components/User/ProfileInfoForm";
 import UserTicketList from "../../components/User/UserTicketList";
 import PreferenceModal from "../../components/User/PreferenceModal";
 import GlobalLoadingOverlay from "../../components/Common/GlobalLoadingOverlay";
+import { userService } from "../../services/userServices";
 
 const getCategoryIcon = (category) => {
   if (category?.icon) return category.icon;
@@ -29,9 +30,12 @@ const mapUserResponse = (data = {}) => ({
   phone_number: data.phone_number || "",
   email: data.email || "",
   avatar: data.avatar || "",
-  role: String(data.role || "USER").replace("RoleEnum.", "").toUpperCase(),
+  role: String(data.role || "USER")
+    .replace("RoleEnum.", "")
+    .toUpperCase(),
   is_active: data.is_active !== undefined ? Boolean(data.is_active) : true,
-  is_verified: data.is_verified !== undefined ? Boolean(data.is_verified) : false,
+  is_verified:
+    data.is_verified !== undefined ? Boolean(data.is_verified) : false,
   has_preferences: Boolean(data.has_preferences),
   has_company: Boolean(data.has_company),
 });
@@ -77,7 +81,8 @@ export default function UserProfilePage() {
       quantity: 1,
       totalPrice: "850.000đ",
       status: "CONFIRMED",
-      qrCodeUrl: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=TKT-2026-9871",
+      qrCodeUrl:
+        "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=TKT-2026-9871",
     },
   ]);
 
@@ -87,8 +92,12 @@ export default function UserProfilePage() {
     try {
       setLoadingPreferences(true);
       const res = await authService.getUserPreferences(userId);
-      const list = Array.isArray(res) ? res : res?.data || res?.data?.data || [];
-      const prefIds = list.map((item) => Number(item.category_id || item.id || item));
+      const list = Array.isArray(res)
+        ? res
+        : res?.data || res?.data?.data || [];
+      const prefIds = list.map((item) =>
+        Number(item.category_id || item.id || item),
+      );
       setUserPreferences(prefIds);
       setTempPreferences(prefIds);
     } catch (error) {
@@ -126,7 +135,9 @@ export default function UserProfilePage() {
         setGlobalProgress((prev) => (prev >= 85 ? 85 : prev + 15));
       }, 100);
 
-      const loader = isStaff ? fetchCompanyData(authUser.id) : fetchPreferences(authUser.id);
+      const loader = isStaff
+        ? fetchCompanyData(authUser.id)
+        : fetchPreferences(authUser.id);
 
       loader.finally(() => {
         clearInterval(timer);
@@ -142,16 +153,28 @@ export default function UserProfilePage() {
   // Cập nhật Profile cá nhân
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const updatedName = formData.get("full_name")?.trim();
-    const updatedPhone = formData.get("phone_number")?.trim();
 
-    loginUser({
-      ...authUser,
-      full_name: updatedName || authUser.full_name,
-      phone_number: updatedPhone || authUser.phone_number,
-    });
-    alert("Đã cập nhật thông tin cá nhân thành công!");
+    const formData = new FormData(e.currentTarget);
+
+    try {
+      const response = await userService.updateProfile(formData);
+
+      console.log("Update profile response:", response);
+
+      const updatedName = formData.get("full_name")?.trim();
+      const updatedPhone = formData.get("phone_number")?.trim();
+
+      loginUser({
+        ...authUser,
+        full_name: updatedName || authUser.full_name,
+        phone_number: updatedPhone || authUser.phone_number,
+      });
+
+      alert("Đã cập nhật thông tin cá nhân thành công!");
+    } catch (error) {
+      console.error("Update profile error:", error);
+      alert("Cập nhật thông tin thất bại!");
+    }
   };
 
   // Lưu sở thích (User)
@@ -173,7 +196,8 @@ export default function UserProfilePage() {
   };
 
   const selectedLocationName =
-    locations.find((l) => l.id === company?.location_id)?.name || "Chưa xác định";
+    locations.find((l) => l.id === company?.location_id)?.name ||
+    "Chưa xác định";
 
   return (
     <>
@@ -211,7 +235,9 @@ export default function UserProfilePage() {
             loadingPreferences={loadingPreferences || categoriesLoading}
             onDeletePreference={(id) => {
               const numId = Number(id);
-              setUserPreferences((prev) => prev.filter((item) => item !== numId));
+              setUserPreferences((prev) =>
+                prev.filter((item) => item !== numId),
+              );
             }}
             onOpenPreferenceModal={() => {
               setTempPreferences([...userPreferences]);
@@ -224,9 +250,12 @@ export default function UserProfilePage() {
             <section className="relative overflow-hidden rounded-3xl border border-[#2A2A2A] bg-[#F4F1EB] p-6 shadow-xl sm:p-8">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#D6D1C8] pb-4">
                 <div>
-                  <h2 className="text-base font-extrabold text-[#171717]">HỒ SƠ PHÁP NHÂN & TỔ CHỨC</h2>
+                  <h2 className="text-base font-extrabold text-[#171717]">
+                    HỒ SƠ PHÁP NHÂN & TỔ CHỨC
+                  </h2>
                   <p className="text-[11px] text-[#5F5C57]">
-                    Thông tin pháp nhân do Ban tổ chức đăng ký (Chỉ Admin mới có quyền cập nhật).
+                    Thông tin pháp nhân do Ban tổ chức đăng ký (Chỉ Admin mới có
+                    quyền cập nhật).
                   </p>
                 </div>
 
@@ -239,14 +268,19 @@ export default function UserProfilePage() {
 
               {/* Banner thông báo chờ xét duyệt */}
               <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 text-xs text-amber-900">
-                <span className="font-bold">⏳ Lưu ý:</span> Hồ sơ doanh nghiệp đang trong quá trình đối soát pháp lý từ Quản trị viên Hokinuva. Trong thời gian này, thông tin công ty sẽ ở trạng thái <strong>Chỉ đọc (Read-only)</strong>.
+                <span className="font-bold">⏳ Lưu ý:</span> Hồ sơ doanh nghiệp
+                đang trong quá trình đối soát pháp lý từ Quản trị viên Hokinuva.
+                Trong thời gian này, thông tin công ty sẽ ở trạng thái{" "}
+                <strong>Chỉ đọc (Read-only)</strong>.
               </div>
 
               {/* Form hiển thị Read-only */}
               <div className="mt-6 space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-[11px] font-bold text-[#8A8781]">TÊN CÔNG TY</label>
+                    <label className="mb-1 block text-[11px] font-bold text-[#8A8781]">
+                      TÊN CÔNG TY
+                    </label>
                     <input
                       type="text"
                       disabled
@@ -255,7 +289,9 @@ export default function UserProfilePage() {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] font-bold text-[#8A8781]">MÃ SỐ THUẾ</label>
+                    <label className="mb-1 block text-[11px] font-bold text-[#8A8781]">
+                      MÃ SỐ THUẾ
+                    </label>
                     <input
                       type="text"
                       disabled
@@ -267,7 +303,9 @@ export default function UserProfilePage() {
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-[11px] font-bold text-[#8A8781]">ĐỊA CHỈ TRỤ SỞ</label>
+                    <label className="mb-1 block text-[11px] font-bold text-[#8A8781]">
+                      ĐỊA CHỈ TRỤ SỞ
+                    </label>
                     <input
                       type="text"
                       disabled
@@ -276,7 +314,9 @@ export default function UserProfilePage() {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] font-bold text-[#8A8781]">KHU VỰC HOẠT ĐỘNG</label>
+                    <label className="mb-1 block text-[11px] font-bold text-[#8A8781]">
+                      KHU VỰC HOẠT ĐỘNG
+                    </label>
                     <input
                       type="text"
                       disabled
@@ -287,7 +327,9 @@ export default function UserProfilePage() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-[11px] font-bold text-[#8A8781]">MÔ TẢ GIỚI THIỆU</label>
+                  <label className="mb-1 block text-[11px] font-bold text-[#8A8781]">
+                    MÔ TẢ GIỚI THIỆU
+                  </label>
                   <textarea
                     rows={3}
                     disabled
@@ -300,7 +342,9 @@ export default function UserProfilePage() {
           )}
 
           {/* TAB CONTENT: VÉ CỦA TÔI (USER) */}
-          {!isStaff && activeTab === "tickets" && <UserTicketList tickets={tickets} />}
+          {!isStaff && activeTab === "tickets" && (
+            <UserTicketList tickets={tickets} />
+          )}
 
           {/* TAB CONTENT: PROFILE THÔNG TIN CÁ NHÂN (USER & STAFF) */}
           {activeTab === "profile" && (
@@ -319,7 +363,9 @@ export default function UserProfilePage() {
           onToggleCategory={(id) => {
             const numId = Number(id);
             setTempPreferences((prev) =>
-              prev.includes(numId) ? prev.filter((i) => i !== numId) : [...prev, numId]
+              prev.includes(numId)
+                ? prev.filter((i) => i !== numId)
+                : [...prev, numId],
             );
           }}
           onSave={handleSavePreferences}

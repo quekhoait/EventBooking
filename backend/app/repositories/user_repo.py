@@ -125,8 +125,16 @@ def get_profile(user_id):
 
 def update_user_profile(user, profile_data):
     for key, value in profile_data.items():
+        print(f"Updating user profile field: {key} = {value}", flush=True)
         setattr(user, key, value)
+
+    print(
+        f"User profile updated for user {user.id}: {user.full_name} , {user.phone_number}",
+        flush=True,
+    )
     db.session.commit()
+
+    print(f"Returning updated user profile: {user.full_name}", flush=True)
     return user
 
 
@@ -165,4 +173,3 @@ def add_user_preferences(user_id, category_ids):
 
     db.session.commit()
     return [p.category_id for p in new_records]
-

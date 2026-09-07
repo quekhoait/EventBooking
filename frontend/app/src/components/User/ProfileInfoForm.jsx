@@ -92,6 +92,8 @@ export default function ProfileInfoForm({ user = {}, onSubmit }) {
     setIsUpdating(true);
     setUpdateProgress(15);
 
+    
+
     const interval = setInterval(() => {
       setUpdateProgress((prev) => (prev >= 85 ? 85 : prev + 20));
     }, 100);
