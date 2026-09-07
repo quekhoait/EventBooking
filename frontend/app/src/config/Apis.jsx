@@ -5,6 +5,8 @@ export const endpoints = {
   register: "/auth/register",
   verifyOtp: "/auth/verify-otp",
   resendOtp: "/auth/resend-otp",
+  
+  get_event_by_creator: (creatorId) => `/events/creator/${creatorId}`,
 
   googleLogin: "/auth/google/login",
   googleCallback: "/auth/google/callback",
@@ -22,6 +24,7 @@ export const endpoints = {
   get_event: `/events`,
   get_event_detail: (id) => `/events/${id}`,
   get_tickets: (id) => `/events/${id}/tickets`,
+  create_event: "/events",
   get_ticket_detail: (code) => `/bookings/details/${code}`,
   create_ticket: "/bookings/create",
   create_payment: "/payments/create",

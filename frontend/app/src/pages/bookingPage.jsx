@@ -4,10 +4,10 @@ import BookingProgress from "../components/BookingProgress";
 import OrderSummary from "../components/OrderSummary";
 import TicketSelector from "../components/TicketSelector";
 import { EventContext } from "../context/EventContext";
-import { eventServices } from "../services/eventServices";
 import { ticketService } from "../services/ticketServices";
 import DigitalTicketPage from "./DigitalTicketPage";
 import { logError } from "../utils/log";
+import { eventService } from "../services/eventService";
 
 function BookingPage({ onBack }) {
   const navigate = useNavigate();
@@ -37,7 +37,7 @@ function BookingPage({ onBack }) {
         if (!eventFromState && fetchEventDetail) {
           await fetchEventDetail(eventId);
         }
-        const response = await eventServices.getTicketsType(eventId);
+        const response = await eventService.getTicketsType(eventId);
         if (response?.status === 200) {
           setTickets(response?.data.data );
         }

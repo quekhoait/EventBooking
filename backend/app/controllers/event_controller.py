@@ -1,4 +1,5 @@
 from flask import Blueprint, request
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from sqlalchemy import true
 
 from app.dto.event_dto import EventDraftSchema, EventPublishSchema, EventDetailResponseSchema, EventUpdateSchema, \
@@ -9,7 +10,6 @@ from app.utils.json import NewPackage, StatusResponse
 
 event_bp = Blueprint('event', __name__)
 
-# Khai báo 2 instance Schema
 event_draft_schema = EventDraftSchema()
 event_publish_schema = EventPublishSchema()
 event_detail_schema = EventDetailResponseSchema()
@@ -18,20 +18,20 @@ event_filter_schema = EventFilterQuerySchema()
 event_list_schema = EventListResponseSchema(many=True)
 
 @event_bp.route('/events', methods=['POST'])
+# @jwt_required()
 def create_event():
     json_data = request.get_json() or {}
-
-    # 1. Đọc status thô từ JSON gửi lên (không phân biệt hoa/thường)
+    # creator_id = get_jwt_identity()
+    # print(creator_id)
+    creator_id = 2
     raw_status = str(json_data.get('status', '')).upper()
-
-    # 2. Quyết định Schema validate & Service handler
-    if raw_status == EventStatus.PUBLISHED.name: # hoặc EventStatus.PUBLISHED.name tùy cách khai báo Enum
+    if raw_status == EventStatus.PUBLISHED.name:
         event_dto = event_publish_schema.load(json_data)
-        created_event = event_service.create_and_publish_event(event_dto)
+        created_event = event_service.create_and_publish_event(event_dto, creator_id=creator_id)
         message = "Xuất bản sự kiện thành công"
     else:
         event_dto = event_draft_schema.load(json_data)
-        created_event = event_service.create_draft_event(event_dto)
+        created_event = event_service.create_draft_event(event_dto, creator_id=creator_id)
         message = "Lưu nháp sự kiện thành công"
 
     # 3. Trả về response
@@ -78,18 +78,14 @@ def update_event(event_id: int):
 
 @event_bp.route('/events', methods=['GET'])
 def get_events():
-    # 1. Validate & Parse query parameters từ URL qua Schema
     query_params = event_filter_schema.load(request.args)
 
-    # 2. Gọi service xử lý Load More (truy vấn 1 query duy nhất)
     response_dto = event_service.get_events_load_more(
         **vars(query_params)
     )
 
-    # 3. Serialize danh sách EventModel -> JSON List qua Response Schema
     serialized_items = event_list_schema.dump(response_dto.items, many=True)
 
-    # 4. Đóng gói kết quả trả về
     return NewPackage(
         status=StatusResponse.SUCCESS,
         data={
@@ -100,6 +96,18 @@ def get_events():
         },
         message="Lấy danh sách sự kiện thành công",
         status_code=200
+    )
+
+@event_bp.route('/events/creator/<int:creator_id>', methods=['GET'])
+def get_events_by_creator(creator_id: int):
+    events = event_service.get_events_by_creator(creator_id=creator_id)
+    serialized_items = event_list_schema.dump(events, many=True)
+
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        data=serialized_items,
+        message="Lấy danh sách sự kiện theo người tạo thành công",
+        status_code=200,
     )
 
 @event_bp.route('/events/<int:event_id>', methods=['DELETE'])

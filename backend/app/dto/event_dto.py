@@ -78,16 +78,12 @@ class BaseEventSchema(BaseSchema, DateRangeValidationMixin):
             )
 
 
-# =============================================================================
-# 3. SCHEMA LƯU NHÁP (Kế thừa từ BaseEventSchema ở trên)
-# =============================================================================
+
 class EventDraftSchema(BaseEventSchema):
     pass
 
 
-# =============================================================================
-# 4. SCHEMA XUẤT BẢN (Ghi đè lại các trường bắt buộc)
-# =============================================================================
+
 class EventPublishSchema(BaseEventSchema):
     image = fields.Url(required=True, error_messages={"required": "Đường dẫn ảnh không được để trống."})
     location_id = fields.Integer(required=True, error_messages={"required": "ID địa điểm không được để trống."})
@@ -107,9 +103,7 @@ class EventPublishSchema(BaseEventSchema):
         error_messages={"required": "Danh sách vé không được để trống."}
     )
 
-# =============================================================================
-# 5. RESPONSE SCHEMAS (Dùng cho API Xem Chi Tiết / Danh Sách)
-# =============================================================================
+
 
 class TicketTypeResponseSchema(BaseSchema):
     id = fields.Integer()
@@ -141,6 +135,7 @@ class EventCategoryResponseSchema(BaseSchema):
 
 class EventDetailResponseSchema(BaseSchema):
     id = fields.Integer()
+    creator_id = fields.Integer()
     name = fields.String()
     image = fields.String()
     description = fields.String()
@@ -189,6 +184,7 @@ class EventFilterQuerySchema(BaseSchema):
 
 class EventListResponseSchema(BaseSchema):
     id = fields.Integer()
+    creator_id = fields.Integer()
     name = fields.String()
     image = fields.String()
     status = fields.Enum(EventStatus, by_value=True)

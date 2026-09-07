@@ -5,6 +5,9 @@ import { useNavigate } from 'react-router-dom';
 
 const EventCard = ({ event, onBook }) => {
   const navigate = useNavigate();
+  const locationName = typeof event.location_name === 'object'
+    ? event.location_name?.name
+    : event.location_name;
 
   return (
     <article className="group overflow-hidden rounded-2xl bg-[#1b1c1d] transition-transform hover:scale-[1.02]">
@@ -37,7 +40,7 @@ const EventCard = ({ event, onBook }) => {
                 minute: '2-digit',
               })}`
             : 'Thời gian chưa cập nhật'}
-          · {event.location_name || 'Địa điểm chưa cập nhật'}
+          · {locationName || 'Địa điểm chưa cập nhật'}
         </p>
         <button
           onClick={() => onBook(event)}

@@ -160,3 +160,23 @@ def get_tickets(event_id: int):
         })
 
     return tickets
+
+def get_events_by_creator(
+    creator_id: int,
+    include_deleted: bool = False
+) -> list[EventModel]:
+    stmt = (
+        select(EventModel)
+        .where(EventModel.creator_id == creator_id)
+        .options(
+            selectinload(EventModel.company),
+            selectinload(EventModel.category),
+            selectinload(EventModel.seats)
+        )
+        .order_by(EventModel.id.desc())
+    )
+
+    if include_deleted:
+        stmt = stmt.execution_options(include_deleted=True)
+
+    return list(db.session.scalars(stmt).all())

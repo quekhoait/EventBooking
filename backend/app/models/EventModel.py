@@ -35,6 +35,7 @@ class EventModel(SoftDeleteModel):
 
     location_id = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=True)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     category_id = db.Column(db.Integer, db.ForeignKey('event_category.id'), nullable=True)
     location_name = db.Column(db.String(255))
     seats = db.relationship('EventSeat', backref='event', lazy=True)
@@ -42,6 +43,7 @@ class EventModel(SoftDeleteModel):
     discount = db.relationship('DiscountModel', backref='event', lazy=True)
 
     company = db.relationship('Company', backref='events', lazy=True)  # <-- THÊM DÒNG NÀY
+    creator = db.relationship('User', backref='created_events', lazy=True)
     category = db.relationship('EventCategory', backref='events', lazy=True)
     location = db.relationship('LocationModel', backref='events', lazy=True)
 

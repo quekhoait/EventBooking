@@ -34,18 +34,32 @@ export const eventService = {
     
     // Lấy chi tiết sự kiện
     getEventDetail: async (eventId) => {
-        try {
-            const response = await Apis().get(`/events/${eventId}`);
-            return response.data;
-        } catch (error) {
-            console.error('Error fetching event detail:', error);
-            throw error;
-        }
-    },
-
-    
+        return await Apis().get(endpoints.get_event_detail(eventId));
+    },    
 
     getTicketsType: async (id)=> {
         return await Apis().get(endpoints.get_tickets(id))
-    }
-};
+    },
+    getEventbyCreator: async (creatorId) => {
+       return await Apis().get(endpoints.get_event_by_creator(creatorId))
+    },
+    createEvent: async (eventData, token) => {
+        return await Apis().post(endpoints.create_event, eventData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+        });
+    },
+    updateEvent: async (eventId, eventData, token) => {
+        return await Apis().put(endpoints.get_event_detail(eventId), eventData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+        });
+    },
+    deleteEvent: async (eventId) => {
+        return await Apis().delete(endpoints.get_event_detail(eventId));
+    },
+}

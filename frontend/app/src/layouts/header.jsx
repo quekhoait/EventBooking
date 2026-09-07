@@ -6,16 +6,14 @@ import GlobalLoadingOverlay from "../components/Common/GlobalLoadingOverlay";
 
 export default function Header() {
   const [profileOpen, setProfileOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(""); // State quản lý ô tìm kiếm
+  const [searchTerm, setSearchTerm] = useState(""); 
   const navigate = useNavigate();
   const { user, logoutUser } = useAuth();
-
-  // State quản lý Loading toàn cục khi chuyển trang
+  console.log("user in header", user);
   const [isNavigating, setIsNavigating] = useState(false);
   const [navProgress, setNavProgress] = useState(0);
   const [navTitle, setNavTitle] = useState("Đang chuyển trang...");
 
-  // Hàm chuyển hướng có hiệu ứng loading chạy %
   const handleNavigateWithLoading = (targetPath, title = "Đang chuyển trang...") => {
     setProfileOpen(false);
     setNavTitle(title);
@@ -140,6 +138,19 @@ export default function Header() {
 
               {profileOpen && (
                 <div className="absolute right-0 top-10 z-50 w-48 rounded-b-3xl rounded-tl-2xl bg-[#ffe6d2] p-4 text-left text-sm font-normal normal-case italic text-[#3b302b] shadow-xl animate-fade-in">
+                  {user && (user.role === "STAFF" || user.role === "ADMIN") && (
+                     <div
+                    onClick={() =>
+                      handleNavigateWithLoading(
+                        "/dashboard/organizer",
+                        "Đang mở quản lý sự kiện..."
+                      )
+                    }
+                    className="cursor-pointer border-b border-[#e5b99c] pb-3 hover:font-semibold"
+                  >
+                    ◎ &nbsp; Quản lý sự kiện
+                  </div>
+                  )}
                   <div
                     onClick={() =>
                       handleNavigateWithLoading(

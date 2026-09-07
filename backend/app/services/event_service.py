@@ -12,7 +12,7 @@ from app.utils.exception import AppException
 from app.utils.signals import event_cancelled_signal
 
 
-def create_and_publish_event(event_dto) -> EventModel:
+def create_and_publish_event(event_dto, creator_id: int | None = None) -> EventModel:
     location, company, category = _validate_publish_event(event_dto)
 
     seats_dto_list = getattr(event_dto, 'event_seats', [])
@@ -21,13 +21,23 @@ def create_and_publish_event(event_dto) -> EventModel:
 
     # 3. Tạo và lưu Event
     location_name = location.full_name
-    return _save_event_to_db(event_dto, status=EventStatus.PUBLISHED, location_name=location_name)
+    return _save_event_to_db(
+        event_dto,
+        status=EventStatus.PUBLISHED,
+        location_name=location_name,
+        creator_id=creator_id,
+    )
 
 
-def create_draft_event(event_dto) -> EventModel:
+def create_draft_event(event_dto, creator_id: int | None = None) -> EventModel:
     location_id = getattr(event_dto, 'location_id', None)
     location_name = _get_location_name(location_id)
-    return _save_event_to_db(event_dto, status=EventStatus.DRAFT, location_name=location_name)
+    return _save_event_to_db(
+        event_dto,
+        status=EventStatus.DRAFT,
+        location_name=location_name,
+        creator_id=creator_id,
+    )
 
 
 def get_event_detail(event_id: int) -> EventModel:
@@ -156,8 +166,6 @@ def publish_event(event_id: int) -> EventModel:
     if not event.seats or len(event.seats) == 0:
         raise AppException(ErrorCode.EVENT_MUST_HAVE_SEATS)
 
-    # 4. Tái sử dụng helper _validate_publish_event để validate thời gian, địa điểm, công ty...
-    # (Do _validate_publish_event nhận parameter dạng DTO, ta truyền trực tiếp object event vào)
     location, company, category = _validate_publish_event(event, exclude_event_id=event_id)
 
     try:
@@ -268,3 +276,13 @@ def get_tickets(id)->EventTicketType:
     if not id:
         return None
     return event_repo.get_tickets(id)
+
+#Lấy sự kiện theo người tạo
+def get_events_by_creator(
+    creator_id: int,
+    include_deleted: bool = False
+) -> list[EventModel]:
+    return event_repo.get_events_by_creator(
+        creator_id=creator_id,
+        include_deleted=include_deleted
+    )

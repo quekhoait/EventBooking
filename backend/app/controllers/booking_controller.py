@@ -16,7 +16,6 @@ booking_api = Blueprint('booking_api', __name__, url_prefix='/bookings')
 def create():
     data = request.get_json()
     data = CreateTicketRequestDTO().load(data)
-    print(data)
     response = booking_services.create(data)
     result = TicketResponse().dump(response)
     return NewPackage(

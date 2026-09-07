@@ -1,5 +1,5 @@
 import { createContext, useState, useContext } from "react";
-import { eventServices } from "../services/eventServices.jsx";
+import { eventService } from "../services/eventService.jsx";
 
 export const EventContext = createContext(null);
 
@@ -13,7 +13,7 @@ export const EventProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await eventServices.getEventDetail(id);
+      const response = await eventService.getEventDetail(id);
       if (response?.status === 200) {
         setEventDetail(response?.data.data);
       }

@@ -11,9 +11,13 @@ import LoginCallbackPage from "../pages/Auth/LoginCallbackPage";
 import { PreviewTicket } from "../pages/PreviewTicket";
 import SelectPreferencesPage from "../pages/Auth/SelectPreferencesPage";
 import RegisterCompanyPage from "../pages/User/registerCompanyPage";
+import CreateEventPage from "../pages/Event/CreateEventPage";
+import EventManagementPage from "../pages/Event/EventManagementPage";
 export const routes = [
   { path: "/", name: "home", page: HomePage },
   { path: "/events", name: "events", page: EventPage },
+  { path: "/events/create", name: "create-event", page: CreateEventPage },
+  { path: "/dashboard/organizer", name: "organizer-events", page: EventManagementPage },
   { path: "/booking", name: "booking", page: BookingPage },
   // Auth routes
   { path: "/login", name: "login", page: LoginPage },
