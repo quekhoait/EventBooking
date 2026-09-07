@@ -5,29 +5,42 @@ from flask import current_app
 from app import db
 from app.dto.pagination_dto import LoadMoreResponse
 from app.errors.error_code import ErrorCode
-from app.models import EventModel, LocationModel, Company, EventCategory, EventSeat, EventStatus, EventTicketType, \
-    TicketModel
+from app.models import (
+    EventModel,
+    LocationModel,
+    Company,
+    EventCategory,
+    EventSeat,
+    EventStatus,
+    EventTicketType,
+    TicketModel,
+)
 from app.repositories import base_repo, event_repo
 from app.utils.exception import AppException
 from app.utils.signals import event_cancelled_signal
+from tests.test_manage_event.conftest import event
 
 
 def create_and_publish_event(event_dto) -> EventModel:
     location, company, category = _validate_publish_event(event_dto)
 
-    seats_dto_list = getattr(event_dto, 'event_seats', [])
+    seats_dto_list = getattr(event_dto, "event_seats", [])
     if not seats_dto_list:
         raise AppException(ErrorCode.EVENT_MUST_HAVE_SEATS)
 
     # 3. Tạo và lưu Event
     location_name = location.full_name
-    return _save_event_to_db(event_dto, status=EventStatus.PUBLISHED, location_name=location_name)
+    return _save_event_to_db(
+        event_dto, status=EventStatus.PUBLISHED, location_name=location_name
+    )
 
 
 def create_draft_event(event_dto) -> EventModel:
-    location_id = getattr(event_dto, 'location_id', None)
+    location_id = getattr(event_dto, "location_id", None)
     location_name = _get_location_name(location_id)
-    return _save_event_to_db(event_dto, status=EventStatus.DRAFT, location_name=location_name)
+    return _save_event_to_db(
+        event_dto, status=EventStatus.DRAFT, location_name=location_name
+    )
 
 
 def get_event_detail(event_id: int) -> EventModel:
@@ -45,10 +58,10 @@ def update_event(event_id: int, event_dto) -> EventModel:
     event_data = dict(vars(event_dto))
 
     # Tách danh sách ghế nếu có truyền lên
-    seats_dto_list = event_data.pop('event_seats', None)
+    seats_dto_list = event_data.pop("event_seats", None)
 
     # 2. Xử lý location_name nếu location_id thay đổi
-    new_location_id = event_data.get('location_id')
+    new_location_id = event_data.get("location_id")
     if new_location_id and new_location_id != event.location_id:
         event.location_name = _get_location_name(new_location_id)
 
@@ -73,20 +86,14 @@ def update_event(event_id: int, event_dto) -> EventModel:
 
 
 def get_events_load_more(
-        page: int = 1,
-        page_size: int = 10,
-        **filters
+    page: int = 1, page_size: int = 10, **filters
 ) -> LoadMoreResponse[EventModel]:
     items, has_next = event_repo.get_events_load_more(
-        status=EventStatus.PUBLISHED,
-        **filters
+        status=EventStatus.PUBLISHED, **filters
     )
 
     return LoadMoreResponse(
-        items=items,
-        page=page,
-        page_size=page_size,
-        has_next=has_next
+        items=items, page=page, page_size=page_size, has_next=has_next
     )
 
 
@@ -98,9 +105,7 @@ def delete_event(event_id: int) -> bool:
 
     # 2. Check nghiệp vụ: Sự kiện đã PUBLISHED thì không cho xóa
     if event.status == EventStatus.PUBLISHED:
-        raise AppException(
-            ErrorCode.EVENT_CANNOT_DELETE_PUBLISHED
-        )
+        raise AppException(ErrorCode.EVENT_CANNOT_DELETE_PUBLISHED)
 
     # 3. Nếu là DRAFT -> Tiến hành Soft Delete qua Base Repo
     return event_repo.delete_event(event)
@@ -120,10 +125,7 @@ def cancel_event(event_id: int) -> EventModel:
 
     # Phát signal kèm theo thông tin event
     # current_app._get_current_object() được truyền để đảm bảo context đúng khi sang thread khác
-    event_cancelled_signal.send(
-        current_app._get_current_object(),
-        event=saved_event
-    )
+    event_cancelled_signal.send(current_app._get_current_object(), event=saved_event)
 
     return saved_event
 
@@ -158,13 +160,18 @@ def publish_event(event_id: int) -> EventModel:
 
     # 4. Tái sử dụng helper _validate_publish_event để validate thời gian, địa điểm, công ty...
     # (Do _validate_publish_event nhận parameter dạng DTO, ta truyền trực tiếp object event vào)
-    location, company, category = _validate_publish_event(event, exclude_event_id=event_id)
+    location, company, category = _validate_publish_event(
+        event, exclude_event_id=event_id
+    )
 
     try:
         # 5. Cập nhật trạng thái và thông tin địa điểm chuẩn
         event.status = EventStatus.PUBLISHED
-        event.location_name = location.full_name() if callable(
-            getattr(location, 'full_name', None)) else location.full_name
+        event.location_name = (
+            location.full_name()
+            if callable(getattr(location, "full_name", None))
+            else location.full_name
+        )
 
         # 6. Luân chuyển thay đổi vào DB
         db.session.commit()
@@ -208,7 +215,7 @@ def _validate_publish_event(event_dto, exclude_event_id: int | None = None):
         company_id=event_dto.company_id,
         name=event_dto.name,
         event_start_time=event_dto.event_start_time,
-        exclude_event_id=exclude_event_id
+        exclude_event_id=exclude_event_id,
     )
     if is_duplicated:
         raise AppException(ErrorCode.EVENT_NAME_EXISTS)
@@ -216,13 +223,15 @@ def _validate_publish_event(event_dto, exclude_event_id: int | None = None):
     return location, company, category
 
 
-def _save_event_seats(event_id: int, seats_dto_list: list, validate_ticket_type: bool = False):
+def _save_event_seats(
+    event_id: int, seats_dto_list: list, validate_ticket_type: bool = False
+):
     """Thêm danh sách ghế cho Event."""
     for seat_dto in seats_dto_list:
         seat_data = vars(seat_dto) if not isinstance(seat_dto, dict) else seat_dto
 
         if validate_ticket_type:
-            ticket_type_id = seat_data.get('event_ticket_type_id')
+            ticket_type_id = seat_data.get("event_ticket_type_id")
             ticket_type = base_repo.get_by_id(EventTicketType, ticket_type_id)
             if not ticket_type:
                 raise AppException(f"Loại vé có ID {ticket_type_id} không tồn tại.")
@@ -233,7 +242,7 @@ def _save_event_seats(event_id: int, seats_dto_list: list, validate_ticket_type:
 def _save_event_to_db(event_dto, status: EventStatus, **kwargs) -> EventModel:
     """Hàm dùng chung cho việc khởi tạo Event & Seats vào DB."""
     event_data = dict(vars(event_dto))
-    seats_dto_list = event_data.pop('event_seats', [])
+    seats_dto_list = event_data.pop("event_seats", [])
 
     event_data.update(kwargs)
     try:
@@ -264,7 +273,26 @@ def _get_location_name(location_id: int | None) -> str | None:
         return None
     return location.full_name
 
-def get_tickets(id)->EventTicketType:
+
+def get_tickets(id) -> EventTicketType:
     if not id:
         return None
     return event_repo.get_tickets(id)
+
+
+def get_is_chatbox_enabled(event_id: int) -> bool:
+    """Lấy trạng thái is_chatbox_enabled của một sự kiện."""
+    is_chatbox_enabled = event_repo.get_is_chatbox_enabled(event_id)
+    if is_chatbox_enabled is None:
+        raise AppException(ErrorCode.EVENT_NOT_FOUND)
+    return is_chatbox_enabled
+
+
+def set_is_chatbox_enabled(event_id: int, enabled: bool) -> EventModel:
+    """Cập nhật trạng thái is_chatbox_enabled của một sự kiện."""
+
+    is_chatbox_enabled = event_repo.set_is_chatbox_enabled(event_id, enabled)
+    if is_chatbox_enabled is None:
+        raise AppException(ErrorCode.EVENT_NOT_FOUND)
+    saved_event = base_repo.save(event)
+    return saved_event

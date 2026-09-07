@@ -17,7 +17,7 @@ export const endpoints = {
 
   user_preferences: "/data/preferences",
   user_preference_detail: (categoryId) => `/data/preferences/${categoryId}`,
-
+ 
   categories: "/data/categories",
   get_event: `/events`,
   get_event_detail: (id) => `/events/${id}`,
@@ -31,6 +31,9 @@ export const endpoints = {
   save_company: "/data/company",
   get_locations: "/data/locations",
   get_location_tree: "/data/locations/tree",
+
+  //chatbox
+  chatbox: (id) => `/events/${id}/chatbox`,
 };
 
 export const BASE_URL =

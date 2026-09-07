@@ -8,6 +8,7 @@ import { eventServices } from "../services/eventServices";
 import { ticketService } from "../services/ticketServices";
 import DigitalTicketPage from "./DigitalTicketPage";
 import { logError } from "../utils/log";
+import ChatBox from "../components/ChatBox/ChatBox";
 
 function BookingPage({ onBack }) {
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ function BookingPage({ onBack }) {
         }
         const response = await eventServices.getTicketsType(eventId);
         if (response?.status === 200) {
-          setTickets(response?.data.data );
+          setTickets(response?.data.data);
         }
       } catch (error) {
         console.error("Lỗi tải loại vé:", error);
@@ -54,7 +55,7 @@ function BookingPage({ onBack }) {
   // Tính tổng tiền: Giá vé - Giảm giá
   const total = useMemo(() => {
     if (!selectedTicket) return 0;
-    return selectedTicket.price -discount;
+    return selectedTicket.price - discount;
   }, [selectedTicket, discount]);
 
   // Áp dụng mã giảm giá
@@ -89,16 +90,16 @@ function BookingPage({ onBack }) {
         discount_id: discount > 0 ? 1 : null,
         face_image: faceImage,
       };
-      
+
       const ticketRes = await ticketService.createTicket(bookingPayload);
       const ticketData = ticketRes?.data?.data;
       const ticketCode = ticketData?.code;
 
       setTicketResult(ticketData);
-      console.log(ticketResult)
+      console.log(ticketResult);
       const paymentPayload = {
         ticket_code: ticketCode,
-        method: "momo", 
+        method: "momo",
       };
       const paymentRes = await ticketService.createPayment(paymentPayload);
       const paymentData = paymentRes?.data?.data;
@@ -106,9 +107,8 @@ function BookingPage({ onBack }) {
         window.location.href = paymentData.payUrl;
         return;
       }
-
     } catch (error) {
-      logError(error)
+      logError(error);
       console.error("Backend Error Details:", error.response?.data);
       setSaveError(
         error.response?.data?.detail || error.message || "Không thể tạo vé.",
@@ -118,25 +118,31 @@ function BookingPage({ onBack }) {
     }
   };
 
-
-useEffect(() => {
-  const loadEvent = async () => {
-    await fetchEventDetail(eventId);
-  };
-  if (eventId) {
-    loadEvent();
-  }
-}, [eventId]);
-
+  useEffect(() => {
+    const loadEvent = async () => {
+      await fetchEventDetail(eventId);
+    };
+    if (eventId) {
+      loadEvent();
+    }
+  }, [eventId]);
 
   const handleBack = () => (onBack ? onBack() : navigate(-1));
 
   if (loading && !event) {
-    return <div className="py-20 text-center text-white/60">Đang tải thông tin...</div>;
+    return (
+      <div className="py-20 text-center text-white/60">
+        Đang tải thông tin...
+      </div>
+    );
   }
 
   if (!event) {
-    return <div className="py-20 text-center text-white/60">Không tìm thấy sự kiện.</div>;
+    return (
+      <div className="py-20 text-center text-white/60">
+        Không tìm thấy sự kiện.
+      </div>
+    );
   }
 
   if (step === 2 && ticketResult) {
@@ -144,8 +150,12 @@ useEffect(() => {
       <main className="mx-auto max-w-[1240px] px-5 py-8 lg:px-10 lg:py-12">
         <div className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">Đặt vé sự kiện</p>
-            <h1 className="font-display text-4xl font-extrabold uppercase text-white sm:text-5xl">Thông tin vé</h1>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">
+              Đặt vé sự kiện
+            </p>
+            <h1 className="font-display text-4xl font-extrabold uppercase text-white sm:text-5xl">
+              Thông tin vé
+            </h1>
           </div>
           <BookingProgress currentStep={step} />
         </div>
@@ -178,8 +188,12 @@ useEffect(() => {
 
         <div className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">Đặt vé sự kiện</p>
-            <h1 className="font-display text-4xl font-extrabold uppercase text-white sm:text-5xl">Thông tin vé</h1>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">
+              Đặt vé sự kiện
+            </p>
+            <h1 className="font-display text-4xl font-extrabold uppercase text-white sm:text-5xl">
+              Thông tin vé
+            </h1>
           </div>
           <BookingProgress currentStep={step} />
         </div>
@@ -208,7 +222,9 @@ useEffect(() => {
           />
         </div>
 
-        {saveError && <p className="mt-5 text-sm font-bold text-red-300">{saveError}</p>}
+        {saveError && (
+          <p className="mt-5 text-sm font-bold text-red-300">{saveError}</p>
+        )}
       </main>
     );
   }
@@ -216,84 +232,101 @@ useEffect(() => {
   // Bước 0: Chọn vé
   return (
     <main className="mx-auto max-w-[1240px] px-5 py-8 lg:px-10 lg:py-12">
-      <button onClick={handleBack} className="mb-6 text-xs font-bold uppercase text-[#ff985c] hover:underline">
+      <button
+        onClick={handleBack}
+        className="mb-6 text-xs font-bold uppercase text-[#ff985c] hover:underline"
+      >
         ← Quay lại
       </button>
 
       <div className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">Đặt vé sự kiện</p>
-          <h1 className="font-display text-4xl font-extrabold uppercase text-white sm:text-4xl">Chọn loại vé</h1>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">
+            Đặt vé sự kiện
+          </p>
+          <h1 className="font-display text-4xl font-extrabold uppercase text-white sm:text-4xl">
+            Chọn loại vé
+          </h1>
         </div>
         <BookingProgress currentStep={step} />
       </div>
 
-    <div className="mb-8 grid overflow-hidden rounded-2xl border border-white/10 bg-[#1b1c1d] md:grid-cols-[1.3fr_1fr]">
-  <div 
-    className="min-h-[360px] w-full bg-cover bg-center" 
-    style={{ backgroundImage: `url(${eventDetail?.image})` }} 
-  />
-<div className="flex h-full flex-col justify-between p-6">
-  {/* Header: Category & Status */}
-  <div className="flex items-center gap-2">
-    <span className="rounded bg-[#ff985c]/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-[#ff985c]">
-      {eventDetail?.category?.name}
-    </span>
-    {eventDetail?.status && (
-      <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-xs font-medium uppercase text-emerald-400">
-        {eventDetail.status}
-      </span>
-    )}
-  </div>
+      <div className="mb-8 grid overflow-hidden rounded-2xl border border-white/10 bg-[#1b1c1d] md:grid-cols-[1.3fr_1fr]">
+        <div
+          className="min-h-[360px] w-full bg-cover bg-center"
+          style={{ backgroundImage: `url(${eventDetail?.image})` }}
+        />
+        <div className="flex h-full flex-col justify-between p-6">
+          {/* Header: Category & Status */}
+          <div className="flex items-center gap-2">
+            <span className="rounded bg-[#ff985c]/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-[#ff985c]">
+              {eventDetail?.category?.name}
+            </span>
+            {eventDetail?.status && (
+              <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-xs font-medium uppercase text-emerald-400">
+                {eventDetail.status}
+              </span>
+            )}
+          </div>
 
-  {/* Main content: Title & Description */}
-  <div className="my-auto py-4">
-    <h2 className="font-display text-2xl font-bold uppercase text-white">
-      {eventDetail?.name}
-    </h2>
-    {eventDetail?.description && (
-      <p className="mt-2 line-clamp-2 text-sm text-white/70">
-        {eventDetail.description}
-      </p>
-    )}
-  </div>
+          {/* Main content: Title & Description */}
+          <div className="my-auto py-4">
+            <h2 className="font-display text-2xl font-bold uppercase text-white">
+              {eventDetail?.name}
+            </h2>
+            {eventDetail?.description && (
+              <p className="mt-2 line-clamp-2 text-sm text-white/70">
+                {eventDetail.description}
+              </p>
+            )}
+          </div>
 
-  {/* Footer: Metadata list */}
-  <div className="flex flex-col gap-2 border-t border-white/10 pt-4 text-xs text-white/60">
-    <div className="flex items-center gap-2">
-      <span className="font-semibold text-white/80">⏱ Diễn ra:</span>
-      <span>
-        {eventDetail?.event_start_time ? new Date(eventDetail.event_start_time).toLocaleString('vi-VN') : "Chưa cập nhật"}
-        {eventDetail?.event_end_time && ` - ${new Date(eventDetail.event_end_time).toLocaleTimeString('vi-VN')}`}
-      </span>
-    </div>
+          {/* Footer: Metadata list */}
+          <div className="flex flex-col gap-2 border-t border-white/10 pt-4 text-xs text-white/60">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-white/80">⏱ Diễn ra:</span>
+              <span>
+                {eventDetail?.event_start_time
+                  ? new Date(eventDetail.event_start_time).toLocaleString(
+                      "vi-VN",
+                    )
+                  : "Chưa cập nhật"}
+                {eventDetail?.event_end_time &&
+                  ` - ${new Date(eventDetail.event_end_time).toLocaleTimeString("vi-VN")}`}
+              </span>
+            </div>
 
-    {eventDetail?.start_time && (
-      <div className="flex items-center gap-2">
-        <span className="font-semibold text-white/80">Mở bán:</span>
-        <span>{new Date(eventDetail.start_time).toLocaleString('vi-VN')}</span>
+            {eventDetail?.start_time && (
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-white/80">Mở bán:</span>
+                <span>
+                  {new Date(eventDetail.start_time).toLocaleString("vi-VN")}
+                </span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-white/80">Địa điểm:</span>
+              <span>{eventDetail?.location_name || "Chưa xác định"}</span>
+            </div>
+
+            {eventDetail?.company && (
+              <div className="flex items-start gap-2">
+                <span className="font-semibold text-white/80">Đơn vị:</span>
+                <span>
+                  {eventDetail.company.name} ({eventDetail.company.address})
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-    )}
-
-    <div className="flex items-center gap-2">
-      <span className="font-semibold text-white/80">Địa điểm:</span>
-      <span>{eventDetail?.location_name || "Chưa xác định"}</span>
-    </div>
-
-    {eventDetail?.company && (
-      <div className="flex items-start gap-2">
-        <span className="font-semibold text-white/80">Đơn vị:</span>
-        <span>{eventDetail.company.name} ({eventDetail.company.address})</span>
-      </div>
-    )}
-  </div>
-</div>
-  
-</div>
 
       <div className="grid items-start gap-7 lg:grid-cols-[1fr_340px]">
         <section className="rounded-2xl border border-white/10 bg-[#1b1c1d] p-5 sm:p-7">
-          <h2 className="mb-4 font-display text-xl font-bold uppercase text-white">1. Chọn loại vé</h2>
+          <h2 className="mb-4 font-display text-xl font-bold uppercase text-white">
+            1. Chọn loại vé
+          </h2>
           <TicketSelector
             tickets={tickets}
             selectedTicket={selectedTicket}
@@ -313,7 +346,10 @@ useEffect(() => {
           onContinue={continueToInformation}
           completed={false}
         />
+
       </div>
+
+      <ChatBox />
     </main>
   );
 }

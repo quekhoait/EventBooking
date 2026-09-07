@@ -1,13 +1,21 @@
 from flask import Blueprint, request
 from sqlalchemy import true
 
-from app.dto.event_dto import EventDraftSchema, EventPublishSchema, EventDetailResponseSchema, EventUpdateSchema, \
-    EventFilterQuerySchema, EventListResponseSchema, EventTicketTypeSchema, EventSeatDetailSchema
+from app.dto.event_dto import (
+    EventDraftSchema,
+    EventPublishSchema,
+    EventDetailResponseSchema,
+    EventUpdateSchema,
+    EventFilterQuerySchema,
+    EventListResponseSchema,
+    EventTicketTypeSchema,
+    EventSeatDetailSchema,
+)
 from app.models import EventStatus
 from app.services import event_service
 from app.utils.json import NewPackage, StatusResponse
 
-event_bp = Blueprint('event', __name__)
+event_bp = Blueprint("event", __name__)
 
 # Khai báo 2 instance Schema
 event_draft_schema = EventDraftSchema()
@@ -17,15 +25,18 @@ event_update_schema = EventUpdateSchema()
 event_filter_schema = EventFilterQuerySchema()
 event_list_schema = EventListResponseSchema(many=True)
 
-@event_bp.route('/events', methods=['POST'])
+
+@event_bp.route("/events", methods=["POST"])
 def create_event():
     json_data = request.get_json() or {}
 
     # 1. Đọc status thô từ JSON gửi lên (không phân biệt hoa/thường)
-    raw_status = str(json_data.get('status', '')).upper()
+    raw_status = str(json_data.get("status", "")).upper()
 
     # 2. Quyết định Schema validate & Service handler
-    if raw_status == EventStatus.PUBLISHED.name: # hoặc EventStatus.PUBLISHED.name tùy cách khai báo Enum
+    if (
+        raw_status == EventStatus.PUBLISHED.name
+    ):  # hoặc EventStatus.PUBLISHED.name tùy cách khai báo Enum
         event_dto = event_publish_schema.load(json_data)
         created_event = event_service.create_and_publish_event(event_dto)
         message = "Xuất bản sự kiện thành công"
@@ -39,10 +50,11 @@ def create_event():
         status=StatusResponse.SUCCESS,
         data={"id": created_event.id},
         message=message,
-        status_code=201
+        status_code=201,
     )
 
-@event_bp.route('/events/<int:event_id>', methods=['GET'])
+
+@event_bp.route("/events/<int:event_id>", methods=["GET"])
 def get_event_detail(event_id: int):
     event = event_service.get_event_detail(event_id)
 
@@ -52,10 +64,11 @@ def get_event_detail(event_id: int):
         status=StatusResponse.SUCCESS,
         data=event_data,
         message="Lấy thông tin chi tiết sự kiện thành công",
-        status_code=200
+        status_code=200,
     )
 
-@event_bp.route('/events/<int:event_id>', methods=['PATCH'])
+
+@event_bp.route("/events/<int:event_id>", methods=["PATCH"])
 def update_event(event_id: int):
     json_data = request.get_json() or {}
 
@@ -73,18 +86,17 @@ def update_event(event_id: int):
         status=StatusResponse.SUCCESS,
         data=event_data,
         message="Cập nhật sự kiện thành công",
-        status_code=200
+        status_code=200,
     )
 
-@event_bp.route('/events', methods=['GET'])
+
+@event_bp.route("/events", methods=["GET"])
 def get_events():
     # 1. Validate & Parse query parameters từ URL qua Schema
     query_params = event_filter_schema.load(request.args)
 
     # 2. Gọi service xử lý Load More (truy vấn 1 query duy nhất)
-    response_dto = event_service.get_events_load_more(
-        **vars(query_params)
-    )
+    response_dto = event_service.get_events_load_more(**vars(query_params))
 
     # 3. Serialize danh sách EventModel -> JSON List qua Response Schema
     serialized_items = event_list_schema.dump(response_dto.items, many=True)
@@ -96,13 +108,14 @@ def get_events():
             "items": serialized_items,
             "page": response_dto.page,
             "page_size": response_dto.page_size,
-            "has_next": response_dto.has_next
+            "has_next": response_dto.has_next,
         },
         message="Lấy danh sách sự kiện thành công",
-        status_code=200
+        status_code=200,
     )
 
-@event_bp.route('/events/<int:event_id>', methods=['DELETE'])
+
+@event_bp.route("/events/<int:event_id>", methods=["DELETE"])
 def delete_event(event_id: int):
     event_service.delete_event(event_id)
 
@@ -110,10 +123,11 @@ def delete_event(event_id: int):
         status=StatusResponse.SUCCESS,
         data=None,
         message="Xóa sự kiện thành công.",
-        status_code=204
+        status_code=204,
     )
 
-@event_bp.route('/events/<int:event_id>/cancel', methods=['PATCH'])
+
+@event_bp.route("/events/<int:event_id>/cancel", methods=["PATCH"])
 def cancel_event(event_id: int):
     event = event_service.cancel_event(event_id)
     event_data = event_detail_schema.dump(event)
@@ -122,10 +136,11 @@ def cancel_event(event_id: int):
         status=StatusResponse.SUCCESS,
         data=event_data,
         message="Hủy sự kiện thành công.",
-        status_code=200
+        status_code=200,
     )
 
-@event_bp.route('/events/<int:event_id>/restore', methods=['PATCH'])
+
+@event_bp.route("/events/<int:event_id>/restore", methods=["PATCH"])
 def restore_event(event_id: int):
     event_service.restore_event(event_id)
 
@@ -133,10 +148,11 @@ def restore_event(event_id: int):
         status=StatusResponse.SUCCESS,
         data=None,
         message="Khôi phục sự kiện thành công.",
-        status_code=200
+        status_code=200,
     )
 
-@event_bp.route('/events/<int:event_id>/publish', methods=['PATCH'])
+
+@event_bp.route("/events/<int:event_id>/publish", methods=["PATCH"])
 def publish_event(event_id: int):
     # Gọi Service thực hiện xuất bản
     published_event = event_service.publish_event(event_id)
@@ -148,10 +164,11 @@ def publish_event(event_id: int):
         status=StatusResponse.SUCCESS,
         data=event_data,
         message="Xuất bản sự kiện thành công.",
-        status_code=200
+        status_code=200,
     )
 
-@event_bp.route('/events/<int:event_id>/tickets', methods=['GET'])
+
+@event_bp.route("/events/<int:event_id>/tickets", methods=["GET"])
 def get_tickets(event_id: int):
     data = event_service.get_tickets(event_id)
     tickets = EventSeatDetailSchema(many=True).dump(data)
@@ -159,5 +176,37 @@ def get_tickets(event_id: int):
         status=StatusResponse.SUCCESS,
         data=tickets,
         message="Lấy loại vé thành công!",
-        status_code=200
+        status_code=200,
+    )
+
+
+@event_bp.route("/events/<int:event_id>/chatbox", methods=["GET"])
+def get_chatbox_status(event_id: int):
+    is_enabled = event_service.get_is_chatbox_enabled(event_id)
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        data={"is_chatbox_enabled": is_enabled},
+        message="Lấy trạng thái chatbox thành công!",
+        status_code=200,
+    )
+
+
+@event_bp.route("/events/<int:event_id>/chatbox", methods=["PATCH"])
+def update_chatbox_status(event_id: int):
+    json_data = request.get_json() or {}
+    is_enabled = json_data.get("is_chatbox_enabled")
+    if is_enabled is None:
+        return NewPackage(
+            status=StatusResponse.FAILURE,
+            data=None,
+            message="Thiếu trường 'is_chatbox_enabled' trong payload.",
+            status_code=400,
+        )
+
+    updated_status = event_service.set_is_chatbox_enabled(event_id, is_enabled)
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        data={"is_chatbox_enabled": updated_status},
+        message="Cập nhật trạng thái chatbox thành công!",
+        status_code=200,
     )

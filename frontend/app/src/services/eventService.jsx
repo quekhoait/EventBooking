@@ -47,5 +47,27 @@ export const eventService = {
 
     getTicketsType: async (id)=> {
         return await Apis().get(endpoints.get_tickets(id))
-    }
+    },
+
+    getChatboxStatus: async (eventId) => {
+        try {
+            const response = await Apis().get(endpoints.chatbox(eventId));
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching chatbox status:', error);
+            throw error;
+        }
+    },
+
+    setChatboxStatus: async (eventId, isEnabled) => {
+        try {
+            const response = await Apis().patch(endpoints.chatbox(eventId), {
+                is_chatbox_enabled: isEnabled,
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error setting chatbox status:', error);
+            throw error;
+        }
+    },
 };
