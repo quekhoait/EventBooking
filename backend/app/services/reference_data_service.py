@@ -1,6 +1,6 @@
 # app/services/reference_data_service.py
 
-from app.models import EventCategory, LocationModel
+from app.models import EventCategory, LocationModel, EventTicketType
 from app.repositories import base_repo
 from app import db
 from app.repositories import reference_data_repo as ref_repo
@@ -12,6 +12,9 @@ def get_all_categories():
     """Lấy tất cả danh mục."""
     return base_repo.get_all(EventCategory)
 
+def get_all_ticket_types():
+    """Lấy tất cả loại vé (EventTicketType)."""
+    return base_repo.get_all(EventTicketType)
 
 def get_all_locations():
     """Lấy tất cả địa điểm (dạng cây)."""

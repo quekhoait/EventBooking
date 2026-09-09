@@ -50,6 +50,12 @@ class BaseEventSchema(BaseSchema, DateRangeValidationMixin):
     company_id = fields.Integer(allow_none=True, required=False)
     category_id = fields.Integer(allow_none=True, required=False)
 
+    max_per_user = fields.Integer(
+        allow_none=True,
+        required=False,
+        validate=validate.Range(min=1, error="Số vé tối đa mỗi người phải từ 1 trở lên."),
+    )
+
     start_time = fields.DateTime(allow_none=True, required=False)
     end_time = fields.DateTime(allow_none=True, required=False)
     event_start_time = fields.DateTime(allow_none=True, required=False)
@@ -87,7 +93,6 @@ class EventDraftSchema(BaseEventSchema):
 class EventPublishSchema(BaseEventSchema):
     image = fields.Url(required=True, error_messages={"required": "Đường dẫn ảnh không được để trống."})
     location_id = fields.Integer(required=True, error_messages={"required": "ID địa điểm không được để trống."})
-    company_id = fields.Integer(required=True, error_messages={"required": "ID công ty không được để trống."})
     category_id = fields.Integer(required=True, error_messages={"required": "ID danh mục không được để trống."})
 
     start_time = fields.DateTime(required=True, error_messages={"required": "Thời gian mở bán không được để trống."})
@@ -140,6 +145,7 @@ class EventDetailResponseSchema(BaseSchema):
     image = fields.String()
     description = fields.String()
     status = fields.Enum(EventStatus, by_value=True)
+    max_per_user = fields.Integer()
 
     # Thời gian
     start_time = fields.DateTime()
@@ -156,7 +162,7 @@ class EventDetailResponseSchema(BaseSchema):
     # Relationship Data (Nút mở rộng chi tiết)
     company = fields.Nested(CompanyResponseSchema, dump_only=True)
     category = fields.Nested(EventCategoryResponseSchema, dump_only=True)
-    event_seats = fields.Nested(EventSeatResponseSchema, many=True, dump_only=True)
+    event_seats = fields.Nested(EventSeatResponseSchema, many=True, dump_only=True, attribute="seats")
 
 
 # =============================================================================

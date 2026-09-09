@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 
-from app.dto.ref_data_dto import CategoryResponseSchema, LocationResponseSchema
+from app.dto.ref_data_dto import CategoryResponseSchema, LocationResponseSchema, TicketTypeResponseSchema
 from app.services import reference_data_service, company_service
 from app.utils.json import NewPackage, StatusResponse
 from app.dto.user_dto import CompanyRequestDto, CompanyResponseDto
@@ -9,7 +9,20 @@ data_api = Blueprint("ref_api", __name__, url_prefix="/data")
 
 category_response_schema = CategoryResponseSchema(many=True)
 location_response_schema = LocationResponseSchema(many=True)
+ticket_type_response_schema = TicketTypeResponseSchema(many=True)
 
+@data_api.route("/ticket-types", methods=["GET"])
+def get_ticket_types():
+    """Lấy danh sách tất cả các loại vé (EventTicketType)."""
+    ticket_types = reference_data_service.get_all_ticket_types()
+    data = ticket_type_response_schema.dump(ticket_types)
+
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        data=data,
+        message="Lấy danh sách loại vé thành công",
+        status_code=200,
+    )
 
 @data_api.route("/categories", methods=["GET"])
 def get_categories():

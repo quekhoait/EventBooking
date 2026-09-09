@@ -21,10 +21,15 @@ export const endpoints = {
   user_preference_detail: (categoryId) => `/data/preferences/${categoryId}`,
 
   categories: "/data/categories",
+  ticket_types: "/data/ticket-types",
+  
   get_event: `/events`,
   get_event_detail: (id) => `/events/${id}`,
   get_tickets: (id) => `/events/${id}/tickets`,
   create_event: "/events",
+  publish_event: (id) => `/events/${id}/publish`,
+  cancel_event: (id) => `/events/${id}/cancel`,
+  restore_event: (id) => `/events/${id}/restore`,
   get_ticket_detail: (code) => `/bookings/details/${code}`,
   create_ticket: "/bookings/create",
   create_payment: "/payments/create",

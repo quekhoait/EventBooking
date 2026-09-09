@@ -52,7 +52,7 @@ export const eventService = {
         });
     },
     updateEvent: async (eventId, eventData, token) => {
-        return await Apis().put(endpoints.get_event_detail(eventId), eventData, {
+        return await Apis().patch(endpoints.get_event_detail(eventId), eventData, {
             headers: {
                 "Content-Type": "multipart/form-data",
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -61,5 +61,29 @@ export const eventService = {
     },
     deleteEvent: async (eventId) => {
         return await Apis().delete(endpoints.get_event_detail(eventId));
+    },
+    publishEvent: async (eventId, token) => {
+        return await Apis().patch(endpoints.publish_event(eventId), {}, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+        });
+    },
+    cancelEvent: async (eventId, token) => {
+        return await Apis().patch(endpoints.cancel_event(eventId), {}, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+        });
+    },
+    restoreEvent: async (eventId, token) => {
+        return await Apis().patch(endpoints.restore_event(eventId), {}, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+        });
     },
 }

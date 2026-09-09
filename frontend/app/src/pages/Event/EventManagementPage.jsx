@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import EventForm from "../../components/events/EventForm";
@@ -8,15 +8,21 @@ import EventDetail from "../../components/events/EventDetail";
 import EventModal from "../../components/events/EventModal";
 import EventRow from "../../components/events/EventRow";
 import { emptyEventForm } from "../../components/events/eventModel";
-import {
-  money,
-  normalizeEventsResponse,
-  statsFor,
-} from "../../components/events/eventManagementUtils";
+import { money, normalizeEventsResponse, statsFor } from "../../components/events/eventManagementUtils";
 import { eventService } from "../../services/eventService";
+import { baseDataService } from "../../services/baseDataService";
+import { useCategories } from "../../hooks/useCategories";
+import { useLocations } from "../../hooks/useLocations";
+import { logError } from "../../utils/log";
+
+async function loadCreatorEvents(creatorId) {
+  const res = await eventService.getEventbyCreator(creatorId);
+  return normalizeEventsResponse(res) || [];
+}
 
 function mapEventToForm(event) {
   if (!event?.id) return emptyEventForm;
+  const seats = Array.isArray(event.event_seats) ? event.event_seats : [];
   return {
     ...event,
     location_name: event.location_name || event.venue || "",
@@ -24,10 +30,18 @@ function mapEventToForm(event) {
     end_time: event.end_time || event.saleEnd || "",
     event_start_time: event.event_start_time || event.startTime || "",
     event_end_time: event.event_end_time || event.endTime || "",
+    ticketTypes: seats.length
+      ? seats.map((seat) => ({
+          id: seat.id || Date.now(),
+          event_ticket_type_id: seat.event_ticket_type_id,
+          name: "",
+          price: Number(seat.price || 0),
+          capacity: Number(seat.seat_total || 0),
+          sold: 0,
+        }))
+      : event.ticketTypes || [],
   };
 }
-
-
 
 export default function EventManagementPage() {
   const { user } = useAuth();
@@ -45,28 +59,59 @@ export default function EventManagementPage() {
   const [detailEvent, setDetailEvent] = useState(null);
   const [discountEvent, setDiscountEvent] = useState(null);
 
+  //   hooks
+  const { categories, loading: loadingCategory, getCategoryId } = useCategories();
+   const { flatLocations, loading: loadingLocations } = useLocations();
+  const [ticketTypes, setTicketTypes] = useState([]);
   // 1. Tải danh sách sự kiện
-useEffect(() => {
-  if (!user?.id) return;
+  useEffect(() => {
+    if (!user?.id) return;
+    let active = true;
+    loadCreatorEvents(user.id)
+      .then((list) => {
+        if (active) setEvents(list);
+      })
+      .catch((err) => console.error("Lỗi khi tải danh sách sự kiện:", err))
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user?.id]);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const res = await eventService.getEventbyCreator(user.id);
-      setEvents(normalizeEventsResponse(res) || []);
-    } catch (err) {
-      console.error("Lỗi khi tải danh sách sự kiện:", err);
-    } finally {
-      setLoading(false);
+  // Tải danh sách loại vé
+  useEffect(() => {
+    let active = true;
+    baseDataService
+      .getTicketTypes()
+      .then((response) => {
+        if (!active) return;
+        const value = response?.data ?? response;
+        const list = Array.isArray(value)
+          ? value
+          : Array.isArray(value?.data)
+            ? value.data
+            : [];
+        setTicketTypes(list);
+      })
+      .catch((err) => console.error("Lỗi khi tải danh sách loại vé:", err));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!loadingCategory) {
+      console.log("======= Categories đã tải xong:", categories);
     }
-  };
-
-  loadData();
-}, [user?.id]);
+  }, [categories, loadingCategory]);
 
   // 2. Xử lý Lưu (Create / Update) ở cấp cha
   const handleSaveEvent = async (formData, eventId) => {
-    const token = localStorage.getItem("access_token")
+    const token = localStorage.getItem("access_token");
+   console.log("handleSaveEvent" , Object.fromEntries(formData));
+   
     try {
       setFormSubmitting(true);
       setFormError("");
@@ -83,14 +128,12 @@ useEffect(() => {
 
       // Đóng modal và tải lại dữ liệu mới nhất mà không f5 trang
       setEditorEvent(null);
-      await fetchEvents();
-    } catch (err) {
-      console.error("Lỗi khi lưu sự kiện:", err);
-      setFormError(
-        err.response?.data?.message ||
-          err.message ||
-          "Không thể lưu sự kiện. Vui lòng thử lại!",
-      );
+      setEvents(await loadCreatorEvents(user.id));
+} catch (err) {
+      logError(err);
+      const message = err.response?.data?.message || err.message || "Thao tác thất bại. Vui lòng thử lại!";
+      setFormError(message);
+      alert(message);
     } finally {
       setFormSubmitting(false);
     }
@@ -101,11 +144,7 @@ useEffect(() => {
     const q = query.trim().toLowerCase();
     if (!q) return events;
 
-    return events.filter((e) =>
-      `${e.name || ""} ${e.category || ""} ${e.venue || ""}`
-        .toLowerCase()
-        .includes(q),
-    );
+    return events.filter((e) => `${e.name || ""} ${e.category || ""} ${e.venue || ""}`.toLowerCase().includes(q));
   }, [events, query]);
 
   // 4. Thống kê tổng hợp
@@ -123,29 +162,54 @@ useEffect(() => {
     );
   }, [events]);
 
-  // 5. Xóa sự kiện
-  const handleDeleteEvent = async (event) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa sự kiện "${event.name}"?`)) return;
-
+  // 5. Xóa sự kiện & các hành động trạng thái theo API
+  const handleStatusAction = async (action, eventId, confirmMsg) => {
+    if (confirmMsg && !window.confirm(confirmMsg)) return;
+    const token = localStorage.getItem("access_token");
     try {
-      if (eventService.deleteEvent) {
-        await eventService.deleteEvent(event.id);
-      }
-      setEvents((prev) => prev.filter((item) => item.id !== event.id));
+      setFormSubmitting(true);
+      setFormError("");
+      await action(eventId, token);
+      setEditorEvent(null);
+      setEvents(await loadCreatorEvents(user.id));
     } catch (err) {
-      console.error("Lỗi khi xóa sự kiện:", err);
-      alert("Không thể xóa sự kiện. Vui lòng thử lại!");
+      logError(err);
+      const message = err.response?.data?.message || err.message || "Thao tác thất bại. Vui lòng thử lại!";
+      alert(message)
+      setFormError(message);
+    } finally {
+      setFormSubmitting(false);
+    }
+  };
+
+  const handleDeleteEvent = (event) =>
+    handleStatusAction(eventService.deleteEvent, event.id, `Bạn có chắc muốn xóa sự kiện "${event.name}"?`);
+
+  const handlePublishEvent = (eventId) => handleStatusAction(eventService.publishEvent, eventId);
+
+  const handleCancelEvent = (eventId) =>
+    handleStatusAction(eventService.cancelEvent, eventId, "Bạn có chắc muốn hủy sự kiện này?");
+
+  const handleRestoreEvent = (eventId) => handleStatusAction(eventService.restoreEvent, eventId);
+
+  const handleEditEvent = async (event) => {
+    setFormError("");
+    try {
+      const res = await eventService.getEventDetail(event.id);
+      const body = res?.data ?? res;
+      const detail = body?.data ?? body;
+      setEditorEvent(detail ?? event);
+    } catch (err) {
+      logError(err);
+      setFormError("Không thể tải chi tiết sự kiện. Vui lòng thử lại!");
+      setEditorEvent(event);
     }
   };
 
   // 6. Xử lý mã giảm giá
   const handleSaveDiscount = (eventId, discount) => {
     setEvents((prev) =>
-      prev.map((item) =>
-        item.id === eventId
-          ? { ...item, discounts: [...(item.discounts || []), discount] }
-          : item,
-      ),
+      prev.map((item) => (item.id === eventId ? { ...item, discounts: [...(item.discounts || []), discount] } : item)),
     );
     setDiscountEvent(null);
   };
@@ -180,23 +244,14 @@ useEffect(() => {
 
         <SummaryCards eventsCount={events.length} totals={totals} />
 
-        <ReportTabs
-          tab={tab}
-          setTab={setTab}
-          query={query}
-          setQuery={setQuery}
-          eventCount={events.length}
-        />
+        <ReportTabs tab={tab} setTab={setTab} query={query} setQuery={setQuery} eventCount={events.length} />
 
         {tab === "events" ? (
           <EventList
             events={filteredEvents}
             loading={loading}
             onOpen={setDetailEvent}
-            onEdit={(event) => {
-              setFormError("");
-              setEditorEvent(event);
-            }}
+            onEdit={handleEditEvent}
             onAddDiscount={setDiscountEvent}
             onDelete={handleDeleteEvent}
           />
@@ -211,38 +266,34 @@ useEffect(() => {
 
       {/* Modal chỉnh sửa / tạo sự kiện */}
       {editorEvent && (
-        <EventModal
-          title={editorEvent.id ? "Sửa sự kiện" : "Tạo sự kiện"}
-          onClose={() => setEditorEvent(null)}
-        >
+        <EventModal title={editorEvent.id ? "Sửa sự kiện" : "Tạo sự kiện"} onClose={() => setEditorEvent(null)}>
           <EventForm
             initialEvent={mapEventToForm(editorEvent)}
             submitting={formSubmitting}
+            categories={categories}
+            locations={flatLocations}
+            ticketTypes={ticketTypes}
             error={formError}
             saveContext={{ userId: user?.id, companyId: user?.company_id }}
             onSave={handleSaveEvent}
             onCancel={() => setEditorEvent(null)}
-            submitLabel={editorEvent.id ? "Lưu thay đổi" : "Tạo sự kiện"}
+            onPublish={handlePublishEvent}
+            onCancelEvent={handleCancelEvent}
+            onRestore={handleRestoreEvent}
+            onDelete={handleDeleteEvent}
+            catalogMode = {true}
           />
         </EventModal>
       )}
 
       {/* Modal giảm giá */}
       {discountEvent && (
-        <DiscountEditor
-          event={discountEvent}
-          onSave={handleSaveDiscount}
-          onClose={() => setDiscountEvent(null)}
-        />
+        <DiscountEditor event={discountEvent} onSave={handleSaveDiscount} onClose={() => setDiscountEvent(null)} />
       )}
 
       {/* Modal chi tiết */}
       {detailEvent && (
-        <EventDetail
-          event={detailEvent}
-          onRemoveDiscount={handleRemoveDiscount}
-          onClose={() => setDetailEvent(null)}
-        />
+        <EventDetail event={detailEvent} onRemoveDiscount={handleRemoveDiscount} onClose={() => setDetailEvent(null)} />
       )}
     </main>
   );
@@ -252,24 +303,16 @@ function PageHeader({ onCreate }) {
   return (
     <header className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
       <div>
-        <Link
-          to="/profile"
-          className="text-xs font-bold uppercase tracking-wider text-[#ff985c] hover:underline"
-        >
+        <Link to="/profile" className="text-xs font-bold uppercase tracking-wider text-[#ff985c] hover:underline">
           ← Hồ sơ tổ chức
         </Link>
-        <p className="mt-4 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">
-          Organizer command center
-        </p>
-        <h1 className="mt-2 font-display text-5xl font-extrabold uppercase sm:text-7xl">
-          Quản lý sự kiện
-        </h1>
+        <p className="mt-4 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">Organizer command center</p>
+        <h1 className="mt-2 font-display text-5xl font-extrabold uppercase sm:text-7xl">Quản lý sự kiện</h1>
       </div>
       <button
         type="button"
         onClick={onCreate}
-        className="rounded-xl bg-[#ff6b12] px-5 py-3 text-xs font-extrabold uppercase shadow-[4px_4px_0_#b94308] transition hover:brightness-110"
-      >
+        className="rounded-xl bg-[#ff6b12] px-5 py-3 text-xs font-extrabold uppercase shadow-[4px_4px_0_#b94308] transition hover:brightness-110">
         + Tạo sự kiện
       </button>
     </header>
@@ -283,9 +326,7 @@ function SummaryCards({ eventsCount, totals }) {
     { label: "Doanh thu", value: money(totals.revenue), accent: true },
     {
       label: "Tỷ lệ lấp đầy",
-      value: totals.capacity
-        ? `${((totals.sold / totals.capacity) * 100).toFixed(1)}%`
-        : "0%",
+      value: totals.capacity ? `${((totals.sold / totals.capacity) * 100).toFixed(1)}%` : "0%",
       highlight: true,
     },
   ];
@@ -296,19 +337,10 @@ function SummaryCards({ eventsCount, totals }) {
         <div
           key={card.label}
           className={`rounded-2xl border p-5 ${
-            card.highlight
-              ? "border-[#ff6b12]/40 bg-[#ff6b12]/10"
-              : "border-white/10 bg-[#171717]"
-          }`}
-        >
+            card.highlight ? "border-[#ff6b12]/40 bg-[#ff6b12]/10" : "border-white/10 bg-[#171717]"
+          }`}>
           <small className="text-xs uppercase text-white/60">{card.label}</small>
-          <p
-            className={`mt-3 font-display ${
-              card.accent ? "text-3xl text-[#ff985c]" : "text-4xl"
-            }`}
-          >
-            {card.value}
-          </p>
+          <p className={`mt-3 font-display ${card.accent ? "text-3xl text-[#ff985c]" : "text-4xl"}`}>{card.value}</p>
         </div>
       ))}
     </section>
@@ -323,22 +355,16 @@ function ReportTabs({ tab, setTab, query, setQuery, eventCount }) {
           type="button"
           onClick={() => setTab("events")}
           className={`pb-3 text-xs font-bold uppercase transition ${
-            tab === "events"
-              ? "border-b-2 border-white text-white"
-              : "text-white/50 hover:text-white"
-          }`}
-        >
+            tab === "events" ? "border-b-2 border-white text-white" : "text-white/50 hover:text-white"
+          }`}>
           Sự kiện ({eventCount})
         </button>
         <button
           type="button"
           onClick={() => setTab("reports")}
           className={`pb-3 text-xs font-bold uppercase transition ${
-            tab === "reports"
-              ? "border-b-2 border-[#ff985c] text-[#ff985c]"
-              : "text-[#ff985c]/60 hover:text-[#ff985c]"
-          }`}
-        >
+            tab === "reports" ? "border-b-2 border-[#ff985c] text-[#ff985c]" : "text-[#ff985c]/60 hover:text-[#ff985c]"
+          }`}>
           Báo cáo doanh thu
         </button>
       </div>

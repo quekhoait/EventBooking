@@ -14,3 +14,9 @@ class LocationResponseSchema(BaseSchema):
     full_name = fields.String(allow_none=True)
     parent_id = fields.Integer(allow_none=True)
     children = fields.List(fields.Nested(lambda: LocationResponseSchema()), allow_none=True)
+
+class TicketTypeResponseSchema(BaseSchema):
+    """Schema trả về danh sách loại vé."""
+    id = fields.Integer()
+    name = fields.String()
+    description = fields.String(allow_none=True)

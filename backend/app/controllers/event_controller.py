@@ -1,3 +1,5 @@
+import json
+
 from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from sqlalchemy import true
@@ -7,6 +9,7 @@ from app.dto.event_dto import EventDraftSchema, EventPublishSchema, EventDetailR
 from app.models import EventStatus
 from app.services import event_service
 from app.utils.json import NewPackage, StatusResponse
+from app.utils.validation import upload_image_file
 
 event_bp = Blueprint('event', __name__)
 
@@ -17,14 +20,40 @@ event_update_schema = EventUpdateSchema()
 event_filter_schema = EventFilterQuerySchema()
 event_list_schema = EventListResponseSchema(many=True)
 
+
+def _parse_event_payload():
+    """Đọc payload từ JSON hoặc formData (multipart/form-data), upload ảnh nếu có."""
+    content_type = request.content_type or ""
+
+    if "application/json" in content_type:
+        return request.get_json() or {}
+
+    json_data = request.form.to_dict()
+
+    # Upload ảnh từ file lên Cloudinary
+    image_file = request.files.get("image")
+    if image_file and image_file.filename:
+        json_data["image"] = upload_image_file(image_file, folder="events/images")
+
+
+    # Parse danh sách ghế nếu được gửi dạng chuỗi JSON trong form
+    event_seats = json_data.get("event_seats")
+    if isinstance(event_seats, str):
+        try:
+            json_data["event_seats"] = json.loads(event_seats) if event_seats.strip() else []
+        except ValueError:
+            json_data["event_seats"] = []
+
+    return json_data
+
 @event_bp.route('/events', methods=['POST'])
-# @jwt_required()
 def create_event():
-    json_data = request.get_json() or {}
+    json_data = _parse_event_payload()
     # creator_id = get_jwt_identity()
     # print(creator_id)
-    creator_id = 2
-    raw_status = str(json_data.get('status', '')).upper()
+    creator_id = 1
+    json_data["company_id"] = 1
+    raw_status = str(json_data.get('status', EventStatus.PUBLISHED.name)).upper()
     if raw_status == EventStatus.PUBLISHED.name:
         event_dto = event_publish_schema.load(json_data)
         created_event = event_service.create_and_publish_event(event_dto, creator_id=creator_id)
@@ -57,8 +86,8 @@ def get_event_detail(event_id: int):
 
 @event_bp.route('/events/<int:event_id>', methods=['PATCH'])
 def update_event(event_id: int):
-    json_data = request.get_json() or {}
-
+    json_data = _parse_event_payload()
+    # breakpoint()
     # 1. Validate & Parse payload bằng EventUpdateSchema
     event_dto = event_update_schema.load(json_data)
 

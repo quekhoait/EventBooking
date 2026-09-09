@@ -21,6 +21,7 @@ export default function CreateEventPage() {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [ticketTypes, setTicketTypes] = useState([]);
   const [companyId, setCompanyId] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState("");
@@ -30,14 +31,16 @@ export default function CreateEventPage() {
     Promise.all([
       baseDataService.getAllCategories(),
       baseDataService.getAllLocations(),
+      baseDataService.getTicketTypes(),
       user?.id
         ? companyServices.getCompanyByUserId(user.id)
         : Promise.resolve(null),
     ])
-      .then(([categoryResponse, locationResponse, companyResponse]) => {
+      .then(([categoryResponse, locationResponse, ticketTypeResponse, companyResponse]) => {
         if (!active) return;
         setCategories(unwrapList(categoryResponse));
         setLocations(unwrapList(locationResponse));
+        setTicketTypes(unwrapList(ticketTypeResponse));
         const company = companyResponse?.data ?? companyResponse;
         setCompanyId(company?.id ?? company?.company_id ?? null);
       })
@@ -80,12 +83,12 @@ export default function CreateEventPage() {
             initialEvent={emptyEventForm}
             categories={categories}
             locations={locations}
+            ticketTypes={ticketTypes}
             loadingData={loadingData}
             error={error}
             catalogMode
             saveContext={{ companyId, userId: user.id }}
             onCancel={() => navigate(-1)}
-            submitLabel="Lưu sự kiện"
           />
         </div>
       </div>
