@@ -6,9 +6,9 @@ from .SoftDeleteModel import SoftDeleteModel
 
 
 class EventStatus(Enum):
-    DRAFT = 'draft'
-    PUBLISHED = 'published'
-    CANCELLED = 'cancelled'
+    DRAFT = 'DRAFT'
+    PUBLISHED = 'PUBLISHED'
+    CANCELLED = 'CANCELLED'
 
 
 class EventCategory(BaseModel):

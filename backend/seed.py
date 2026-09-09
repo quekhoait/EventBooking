@@ -1,11 +1,13 @@
 from datetime import datetime, timedelta
-from sqlalchemy import text
+
 import bcrypt
+from sqlalchemy import text
+
 from app import db, create_app
 from app.models import (
     User, RoleEnum, Company, LocationModel, EventCategory,
     EventModel, EventStatus, EventTicketType, EventSeat,
-    Seat, DiscountModel
+    Seat, DiscountModel, UserModel
 )
 
 
@@ -20,6 +22,7 @@ def seed_more_events():
         companies = Company.query.all()
         categories = EventCategory.query.all()
         ticket_types = EventTicketType.query.all()
+        user = User.query.filter(User.id == 1).first()
 
         if not locations or not companies or not categories or not ticket_types:
             print("⚠️ Thiếu dữ liệu phụ thuộc, bỏ qua seed thêm sự kiện")
@@ -196,7 +199,8 @@ def seed_more_events():
                 company_id=company.id,
                 category_id=category.id,
                 location_name=location.name,
-                image=f"https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=700&q=80"
+                image=f"https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=700&q=80",
+                creator =  user
             )
             db.session.add(event)
             db.session.flush()
@@ -453,7 +457,7 @@ def seed_users():
         user = User(
             username="testuser",
             email="testuser@gmail.com",
-            password= bcrypt.hashpw("123456".encode("utf-8"), bcrypt.gensalt()),
+            password=bcrypt.hashpw("123456".encode("utf-8"), bcrypt.gensalt()),  # Hoặc pass_hash nếu dự án dùng Werkzeug/Bcrypt
             full_name="Nguyễn Văn A",
             phone_number="0987654321",
             role=RoleEnum.USER,
@@ -474,6 +478,7 @@ def seed_events_and_details():
         location = LocationModel.query.filter(LocationModel.parent_id.isnot(None)).first()
         company = Company.query.first()
         category = EventCategory.query.first()
+        user = User.query.filter(User.id == 1).first()
 
         # Lấy các TicketType đã seed từ database
         ticket_type_vip = EventTicketType.query.filter_by(name="Vé VIP").first()
@@ -491,7 +496,8 @@ def seed_events_and_details():
             status=EventStatus.PUBLISHED,
             location_id=location.id if location else None,
             company_id=company.id if company else None,
-            category_id=category.id if category else None
+            category_id=category.id if category else None,
+            creator=user
         )
         db.session.add(event)
         db.session.flush()

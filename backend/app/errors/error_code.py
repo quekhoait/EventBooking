@@ -56,6 +56,7 @@ class ErrorCode(Enum):
     EVENT_CANNOT_DELETE_PUBLISHED = ("Sự kiện đã xuất bản không thể xóa. Vui lòng chuyển trạng thái thành HỦY sự kiện.",
                                      400)
     EVENT_ALREADY_CANCELLED = ("Sự kiện này đã bị hủy trước đó.", 400)
+    EVENT_CANCEL_NOT_ALLOWED = ("Chỉ có thể hủy sự kiện đã xuất bản", 400)
 
     # ==========================================
     # 6. Ticket & Seat Errors (Đặt vé & Ghế)

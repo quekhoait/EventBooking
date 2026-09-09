@@ -30,7 +30,6 @@ class ResendOTPRequestDto(BaseSchema):
 
 
 class LoginRequestDto(BaseSchema):
-
     email = fields.Email(required=True)
     password = fields.String(required=True)
 

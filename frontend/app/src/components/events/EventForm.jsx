@@ -20,13 +20,17 @@ export default function EventForm({
   initialEvent = emptyEventForm,
   categories = [],
   locations = [],
+  ticketTypes = [],
   loadingData = false,
   submitting = false,
   error: externalError = "",
   onSave,
   onCancel,
+  onPublish,
+  onCancelEvent,
+  onRestore,
+  onDelete,
   saveContext = {},
-  submitLabel = "Lưu sự kiện",
   catalogMode = false,
 }) {
   const initEvent = {
@@ -78,8 +82,7 @@ export default function EventForm({
         ticket.id === ticketId
           ? {
               ...ticket,
-              [key]:
-                key === "price" || key === "capacity" ? Number(value) : value,
+              [key]: key === "price" || key === "capacity" ? Number(value) : value,
             }
           : ticket,
       ),
@@ -96,22 +99,26 @@ export default function EventForm({
     });
   };
 
-  const validateForm = () => {
+  const isEditing = Boolean(form.id);
+
+  const validateForm = (targetStatus) => {
     if (!form.name?.trim()) return "Vui lòng nhập tên sự kiện";
+    const nameLength = form.name.trim().length;
+    if (nameLength < 5 || nameLength > 100) return "Tên sự kiện phải từ 5 đến 100 ký tự";
+    if (targetStatus !== "PUBLISHED") return null;
+
     if (catalogMode && !form.category_id) return "Vui lòng chọn danh mục";
     if (!catalogMode && !form.category?.trim()) return "Vui lòng nhập danh mục";
     if (catalogMode && !form.location_id) return "Vui lòng chọn địa điểm";
-    if (!catalogMode && !form.location_name?.trim())
-      return "Vui lòng nhập địa điểm";
-    if (!form.description?.trim()) return "Vui lòng nhập mô tả sự kiện";
+    if (!catalogMode && !form.location_name?.trim()) return "Vui lòng nhập địa điểm";
+    if (!form.image) return "Vui lòng thêm ảnh sự kiện";
     if (!form.start_time) return "Vui lòng chọn thời gian mở bán vé";
     if (!form.end_time) return "Vui lòng chọn thời gian đóng bán vé";
-    if (!form.event_start_time)
-      return "Vui lòng chọn thời gian bắt đầu sự kiện";
+    if (!form.event_start_time) return "Vui lòng chọn thời gian bắt đầu sự kiện";
     if (!form.event_end_time) return "Vui lòng chọn thời gian kết thúc sự kiện";
 
     for (const t of form.ticketTypes) {
-      if (!t.name?.trim()) return "Vui lòng nhập tên cho tất cả loại vé";
+      if (!t.event_ticket_type_id) return "Vui lòng chọn loại vé cho tất cả vé";
       if (t.price < 0 || isNaN(t.price)) return "Giá vé không hợp lệ";
       if (!t.capacity || t.capacity <= 0) return "Số lượng vé phải lớn hơn 0";
     }
@@ -119,8 +126,8 @@ export default function EventForm({
     return null;
   };
 
-  const handleSaveClick = () => {
-    const validationError = validateForm();
+  const handleSaveClick = (targetStatus) => {
+    const validationError = validateForm(targetStatus);
     if (validationError) {
       setInternalError(validationError);
       return;
@@ -128,7 +135,7 @@ export default function EventForm({
     setInternalError("");
     const formData = new FormData();
     Object.entries(form).forEach(([key, value]) => {
-      if (value === null || value === undefined) return;
+      if (value === null || value === undefined || value === "") return;
 
       if (key === "image") {
         if (value instanceof File || value instanceof Blob) {
@@ -137,31 +144,34 @@ export default function EventForm({
           const [metadata, encoded] = value.split(",");
           const mime = metadata.match(/data:(.*?);/)?.[1] || "image/jpeg";
           const binary = atob(encoded);
-          const bytes = Uint8Array.from(binary, (character) =>
-            character.charCodeAt(0),
-          );
-          formData.append(
-            "image",
-            new File([bytes], "event-image.jpg", { type: mime }),
-          );
+          const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+          formData.append("image", new File([bytes], "event-image.jpg", { type: mime }));
         }
       } else if (key === "ticketTypes") {
-        formData.append("ticket_types", JSON.stringify(value));
+        const eventSeats = value
+          .filter((t) => t.event_ticket_type_id)
+          .map((t) => ({
+            event_ticket_type_id: Number(t.event_ticket_type_id),
+            seat_total: Number(t.capacity),
+            price: Number(t.price),
+          }));
+        formData.append("event_seats", JSON.stringify(eventSeats));
       } else {
         formData.append(key, value);
       }
     });
 
-    if (saveContext.companyId !== undefined)
-      formData.set("company_id", saveContext.companyId ?? "");
-    if (saveContext.userId !== undefined)
-      formData.set("user_id", saveContext.userId);
+    if (saveContext.companyId !== undefined) formData.set("company_id", saveContext.companyId ?? "");
+    if (saveContext.userId !== undefined) formData.set("user_id", saveContext.userId);
 
-    ["start_time", "end_time", "event_start_time", "event_end_time"].forEach(
-      (key) => {
-        if (form[key]) formData.set(key, new Date(form[key]).toISOString());
-      },
-    );
+    if (targetStatus) formData.set("status", targetStatus);
+
+    ["start_time", "end_time", "event_start_time", "event_end_time"].forEach((key) => {
+      if (form[key]) {
+        const raw = String(form[key]);
+        formData.set(key, raw.length === 16 ? `${raw}:00` : raw);
+      }
+    });
     if (onSave) {
       onSave(formData, form.id);
     }
@@ -191,14 +201,15 @@ export default function EventForm({
               disabled={loadingData || submitting}
               value={form.category_id}
               onChange={(e) => update("category_id", e.target.value)}
-              className={inputClass}
-            >
+              className={inputClass}>
               <option value="">Chọn danh mục</option>
-              {categories.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
+              {categories
+                .filter((item) => item.id !== null)
+                .map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
             </select>
           ) : (
             <input
@@ -214,21 +225,20 @@ export default function EventForm({
           {catalogMode ? (
             <select
               disabled={loadingData || submitting}
-              value={form.location_id}
+              value={form.location_id || ""}
               onChange={(e) => update("location_id", e.target.value)}
-              className={inputClass}
-            >
+              className={inputClass}>
               <option value="">Chọn địa điểm</option>
               {locations.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.name}
+                  {item.full_name || item.name}
                 </option>
               ))}
             </select>
           ) : (
             <input
               disabled={submitting}
-              value={form.location_name}
+              value={form.location_name || ""}
               onChange={(e) => update("location_name", e.target.value)}
               className={inputClass}
             />
@@ -245,11 +255,7 @@ export default function EventForm({
         </Field>
 
         <Field label="Ảnh sự kiện">
-          <ImageDropzone
-            value={form.image}
-            onChange={(value) => update("image", value)}
-            disabled={submitting}
-          />
+          <ImageDropzone value={form.image} onChange={(value) => update("image", value)} disabled={submitting} />
         </Field>
 
         <Field label="Mô tả" required className="md:col-span-2">
@@ -264,9 +270,7 @@ export default function EventForm({
       </div>
 
       <div className="border-t border-[#D6D1C8] pt-5">
-        <h3 className="mb-4 font-display text-2xl uppercase">
-          Lịch trình & trạng thái
-        </h3>
+        <h3 className="mb-4 font-display text-2xl uppercase">Lịch trình & trạng thái</h3>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Mở bán vé" required>
             <input
@@ -314,17 +318,6 @@ export default function EventForm({
               className={inputClass}
             />
           </Field>
-          <Field label="Trạng thái">
-            <select
-              disabled={submitting}
-              value={form.status}
-              onChange={(e) => update("status", e.target.value)}
-              className={inputClass}
-            >
-              <option value="DRAFT">Bản nháp</option>
-              <option value="PUBLISHED">Đang bán</option>
-            </select>
-          </Field>
         </div>
       </div>
 
@@ -334,8 +327,7 @@ export default function EventForm({
           <button
             type="button"
             onClick={addTicket}
-            className="rounded-lg bg-[#171717] px-3 py-2 text-[11px] font-bold uppercase text-white hover:bg-black"
-          >
+            className="rounded-lg bg-[#171717] px-3 py-2 text-[11px] font-bold uppercase text-white hover:bg-black">
             + Thêm loại vé
           </button>
         </div>
@@ -343,25 +335,33 @@ export default function EventForm({
           {form.ticketTypes.map((ticket) => (
             <div
               key={ticket.id}
-              className="grid gap-2 rounded-xl border border-[#D6D1C8] bg-white p-3 sm:grid-cols-[1fr_130px_130px_auto] sm:items-end"
-            >
-              <Field label="Tên vé" required>
-                <input
-                  value={ticket.name}
-                  onChange={(e) =>
-                    updateTicket(ticket.id, "name", e.target.value)
-                  }
-                  className={inputClass}
-                />
+              className="grid gap-2 rounded-xl border border-[#D6D1C8] bg-white p-3 sm:grid-cols-[1fr_130px_130px_auto] sm:items-end">
+              <Field label="Loại vé" required>
+                <select
+                  value={ticket.event_ticket_type_id || ""}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    const selected = ticketTypes.find((item) => String(item.id) === String(id));
+                    updateTicket(ticket.id, "event_ticket_type_id", selected ? selected.id : "");
+                    updateTicket(ticket.id, "name", selected ? selected.name : "");
+                  }}
+                  className={inputClass}>
+                  <option value="">Chọn loại vé</option>
+                  {ticketTypes
+                    .filter((item) => item.id !== null)
+                    .map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                </select>
               </Field>
               <Field label="Giá (VNĐ)" required>
                 <input
                   type="number"
                   min="0"
                   value={ticket.price}
-                  onChange={(e) =>
-                    updateTicket(ticket.id, "price", e.target.value)
-                  }
+                  onChange={(e) => updateTicket(ticket.id, "price", e.target.value)}
                   className={inputClass}
                 />
               </Field>
@@ -370,17 +370,14 @@ export default function EventForm({
                   type="number"
                   min={ticket.sold || 0}
                   value={ticket.capacity}
-                  onChange={(e) =>
-                    updateTicket(ticket.id, "capacity", e.target.value)
-                  }
+                  onChange={(e) => updateTicket(ticket.id, "capacity", e.target.value)}
                   className={inputClass}
                 />
               </Field>
               <button
                 type="button"
                 onClick={() => removeTicket(ticket.id)}
-                className="px-2 py-3 text-xs font-bold text-red-500 hover:text-red-700"
-              >
+                className="px-2 py-3 text-xs font-bold text-red-500 hover:text-red-700">
                 Xóa
               </button>
             </div>
@@ -388,22 +385,77 @@ export default function EventForm({
         </div>
       </div>
 
-      <div className="flex justify-end gap-3 border-t border-[#D6D1C8] pt-5">
+      <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[#D6D1C8] pt-5">
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-xl px-4 py-3 text-xs font-bold uppercase text-[#5F5C57] hover:bg-[#eae6df]"
-        >
+          className="rounded-xl px-4 py-3 text-xs font-bold uppercase text-[#5F5C57] hover:bg-[#eae6df]">
           Hủy
         </button>
-        <button
-          type="button"
-          onClick={handleSaveClick}
-          disabled={submitting || loadingData}
-          className="rounded-xl bg-[#ff6b12] px-5 py-3 text-xs font-bold uppercase text-white hover:brightness-110 disabled:opacity-60"
-        >
-          {submitting ? "ĐANG LƯU..." : submitLabel}
-        </button>
+
+        {!isEditing && (
+          <button
+            type="button"
+            onClick={() => handleSaveClick("PUBLISHED")}
+            disabled={submitting || loadingData}
+            className="rounded-xl bg-[#171717] px-5 py-3 text-xs font-bold uppercase text-white hover:bg-black disabled:opacity-60">
+            {submitting ? "ĐANG LƯU..." : "Tạo & Xuất bản"}
+          </button>
+        )}
+
+        {isEditing && form.status === "DRAFT" && onPublish && (
+          <button
+            type="button"
+            onClick={() => onPublish(form.id)}
+            disabled={submitting}
+            className="rounded-xl bg-[#171717] px-5 py-3 text-xs font-bold uppercase text-white hover:bg-black disabled:opacity-60">
+            {submitting ? "ĐANG XỬ LÝ..." : "Xuất bản"}
+          </button>
+        )}
+
+        {isEditing && form.status === "CANCELLED" && onRestore && (
+          <button
+            type="button"
+            onClick={() => onRestore(form.id)}
+            disabled={submitting}
+            className="rounded-xl bg-[#171717] px-5 py-3 text-xs font-bold uppercase text-white hover:bg-black disabled:opacity-60">
+            {submitting ? "ĐANG XỬ LÝ..." : "Khôi phục"}
+          </button>
+        )}
+
+        {isEditing && form.status !== "CANCELLED" && onCancelEvent && (
+          <button
+            type="button"
+            onClick={() => onCancelEvent(form.id)}
+            disabled={submitting}
+            className="rounded-xl border border-[#D6D1C8] bg-white px-5 py-3 text-xs font-bold uppercase text-[#171717] hover:bg-[#eae6df] disabled:opacity-60">
+            {submitting ? "ĐANG XỬ LÝ..." : "Hủy sự kiện"}
+          </button>
+        )}
+
+        {isEditing && form.status === "DRAFT" && onDelete && (
+          <button
+            type="button"
+            onClick={() => onDelete(form.id)}
+            disabled={submitting}
+            className="rounded-xl border border-red-200 px-5 py-3 text-xs font-bold uppercase text-red-500 hover:bg-red-50 disabled:opacity-60">
+            Xóa
+          </button>
+        )}
+
+        {(!isEditing || form.status === "DRAFT" || form.status === "PUBLISHED") && (
+          <button
+            type="button"
+            onClick={() => handleSaveClick(isEditing ? form.status : "DRAFT")}
+            disabled={submitting || loadingData}
+            className="rounded-xl bg-[#ff6b12] px-5 py-3 text-xs font-bold uppercase text-white hover:brightness-110 disabled:opacity-60">
+            {submitting
+              ? "ĐANG LƯU..."
+              : !isEditing
+                ? "Lưu nháp"
+                : "Lưu thay đổi"}
+          </button>
+        )}
       </div>
     </div>
   );

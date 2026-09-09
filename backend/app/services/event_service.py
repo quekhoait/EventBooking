@@ -122,8 +122,11 @@ def cancel_event(event_id: int) -> EventModel:
     if not event:
         raise AppException(ErrorCode.EVENT_NOT_FOUND)
 
-    # if event.status == EventStatus.CANCELLED:
-    #     raise AppException(ErrorCode.EVENT_ALREADY_CANCELLED)
+    if event.status == EventStatus.CANCELLED:
+        raise AppException(ErrorCode.EVENT_ALREADY_CANCELLED)
+
+    if event.status != EventStatus.PUBLISHED:
+        raise AppException(ErrorCode.EVENT_CANCEL_NOT_ALLOWED)
 
     event.status = EventStatus.CANCELLED
     saved_event = base_repo.save(event)

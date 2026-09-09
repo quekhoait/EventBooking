@@ -1,6 +1,5 @@
 // src/services/eventService.js
 
-import { data } from "react-router-dom";
 import Apis, { endpoints } from "../config/Apis.jsx";
 
 export const eventService = {
@@ -53,7 +52,7 @@ export const eventService = {
         });
     },
     updateEvent: async (eventId, eventData, token) => {
-        return await Apis().put(endpoints.get_event_detail(eventId), eventData, {
+        return await Apis().patch(endpoints.get_event_detail(eventId), eventData, {
             headers: {
                 "Content-Type": "multipart/form-data",
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -63,16 +62,28 @@ export const eventService = {
     deleteEvent: async (eventId) => {
         return await Apis().delete(endpoints.get_event_detail(eventId));
     },
-
-    createReport: async(eventId, data)=> {
-        return await Apis().post(endpoints.create_report(eventId), data)
+    publishEvent: async (eventId, token) => {
+        return await Apis().patch(endpoints.publish_event(eventId), {}, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+        });
     },
-
-    getReport: async(eventId)=> {
-        return await Apis().get(endpoints.get(eventId))
+    cancelEvent: async (eventId, token) => {
+        return await Apis().patch(endpoints.cancel_event(eventId), {}, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+        });
     },
-    getReportByUser: async()=> {
-        return await Apis().get(endpoints.get_report_by_user)
-    }
-
+    restoreEvent: async (eventId, token) => {
+        return await Apis().patch(endpoints.restore_event(eventId), {}, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+        });
+    },
 }
