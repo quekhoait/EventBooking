@@ -1,0 +1,35 @@
+{% extends 'admin/master.html' %}
+{% block body %}
+<div class="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:px-6 lg:px-8">
+  <div class="mx-auto max-w-5xl">
+    <a href="{{ url_for('event-admin.index') }}" class="text-sm font-semibold text-blue-600">← Danh sách bài đăng</a>
+    <section class="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <header class="flex flex-col justify-between gap-4 border-b p-6 sm:flex-row">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Bài đăng #{{ event.id }}</p>
+          <h1 class="mt-2 text-2xl font-bold">{{ event.name }}</h1>
+          <p class="mt-2 text-sm text-slate-500">{{ event.company.name if event.company else 'Chưa có nhà tổ chức' }}</p>
+        </div>
+        <span class="h-fit w-fit rounded bg-slate-100 px-3 py-2 text-xs font-bold">{{ event.status.value if event.status else 'DRAFT' }}</span>
+      </header>
+      <div class="grid gap-6 p-6 sm:grid-cols-2">
+        <div><h2 class="text-xs font-bold uppercase text-slate-500">Mô tả</h2><p class="mt-2 whitespace-pre-line text-sm leading-6">{{ event.description or 'Chưa có mô tả.' }}</p></div>
+        <dl class="space-y-4 text-sm"><div><dt class="text-xs text-slate-500">Địa điểm</dt><dd class="mt-1 font-semibold">{{ event.location_name or (event.location.name if event.location else 'Chưa cập nhật') }}</dd></div><div><dt class="text-xs text-slate-500">Thời gian sự kiện</dt><dd class="mt-1 font-semibold">{{ event.event_start_time.strftime('%d/%m/%Y %H:%M') if event.event_start_time else 'Chưa cập nhật' }}</dd></div><div><dt class="text-xs text-slate-500">Người tạo</dt><dd class="mt-1 font-semibold">{{ event.creator.email if event.creator else 'Chưa cập nhật' }}</dd></div></dl>
+      </div>
+      <footer class="flex flex-wrap items-center justify-between gap-3 border-t bg-slate-50 p-5">
+        <span class="text-sm font-semibold">{{ report_count }} report</span>
+        <form method="post" action="{{ url_for('event-admin.update_status', event_id=event.id) }}">
+          <select class="rounded border border-slate-300 bg-white px-3 py-2 text-sm" name="status">
+            {% for item in statuses %}<option value="{{ item.name }}" {% if event.status == item %}selected{% endif %}>{{ item.value }}</option>{% endfor %}
+          </select>
+          <button class="ml-2 rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Cập nhật trạng thái</button>
+        </form>
+      </footer>
+    </section>
+    <section class="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <header class="flex items-center justify-between border-b p-5"><div><h2 class="font-bold">Report của sự kiện</h2><p class="mt-1 text-xs text-slate-500">Theo dõi phản ánh từ người dùng.</p></div><a class="text-sm font-semibold text-blue-600" href="{{ url_for('event-admin.reports', q=event.name) }}">Xem danh sách report</a></header>
+      <div class="divide-y">{% for item in reports %}<article class="p-5"><div class="flex justify-between gap-4"><h3 class="font-semibold">{{ item.report.name }}</h3><span class="text-xs text-slate-500">{{ item.report.created_at.strftime('%d/%m/%Y %H:%M') if item.report.created_at else '' }}</span></div><p class="mt-2 text-sm text-slate-600">{{ item.report.content }}</p><p class="mt-2 text-xs text-slate-500">Người gửi: {{ item.reporter.email if item.reporter else 'Không xác định' }}</p></article>{% else %}<p class="p-8 text-center text-sm text-slate-500">Sự kiện chưa có report.</p>{% endfor %}</div>
+    </section>
+  </div>
+</div>
+{% endblock %}

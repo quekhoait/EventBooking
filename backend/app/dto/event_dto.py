@@ -214,3 +214,19 @@ class EventSeatDetailSchema(BaseSchema):
     price = fields.Float()
     event_ticket_type_id = fields.Integer()
     ticket_type = fields.Nested(EventTicketTypeSchema)
+    
+class ReportEventSchema(BaseSchema):
+    user_id=fields.Integer()
+    event_id=fields.Integer()
+    name=fields.String()
+    content=fields.String()
+
+class ReportEventDetail(BaseSchema):
+    pass
+
+class ReportEventResponse(BaseSchema):
+    user_id=fields.Integer()
+    event_id=fields.Integer()
+    name=fields.String()
+    content=fields.String()
+    event = fields.Nested(EventDetailResponseSchema, dump_only=True)

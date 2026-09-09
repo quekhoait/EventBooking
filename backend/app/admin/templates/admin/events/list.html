@@ -1,0 +1,119 @@
+{% extends 'admin/master.html' %} {% block body %}
+<div class="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:px-6 lg:px-8">
+  <div class="mx-auto max-w-7xl">
+    <header
+      class="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"
+    >
+      <div>
+        <a
+          href="{{ url_for('admin-dashboard.index') }}"
+          class="text-sm font-semibold text-blue-600"
+          >← Tổng quan</a
+        >
+        <h1 class="mt-3 text-3xl font-bold">Quản lý bài đăng sự kiện</h1>
+        <p class="mt-2 text-sm text-slate-500">
+          Theo dõi nội dung sự kiện và các report trong hệ thống.
+        </p>
+      </div>
+      <form class="flex flex-wrap gap-2" method="get">
+        <input
+          class="rounded border border-slate-300 bg-white px-3 py-2 text-sm"
+          name="q"
+          value="{{ query }}"
+          placeholder="Tìm tên sự kiện"
+        /><select
+          class="rounded border border-slate-300 bg-white px-3 py-2 text-sm"
+          name="status"
+        >
+          <option value="all">Tất cả trạng thái</option>
+          {% for item in statuses %}
+          <option
+            value="{{ item.name }}"
+            {% if selected_status == item.name %}selected{% endif %}
+          >
+            {{ item.value }}
+          </option>
+          {% endfor %}</select
+        ><button
+          class="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+        >
+          Lọc
+        </button>
+      </form>
+    </header>
+    <section class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <article
+        class="rounded-lg border border-slate-200 border-t-4 border-t-blue-500 bg-white p-4"
+      >
+        <p class="text-xs text-slate-500">Tổng bài đăng</p>
+        <strong class="mt-2 block text-2xl">{{ counts.all }}</strong>
+      </article>
+      <article
+        class="rounded-lg border border-slate-200 border-t-4 border-t-amber-500 bg-white p-4"
+      >
+        <p class="text-xs text-slate-500">Bản nháp</p>
+        <strong class="mt-2 block text-2xl">{{ counts.draft }}</strong>
+      </article>
+      <article
+        class="rounded-lg border border-slate-200 border-t-4 border-t-emerald-500 bg-white p-4"
+      >
+        <p class="text-xs text-slate-500">Đã xuất bản</p>
+        <strong class="mt-2 block text-2xl">{{ counts.published }}</strong>
+      </article>
+      <article
+        class="rounded-lg border border-slate-200 border-t-4 border-t-red-500 bg-white p-4"
+      >
+        <p class="text-xs text-slate-500">Đã hủy</p>
+        <strong class="mt-2 block text-2xl">{{ counts.cancelled }}</strong>
+      </article>
+      <a
+        href="{{ url_for('event-admin.reports') }}"
+        class="rounded-lg border border-slate-200 border-t-4 border-t-violet-500 bg-white p-4 hover:bg-slate-50"
+        ><p class="text-xs text-slate-500">Tổng report</p>
+        <strong class="mt-2 block text-2xl text-violet-700"
+          >{{ counts.reports }}</strong
+        ></a
+      >
+    </section>
+    <section
+      class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
+    >
+      <div
+        class="grid grid-cols-[minmax(0,1fr)_180px_120px_100px] gap-4 border-b bg-slate-50 px-5 py-3 text-xs font-bold uppercase tracking-wide text-slate-500"
+      >
+        <span>Bài đăng</span><span>Nhà tổ chức</span><span>Trạng thái</span
+        ><span>Report</span>
+      </div>
+      <div class="divide-y">
+        {% for record in events %}<a
+          href="{{ url_for('event-admin.details', event_id=record.event.id) }}"
+          class="grid grid-cols-1 gap-2 px-5 py-4 hover:bg-slate-50 sm:grid-cols-[minmax(0,1fr)_180px_120px_100px] sm:items-center sm:gap-4"
+          ><div>
+            <h2 class="font-semibold">{{ record.event.name }}</h2>
+            <p class="mt-1 text-xs text-slate-500">
+              {{ record.event.location_name or 'Chưa có địa điểm' }}{% if
+              record.event.event_start_time %} · {{
+              record.event.event_start_time.strftime('%d/%m/%Y') }}{% endif %}
+            </p>
+          </div>
+          <div class="text-sm text-slate-600">
+            {{ record.event.company.name if record.event.company else 'Chưa có'
+            }}
+          </div>
+          <span class="w-fit rounded bg-slate-100 px-2 py-1 text-xs font-bold"
+            >{{ record.event.status.value if record.event.status else 'DRAFT'
+            }}</span
+          ><span
+            class="text-sm font-semibold {% if record.report_count %}text-red-600{% else %}text-slate-400{% endif %}"
+            >{{ record.report_count }}</span
+          ></a
+        >{% else %}
+        <p class="p-10 text-center text-sm text-slate-500">
+          Chưa có bài đăng sự kiện.
+        </p>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

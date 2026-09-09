@@ -13,6 +13,7 @@ from app.utils.exception import init_error_handlers
 from config import config
 from flask_mail import Mail
 from flask_socketio import SocketIO, join_room
+from flask_admin import Admin
 
 mail = Mail()
 db = SQLAlchemy()
@@ -75,6 +76,19 @@ def create_app(config_name=None):
             api_key=app.config['CLOUDINARY_API_KEY'],
             api_secret=app.config['CLOUDINARY_API_SECRET'],
         )
+    from app.admin.dashboard import AdminDashboardView, register_admin_dashboard
+    from app.admin.events import register_event_admin
+    from app.admin.organizers import register_organizer_admin
+
+    admin = Admin(
+        app,
+        name='Trang Quản Trị',
+        index_view=AdminDashboardView(name='Tổng quan', endpoint='admin-dashboard'),
+    )
+
+    register_admin_dashboard(admin)
+    register_event_admin(admin)
+    register_organizer_admin(admin)
 
     from .controllers import api as controller_blueprint
     from .routes import routes

@@ -52,6 +52,8 @@ def use_discount(id, price):
 
 def get_discount(data):
     discount =  booking_repo.find_discount_by_code(event_id=data.event_id, code=data.code)
+    if not discount:
+        raise AppException("Mã khuyến mãi không hợp lệ")
     if discount.start_time <= datetime.now() <= discount.end_time:
         return discount
     raise AppException("Thời gian sử dụng không hợp lệ")
@@ -162,4 +164,11 @@ def cancel_ticket(data):
     
     return payment_services.refund(data)
 
+def create_discount(data):
+     # user_id = check_authorization()
+    event = event_repo.find_event_by_id(data.event_id)
+    if not event:
+        raise AppException(ErrorCode.NOT_FOUND)
+    discount = booking_repo.create_discount(code=data.code, value=data.value, unit=data.unit, start_time=data.start_time, end_time=data.end_time, event_id=data.event_id)
+    return discount
 

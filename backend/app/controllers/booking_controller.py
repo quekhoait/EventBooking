@@ -2,7 +2,7 @@ from http.client import responses
 
 from flask import Blueprint, request
 
-from app.dto.booking_dto import DiscountEvent, DiscountEventResponse, CreateTicketRequestDTO, TicketDetailRequest, TicketResponse, TicketDetailResponse, \
+from app.dto.booking_dto import DiscountEvent,DiscountSchema, DiscountEventResponse, CreateTicketRequestDTO, TicketDetailRequest, TicketResponse, TicketDetailResponse, \
     TicketListResponse
 from app.dto.payment_dto import PaymentRequest
 from app.services import booking_services
@@ -64,7 +64,18 @@ def cancel():
         status_code=200)
 
 
-
+@booking_api.route('/discount', methods=['POST'])
+def createDiscount():
+    data=request.get_json()
+    data=DiscountSchema().load(data =data)
+    schema = booking_services.create_discount(data=data)
+    result = DiscountSchema().dump(schema)
+    return NewPackage(  
+        status=StatusResponse.SUCCESS,
+        message="Tạo mã khuyến mãi thành công",
+        data=result,
+        status_code=200)
+    
 
 @booking_api.route('/discount', methods=['GET'])
 def getDiscount():
@@ -74,6 +85,6 @@ def getDiscount():
     result = DiscountEventResponse().dump(schema)
     return NewPackage(  
         status=StatusResponse.SUCCESS,
-        message="Hủy vé thành công",
+        message="Lấy mã khuyến mãi thành công",
         data=result,
         status_code=200)

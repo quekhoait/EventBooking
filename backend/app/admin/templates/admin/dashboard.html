@@ -1,0 +1,68 @@
+{% extends 'admin/master.html' %}
+{% block head %}
+  {{ super() }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+{% block body %}
+<div class="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:px-6 lg:px-8">
+  <div class="mx-auto max-w-7xl">
+    <header class="mb-8 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+      <div>
+        <p class="mb-2 text-xs font-bold uppercase tracking-[.14em] text-blue-600">Trang quản trị</p>
+        <h1 class="text-3xl font-bold">Tổng quan hệ thống</h1>
+        <p class="mt-2 text-sm text-slate-500">Thống kê doanh thu, sự kiện và đơn vị tổ chức từ dữ liệu thực tế.</p>
+      </div>
+      <form class="flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 bg-white p-3 shadow-sm" method="get">
+        <label class="text-xs font-semibold text-slate-500">Khoảng thời gian
+          <select class="mt-1 block rounded border border-slate-300 px-3 py-2 text-sm" name="period" onchange="this.form.submit()">
+            <option value="day" {% if selected_period == 'day' %}selected{% endif %}>Hôm nay</option>
+            <option value="month" {% if selected_period == 'month' %}selected{% endif %}>Tháng này</option>
+            <option value="year" {% if selected_period == 'year' %}selected{% endif %}>Năm nay</option>
+            <option value="custom" {% if selected_period == 'custom' %}selected{% endif %}>Tùy chọn</option>
+          </select>
+        </label>
+        <label class="text-xs font-semibold text-slate-500">Hiển thị theo
+          <select class="mt-1 block rounded border border-slate-300 px-3 py-2 text-sm" name="group_by">
+            <option value="day" {% if selected_group == 'day' %}selected{% endif %}>Ngày</option>
+            <option value="month" {% if selected_group == 'month' %}selected{% endif %}>Tháng</option>
+            <option value="year" {% if selected_group == 'year' %}selected{% endif %}>Năm</option>
+          </select>
+        </label>
+        {% if selected_period == 'custom' %}
+          <label class="text-xs font-semibold text-slate-500">Từ
+            <input class="mt-1 block rounded border border-slate-300 px-3 py-2 text-sm" type="date" name="date_from" value="{{ date_from }}">
+          </label>
+          <label class="text-xs font-semibold text-slate-500">Đến
+            <input class="mt-1 block rounded border border-slate-300 px-3 py-2 text-sm" type="date" name="date_to" value="{{ date_to }}">
+          </label>
+        {% endif %}
+        <button class="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700" type="submit">Áp dụng</button>
+      </form>
+    </header>
+
+    <p class="mb-4 text-sm text-slate-500">Dữ liệu: <strong>{{ range_label }}</strong></p>
+    <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <article class="rounded-lg border border-t-4 border-slate-200 border-t-blue-500 bg-white p-5"><p class="text-xs font-semibold text-slate-500">Doanh thu</p><strong class="mt-3 block text-2xl">{{ '{:,.0f}'.format(revenue) }} đ</strong></article>
+      <article class="rounded-lg border border-t-4 border-slate-200 border-t-violet-500 bg-white p-5"><p class="text-xs font-semibold text-slate-500">Sự kiện mới</p><strong class="mt-3 block text-2xl">{{ event_count }}</strong></article>
+      <article class="rounded-lg border border-t-4 border-slate-200 border-t-emerald-500 bg-white p-5"><p class="text-xs font-semibold text-slate-500">Đã xuất bản</p><strong class="mt-3 block text-2xl">{{ published_count }}</strong></article>
+      <article class="rounded-lg border border-t-4 border-slate-200 border-t-amber-500 bg-white p-5"><p class="text-xs font-semibold text-slate-500">Đơn vị tổ chức mới</p><strong class="mt-3 block text-2xl">{{ organizer_count }}</strong></article>
+    </section>
+
+    <section class="mt-6 grid gap-6 lg:grid-cols-2">
+      <article class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
+        <div class="mb-4 flex items-center justify-between"><div><h2 class="font-bold">Doanh thu theo thời gian</h2><p class="mt-1 text-xs text-slate-500">Chỉ tính giao dịch thanh toán thành công.</p></div></div>
+        <div class="relative h-72"><canvas id="revenue-chart" aria-label="Biểu đồ doanh thu"></canvas></div>
+      </article>
+      <article class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"><h2 class="mb-4 font-bold">Sự kiện mới</h2><div class="relative h-64"><canvas id="event-chart" aria-label="Biểu đồ sự kiện"></canvas></div></article>
+      <article class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"><h2 class="mb-4 font-bold">Đơn vị tổ chức mới</h2><div class="relative h-64"><canvas id="organizer-chart" aria-label="Biểu đồ đơn vị tổ chức"></canvas></div></article>
+    </section>
+  </div>
+</div>
+<script>
+  const labels = {{ labels | tojson }};
+  const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } };
+  new Chart(document.getElementById('revenue-chart'), { type: 'line', data: { labels, datasets: [{ data: {{ revenue_values | tojson }}, borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.12)', fill: true, tension: .3, pointRadius: 3 }] }, options: chartOptions });
+  new Chart(document.getElementById('event-chart'), { type: 'bar', data: { labels, datasets: [{ data: {{ event_values | tojson }}, backgroundColor: '#8b5cf6', borderRadius: 4 }] }, options: chartOptions });
+  new Chart(document.getElementById('organizer-chart'), { type: 'bar', data: { labels, datasets: [{ data: {{ organizer_values | tojson }}, backgroundColor: '#10b981', borderRadius: 4 }] }, options: chartOptions });
+</script>
+{% endblock %}

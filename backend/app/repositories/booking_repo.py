@@ -66,3 +66,17 @@ def get_list(user_id):
         joinedload(TicketModel.seat)
             .joinedload(Seat.event)
     ).filter(TicketModel.user_id == user_id).all()
+    
+def create_discount(code, value, unit, start_time, end_time, event_id):
+    discount = DiscountModel(
+            code=code,
+            value=value,
+            unit=unit,
+            start_time=start_time,
+            end_time=end_time,
+            event_id=event_id,
+        )
+    db.session.add(discount)
+    db.session.commit()
+    db.session.refresh(discount)
+    return discount

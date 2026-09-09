@@ -1,0 +1,96 @@
+{% import 'admin/layout.html' as layout with context -%}
+{% import 'admin/static.html' as admin_static with context %}
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{{ admin_view.admin.name }}">
+    <title>{% block title %}{% if admin_view.category %}{{ admin_view.category }} - {% endif %}{{ admin_view.name }} - {{ admin_view.admin.name }}{% endblock %}</title>
+    {% block head_meta %}{% endblock %}
+    {% block head_css %}{% endblock %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% block head %}{% endblock %}
+    {% block head_tail %}{% endblock %}
+  </head>
+  <body class="min-h-screen bg-slate-100 text-slate-900 antialiased">
+    <div class="flex min-h-screen">
+      <aside class="hidden w-64 shrink-0 border-r border-slate-800 bg-slate-950 text-slate-300 lg:block">
+        <div class="border-b border-slate-800 px-6 py-5">
+          <a href="{{ admin_view.admin.url }}" class="block text-lg font-bold tracking-tight text-white">{{ admin_view.admin.name }}</a>
+          <p class="mt-1 text-xs text-slate-500">Quản trị hệ thống</p>
+        </div>
+        <nav class="space-y-1 px-3 py-5" aria-label="Menu quản trị">
+          {% macro render_menu(items, nested=false) %}
+            {% for item in items %}
+              {% if item.is_accessible() and item.is_visible() %}
+                {% if item.is_category() %}
+                  {% set children = item.get_children() %}
+                  {% if children %}
+                    <div class="pt-5 first:pt-0">
+                      <p class="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">{{ item.name }}</p>
+                      {{ render_menu(children, true) }}
+                    </div>
+                  {% endif %}
+                {% else %}
+                  <a href="{{ item.get_url() }}"{% if item.target %} target="{{ item.target }}"{% endif %} class="flex items-center rounded-md px-3 py-2 text-sm font-medium transition {% if item.is_active(admin_view) %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                    {{ item.name }}
+                  </a>
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          {% endmacro %}
+          {{ render_menu(admin_view.admin.menu()) }}
+        </nav>
+        {% if admin_view.admin.menu_links() %}
+          <div class="border-t border-slate-800 px-3 py-4">
+            {% for item in admin_view.admin.menu_links() %}
+              {% if item.is_accessible() and item.is_visible() %}
+                <a href="{{ item.get_url() }}"{% if item.target %} target="{{ item.target }}"{% endif %} class="block rounded-md px-3 py-2 text-sm text-slate-400 hover:bg-slate-800 hover:text-white">{{ item.name }}</a>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+      </aside>
+
+      <div class="min-w-0 flex-1">
+        <header class="border-b border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-6 lg:px-8">
+          <div class="mx-auto flex max-w-7xl items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <a href="{{ admin_view.admin.url }}" class="font-bold text-slate-900 lg:hidden">{{ admin_view.admin.name }}</a>
+              <span class="hidden text-sm text-slate-400 lg:inline">{{ admin_view.category or 'Quản trị' }}</span>
+              <span class="hidden text-slate-300 lg:inline">/</span>
+              <span class="text-sm font-semibold text-slate-700">{{ admin_view.name }}</span>
+            </div>
+            <a href="{{ admin_view.admin.url }}" class="rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:border-blue-400 hover:text-blue-600">Trang chủ admin</a>
+          </div>
+        </header>
+
+        <main class="mx-auto max-w-7xl">
+          {% block messages %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                <div class="space-y-2 px-4 pt-5 sm:px-6 lg:px-8" role="status">
+                  {% for category, message in messages %}
+                    <div class="rounded-md border px-4 py-3 text-sm {% if category == 'error' %}border-red-200 bg-red-50 text-red-700{% elif category == 'warning' %}border-amber-200 bg-amber-50 text-amber-700{% else %}border-emerald-200 bg-emerald-50 text-emerald-700{% endif %}">{{ message }}</div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            {% endwith %}
+          {% endblock %}
+          {% set render_ctx = h.resolve_ctx() %}
+          {% block body %}{% endblock %}
+        </main>
+      </div>
+    </div>
+
+    {% block tail_js %}
+      {% if admin_view.extra_js %}
+        {% for js_url in admin_view.extra_js %}
+          <script src="{{ js_url }}" type="text/javascript"></script>
+        {% endfor %}
+      {% endif %}
+    {% endblock %}
+    {% block tail %}{% endblock %}
+  </body>
+</html>

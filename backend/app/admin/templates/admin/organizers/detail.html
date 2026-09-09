@@ -1,0 +1,45 @@
+{% extends 'admin/master.html' %}
+{% block body %}
+<div class="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:px-6 lg:px-8">
+  <div class="mx-auto max-w-4xl">
+    <a href="{{ url_for('organizer-admin.index') }}" class="text-sm font-semibold text-blue-600">← Danh sách nhà tổ chức</a>
+    <section class="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <header class="flex flex-col justify-between gap-4 border-b p-6 sm:flex-row sm:items-start">
+        <div><p class="text-xs font-bold uppercase tracking-wider text-slate-500">Hồ sơ #{{ company.id }}</p><h1 class="mt-2 text-2xl font-bold">{{ company.name or 'Chưa đặt tên' }}</h1><p class="mt-2 text-sm text-slate-500">Tạo ngày {{ company.created_at.strftime('%d/%m/%Y') if company.created_at else 'Chưa rõ' }}</p></div>
+        <span class="w-fit rounded px-3 py-2 text-xs font-bold {% if status == 'approved' %}bg-emerald-100 text-emerald-700{% elif status == 'rejected' %}bg-red-100 text-red-700{% else %}bg-amber-100 text-amber-700{% endif %}">{% if status == 'approved' %}Đã duyệt{% elif status == 'rejected' %}Đã từ chối{% else %}Chờ duyệt{% endif %}</span>
+      </header>
+      <dl class="grid gap-6 p-6 sm:grid-cols-2">
+        <div><dt class="text-xs text-slate-500">Mã số thuế</dt><dd class="mt-1 font-semibold">{{ company.tax_code or 'Chưa cập nhật' }}</dd></div>
+        <div><dt class="text-xs text-slate-500">Số người đăng bài</dt><dd class="mt-1 font-semibold">{{ users|length }}</dd></div>
+        <div><dt class="text-xs text-slate-500">Địa chỉ</dt><dd class="mt-1 font-semibold">{{ company.address or 'Chưa cập nhật' }}</dd></div>
+        <div><dt class="text-xs text-slate-500">Số sự kiện</dt><dd class="mt-1 font-semibold">{{ company.events|length }}</dd></div>
+        <div class="sm:col-span-2"><dt class="text-xs text-slate-500">Mô tả</dt><dd class="mt-1 whitespace-pre-line text-sm leading-6">{{ company.description or 'Chưa có mô tả.' }}</dd></div>
+      </dl>
+      <section class="border-t p-6">
+        <h2 class="font-bold">Người dùng thuộc nhà tổ chức</h2>
+        <p class="mt-1 text-sm text-slate-500">Duyệt riêng quyền đăng bài bằng trạng thái xác minh người dùng.</p>
+        <div class="mt-4 divide-y rounded border border-slate-200">
+          {% for user in users %}
+          <div class="flex flex-col justify-between gap-3 p-4 sm:flex-row sm:items-center">
+            <div><p class="font-semibold">{{ user.full_name or user.username }}</p><p class="mt-1 text-xs text-slate-500">{{ user.email }} · {{ user.phone_number or 'Chưa có số điện thoại' }}</p></div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="rounded px-2 py-1 text-xs font-bold {% if user.is_verified %}bg-emerald-100 text-emerald-700{% else %}bg-amber-100 text-amber-700{% endif %}">{% if user.is_verified %}Được đăng bài{% else %}Chưa được đăng bài{% endif %}</span>
+              <form method="post" action="{{ url_for('organizer-admin.review_user', company_id=company.id, user_id=user.id) }}">
+                <button name="decision" value="reject" class="rounded border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50">Từ chối</button>
+                <button name="decision" value="approve" {% if not company.is_active %}disabled title="Duyệt nhà tổ chức trước"{% endif %} class="ml-1 rounded bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white enabled:hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">Cho phép đăng bài</button>
+              </form>
+            </div>
+          </div>
+          {% else %}<p class="p-4 text-sm text-slate-500">Chưa có người dùng thuộc nhà tổ chức.</p>{% endfor %}
+        </div>
+      </section>
+      <footer class="flex flex-wrap justify-end gap-2 border-t bg-slate-50 p-5">
+        <form method="post" action="{{ url_for('organizer-admin.review', company_id=company.id) }}">
+          <button name="decision" value="reject" class="rounded border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">Từ chối</button>
+          <button name="decision" value="approve" class="ml-2 rounded bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Duyệt hồ sơ</button>
+        </form>
+      </footer>
+    </section>
+  </div>
+</div>
+{% endblock %}
