@@ -69,7 +69,7 @@ def create(data: CreateTicketRequestDTO):
             raise AppException("Bạn đã đặt đủ số vé cho phép", status_code=400)
     seat = booking_repo.get_seat_isempty_for_event(event, seatTypeId=data.seat_type_id)
     if not seat:
-        raise AppException("Loại vé này đết còn", status_code=400)
+        raise AppException("Loại vé này không còn", status_code=400)
     price_config = get_price_for_seat(event, seatTypeId=data.seat_type_id)
     discount_id_input = getattr(data, 'discount_id', None)
     final_price, discount_id = use_discount(discount_id_input, price_config)
@@ -157,6 +157,9 @@ def cancel_ticket(data):
     if ticket.user_id != user_id:
         raise AppException("Bạn không có quyền hủy vé này!", status_code=403)
 
+    if ticket.is_checkin == True:
+        raise AppException("Vé đã được checkin", status_code=403)
+    
     return payment_services.refund(data)
 
 

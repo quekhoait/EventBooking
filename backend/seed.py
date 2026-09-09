@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from sqlalchemy import text
-
+import bcrypt
 from app import db, create_app
 from app.models import (
     User, RoleEnum, Company, LocationModel, EventCategory,
@@ -453,7 +453,7 @@ def seed_users():
         user = User(
             username="testuser",
             email="testuser@gmail.com",
-            password="123456.",  # Hoặc pass_hash nếu dự án dùng Werkzeug/Bcrypt
+            password= bcrypt.hashpw("123456".encode("utf-8"), bcrypt.gensalt()),
             full_name="Nguyễn Văn A",
             phone_number="0987654321",
             role=RoleEnum.USER,

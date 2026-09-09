@@ -30,7 +30,7 @@ class TicketModel(BaseModel):
     face_image = db.Column(db.String(255), nullable=False)
     seat = db.relationship('Seat', backref='tickets', lazy=True)
     payments = db.relationship('PaymentModel', backref='ticket', lazy=True)
-
+    is_checkin= db.Column(db.Boolean, default=True)
 
 class DiscountModel(BaseModel):
     __tablename__ = 'discount'

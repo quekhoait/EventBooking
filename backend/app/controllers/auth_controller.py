@@ -219,7 +219,6 @@ def login():
         has_preferences = user_response.get("has_preferences")
         has_company = user_response.get("has_company")
         result = user_dto.UserResponseDto().dump(user_response["user"])
-        print(f"User data to be sent in response: {result}")
 
         return NewPackage(
             status=StatusResponse.SUCCESS,
