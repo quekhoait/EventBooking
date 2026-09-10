@@ -14,6 +14,16 @@ def get_env_bool(name, default=False):
     return str(val).lower() in ("true", "1", "t", "yes", "y")
 
 
+def normalize_database_url(url):
+    if not url:
+        return url
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+    if url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    return url
+
+
 class Config:
     ACCESS_KEY = os.environ.get("ACCESS_KEY", "0cb87b9870d7a23f02dece7648ad")
     SECRET_KEY = os.environ.get(
@@ -72,9 +82,8 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    _dev_db = os.environ.get("DEV_DATABASE_URI") or os.environ.get("DATABASE_URL")
-    if _dev_db and _dev_db.startswith("postgres://"):
-        _dev_db = _dev_db.replace("postgres://", "postgresql://", 1)
+    _dev_db = os.environ.get("DATABASE_URL") or os.environ.get("DEV_DATABASE_URI")
+    _dev_db = normalize_database_url(_dev_db)
     
     SQLALCHEMY_DATABASE_URI = _dev_db or "sqlite:///event_booking.db"
 
@@ -95,11 +104,9 @@ class TestingFakeConfig(Config):
 
 class ProductionConfig(Config):
     # Ưu tiên tuyệt đối lấy DATABASE_URL từ biến môi trường trên Render
-    _prod_db = os.environ.get("DATABASE_URL")
-    if _prod_db and _prod_db.startswith("postgres://"):
-        _prod_db = _prod_db.replace("postgres://", "postgresql://", 1)
+    _prod_db = normalize_database_url(os.environ.get("DATABASE_URL"))
 
-    SQLALCHEMY_DATABASE_URI = _prod_db or f"mysql+pymysql://{os.environ.get('DB_USER', 'root')}:{os.environ.get('DB_PASSWORD', 'root')}@{os.environ.get('DB_HOST', 'localhost')}:{os.environ.get('DB_PORT', '3306')}/{os.environ.get('DB_NAME', 'event')}?charset=utf8mb4"
+    SQLALCHEMY_DATABASE_URI = _prod_db or "sqlite:///event_booking.db"
     
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = "Lax"
@@ -108,6 +115,8 @@ class ProductionConfig(Config):
 
     @classmethod
     def init_app(cls, app):
+        if not cls._prod_db:
+            raise RuntimeError("DATABASE_URL must be set for the production database")
         Config.init_app(app)
 
         import logging
