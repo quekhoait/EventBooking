@@ -20,14 +20,20 @@ class Config:
     SECRET_KEY = os.environ.get(
         "SECRET_KEY", "1ee5da987f2df0cb87b9870d7a23f02dece7648ad518cf9a43"
     )
-
-    DB_USER = os.environ.get("DB_USER", "root")
-    DB_PASSWORD = os.environ.get("DB_PASSWORD", "root")
-    DB_HOST = os.environ.get("DB_HOST", "localhost")
-    DB_PORT = os.environ.get("DB_PORT", "3306")
-    DB_NAME = os.environ.get("DB_NAME", "event")
-    DB_URI_TEMPLATE = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
-
+    DATABASE_URL = os.environ.get("DATABASE_URL")
+    if DATABASE_URL:
+    # Render/Supabase thường dùng tiền tố postgres://, cần đổi thành postgresql:// cho SQLAlchemy
+        if DATABASE_URL.startswith("postgres://"):
+            DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+        DB_URI_TEMPLATE = DATABASE_URL
+    else:
+        # Dự phòng khi chạy dưới máy local (dev)
+        DB_USER = os.environ.get("DB_USER", "root")
+        DB_PASSWORD = os.environ.get("DB_PASSWORD", "root")
+        DB_HOST = os.environ.get("DB_HOST", "localhost")
+        DB_PORT = os.environ.get("DB_PORT", "3306")
+        DB_NAME = os.environ.get("DB_NAME", "event")
+        DB_URI_TEMPLATE = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
     # Cache
     CACHE_TYPE = "SimpleCache"
     CACHE_DEFAULT_TIMEOUT = os.environ.get("CACHE_DEFAULT_TIMEOUT", 300)
