@@ -54,7 +54,6 @@ function BookingPage({ onBack }) {
   }, [eventId, eventFromState, fetchEventDetail]);
 
 
-  // Tính tổng tiền: Giá vé - Giảm giá
   const total = useMemo(() => {
     if (!selectedTicket) return 0;
     return selectedTicket.price -discount;
@@ -71,9 +70,9 @@ function BookingPage({ onBack }) {
     if (!discountInfo) return;
     const originalPrice = selectedTicket?.price ;
     let discountAmount = 0; 
-    if (discountInfo.unit === "%") {
+    if (discountInfo.unit === "percentage") {
       discountAmount = (originalPrice * discountInfo.value) / 100;
-    } else if(discountInfo.unit === "vnd"){
+    } else if(discountInfo.unit === "mount"){
       discountAmount = discountInfo.value;
     }
     discountAmount = Math.min(discountAmount, originalPrice);

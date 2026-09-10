@@ -86,4 +86,14 @@ export const eventService = {
             },
         });
     },
+      createReport: async(eventId, data)=> {
+        return await Apis().post(endpoints.create_report(eventId), data)
+    },
+
+    getReport: async(eventId)=> {
+        return await Apis().get(endpoints.get(eventId))
+    },
+    getReportByUser: async()=> {
+        return await Apis().get(endpoints.get_report_by_user)
+    }
 }

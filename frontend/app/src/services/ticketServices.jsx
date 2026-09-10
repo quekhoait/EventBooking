@@ -14,9 +14,13 @@ import { Apis, endpoints } from "../config/Apis.jsx";
             return await Apis().post(endpoints.create_payment, payload)
         },
 
-       getDiscount: async ({ code, event_id }) => {
-        return await Apis().get(endpoints.get_discount, {
-            params: { code, event_id },
-        });
+        createDiscount: async(payload)=>{
+            return await Apis().post(endpoints.discount, payload)
+        },
+
+        getDiscount: async ({ code, event_id }) => {
+            return await Apis().get(endpoints.discount, {
+                params: { code, event_id },
+            });
         },
     };

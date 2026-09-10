@@ -14,6 +14,7 @@ import { baseDataService } from "../../services/baseDataService";
 import { useCategories } from "../../hooks/useCategories";
 import { useLocations } from "../../hooks/useLocations";
 import { logError } from "../../utils/log";
+import { ticketService } from "../../services/ticketServices";
 
 async function loadCreatorEvents(creatorId) {
   const res = await eventService.getEventbyCreator(creatorId);
@@ -126,7 +127,6 @@ export default function EventManagementPage() {
         }
       }
 
-      // Đóng modal và tải lại dữ liệu mới nhất mà không f5 trang
       setEditorEvent(null);
       setEvents(await loadCreatorEvents(user.id));
 } catch (err) {
@@ -206,25 +206,52 @@ export default function EventManagementPage() {
     }
   };
 
-  // 6. Xử lý mã giảm giá
-  const handleSaveDiscount = (eventId, discount) => {
-    setEvents((prev) =>
-      prev.map((item) => (item.id === eventId ? { ...item, discounts: [...(item.discounts || []), discount] } : item)),
-    );
-    setDiscountEvent(null);
+  const handleOpenDetail = async (event) => {
+    setDetailEvent(event);
+    try {
+      const res = await eventService.getEventDetail(event.id);
+      const body = res?.data ?? res;
+      const detail = body?.data ?? body;
+      if (detail?.id) {
+        setDetailEvent({
+          ...event,
+          ...detail,
+          discounts: Array.isArray(detail.discounts)
+            ? detail.discounts
+            : Array.isArray(detail.discount)
+              ? detail.discount
+              : [],
+        });
+      }
+    } catch (err) {
+      logError(err);
+    }
+  };
+
+  const handleSaveDiscount = async(eventId, discount) => {
+      try{
+        const payload = ({
+          event_id: eventId,
+          code: discount.code,
+          value: discount.value,
+          unit: discount.unit,
+          start_time: discount.start_time,
+          end_time: discount.end_time
+        })
+        const response = await ticketService.createDiscount(payload)
+        if (response.data?.status !== "success") {
+          throw new Error(response.data?.message || "Không thể tạo discount");
+        }
+        alert("Tạo discount thành công");
+        setDiscountEvent(null);
+      }catch(err){
+        logError(err);
+        alert(err.response?.data?.message || err.message || "Không thể tạo discount");
+      }
   };
 
   const handleRemoveDiscount = (eventId, discountId) => {
-    setEvents((prev) =>
-      prev.map((item) =>
-        item.id === eventId
-          ? {
-              ...item,
-              discounts: (item.discounts || []).filter((d) => d.id !== discountId),
-            }
-          : item,
-      ),
-    );
+    
   };
 
   if (!user) return <Navigate to="/login" replace />;
@@ -250,7 +277,7 @@ export default function EventManagementPage() {
           <EventList
             events={filteredEvents}
             loading={loading}
-            onOpen={setDetailEvent}
+            onOpen={handleOpenDetail}
             onEdit={handleEditEvent}
             onAddDiscount={setDiscountEvent}
             onDelete={handleDeleteEvent}
