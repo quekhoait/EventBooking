@@ -49,9 +49,9 @@ def use_discount(id, price):
         return final_price, discount.id
 
     return price, None
-
+ 
 def get_discount(data):
-    discount =  booking_repo.find_discount_by_code(event_id=data.event_id, code=data.code)
+    discount = booking_repo.find_discount_by_code(event_id=data.event_id, code=data.code)
     if not discount:
         raise AppException("Mã khuyến mãi không hợp lệ")
     if discount.start_time <= datetime.now() <= discount.end_time:

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from types import SimpleNamespace
 import pytest
 from app import db
 from app.dto.booking_dto import CreateTicketRequestDTO
@@ -146,6 +147,26 @@ def test_use_discount_not_id():
     price, discount_id = booking_services.use_discount(1, 100000.0)
     assert price == 100000.0
     assert discount_id is None
+
+
+def test_get_discount_by_event_and_code():
+    now = datetime.now()
+    discount = DiscountModel(
+        code="SUMMER50",
+        value=50,
+        unit="%",
+        start_time=now - timedelta(days=1),
+        end_time=now + timedelta(days=1),
+        event_id=1,
+    )
+    db.session.add(discount)
+    db.session.commit()
+
+    result = booking_services.get_discount(
+        SimpleNamespace(event_id=1, code="SUMMER50")
+    )
+
+    assert result.id == discount.id
 
 
 
