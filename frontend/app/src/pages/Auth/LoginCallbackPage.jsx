@@ -5,7 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import authServices from "../../services/authServices";
 import companyServices from "../../services/companyServices";
 import RoleSelectionModal from "../../components/Auth/RoleSelectionModal";
-import GlobalLoadingOverlay from "../../components/Common/GlobalLoadingOverlay";
+import GlobalLoadingOverlay from "../../components/common/GlobalLoadingOverlay";
 
 export default function LoginCallbackPage() {
   const [searchParams] = useSearchParams();

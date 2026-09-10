@@ -8,7 +8,7 @@ import ProfileHeader from "../../components/User/ProfileHeader";
 import ProfileInfoForm from "../../components/User/ProfileInfoForm";
 import UserTicketList from "../../components/User/UserTicketList";
 import PreferenceModal from "../../components/User/PreferenceModal";
-import GlobalLoadingOverlay from "../../components/Common/GlobalLoadingOverlay";
+import GlobalLoadingOverlay from "../../components/common/GlobalLoadingOverlay";
 import { userService } from "../../services/userServices";
 
 const getCategoryIcon = (category) => {

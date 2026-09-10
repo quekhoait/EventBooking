@@ -5,7 +5,7 @@ import AuthButton from "../../components/Auth/AuthButton";
 import AuthGoogleButton from "../../components/Auth/AuthGoogleButton";
 import RoleSelectionModal from "../../components/Auth/RoleSelectionModal";
 import PreferenceModal from "../../components/User/PreferenceModal";
-import GlobalLoadingOverlay from "../../components/Common/GlobalLoadingOverlay";
+import GlobalLoadingOverlay from "../../components/common/GlobalLoadingOverlay";
 
 import authServices from "../../services/authServices";
 import companyServices from "../../services/companyServices";

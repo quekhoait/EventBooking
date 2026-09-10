@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import companyServices from "../../services/companyServices";
 import CompanyForm from "../../components/Company/CompanyForm";
-import GlobalLoadingOverlay from "../../components/Common/GlobalLoadingOverlay";
+import GlobalLoadingOverlay from "../../components/common/GlobalLoadingOverlay";
 
 export default function RegisterCompanyPage() {
   const navigate = useNavigate();
