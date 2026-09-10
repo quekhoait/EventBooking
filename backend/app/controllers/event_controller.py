@@ -22,7 +22,6 @@ event_list_schema = EventListResponseSchema(many=True)
 
 
 def _parse_event_payload():
-    """Đọc payload từ JSON hoặc formData (multipart/form-data), upload ảnh nếu có."""
     content_type = request.content_type or ""
 
     if "application/json" in content_type:
@@ -34,7 +33,6 @@ def _parse_event_payload():
     image_file = request.files.get("image")
     if image_file and image_file.filename:
         json_data["image"] = upload_image_file(image_file, folder="events/images")
-
 
     # Parse danh sách ghế nếu được gửi dạng chuỗi JSON trong form
     event_seats = json_data.get("event_seats")
