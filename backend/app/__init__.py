@@ -49,16 +49,17 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     cache.init_app(app)
     jwt.init_app(app)
-    socketio.init_app(
-        app,
-        cors_allowed_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    )
-    mail.init_app(app)
+    allowed_origins = [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "https://event-booking-n325.vercel.app",  # Thêm domain Vercel của bạn vào đây
+        ]
+
+    socketio.init_app(app, cors_allowed_origins=allowed_origins)
+
     CORS(
         app,
-        resources={
-            r"/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}
-        },
+        resources={r"/*": {"origins": allowed_origins}},
         supports_credentials=True,
     )
     oauth.init_app(app)
