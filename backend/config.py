@@ -1,6 +1,5 @@
 import os
 from datetime import timedelta
-
 from dotenv import load_dotenv
 
 dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
@@ -20,20 +19,7 @@ class Config:
     SECRET_KEY = os.environ.get(
         "SECRET_KEY", "1ee5da987f2df0cb87b9870d7a23f02dece7648ad518cf9a43"
     )
-    DATABASE_URL = os.environ.get("DATABASE_URL")
-    if DATABASE_URL:
-    # Render/Supabase thường dùng tiền tố postgres://, cần đổi thành postgresql:// cho SQLAlchemy
-        if DATABASE_URL.startswith("postgres://"):
-            DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-        DB_URI_TEMPLATE = DATABASE_URL
-    else:
-        # Dự phòng khi chạy dưới máy local (dev)
-        DB_USER = os.environ.get("DB_USER", "root")
-        DB_PASSWORD = os.environ.get("DB_PASSWORD", "root")
-        DB_HOST = os.environ.get("DB_HOST", "localhost")
-        DB_PORT = os.environ.get("DB_PORT", "3306")
-        DB_NAME = os.environ.get("DB_NAME", "event")
-        DB_URI_TEMPLATE = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
+    
     # Cache
     CACHE_TYPE = "SimpleCache"
     CACHE_DEFAULT_TIMEOUT = os.environ.get("CACHE_DEFAULT_TIMEOUT", 300)
@@ -86,12 +72,11 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = (
-        os.environ.get("DEV_DATABASE_URI")
-        or os.environ.get("DATABASE_URL")
-        or "sqlite:///event_booking.db"
-    )
-    # SQLALCHEMY_ECHO = True
+    _dev_db = os.environ.get("DEV_DATABASE_URI") or os.environ.get("DATABASE_URL")
+    if _dev_db and _dev_db.startswith("postgres://"):
+        _dev_db = _dev_db.replace("postgres://", "postgresql://", 1)
+    
+    SQLALCHEMY_DATABASE_URI = _dev_db or "sqlite:///event_booking.db"
 
 
 class TestingConfig(Config):
@@ -109,7 +94,13 @@ class TestingFakeConfig(Config):
 
 
 class ProductionConfig(Config):
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or Config.DB_URI_TEMPLATE
+    # Ưu tiên tuyệt đối lấy DATABASE_URL từ biến môi trường trên Render
+    _prod_db = os.environ.get("DATABASE_URL")
+    if _prod_db and _prod_db.startswith("postgres://"):
+        _prod_db = _prod_db.replace("postgres://", "postgresql://", 1)
+
+    SQLALCHEMY_DATABASE_URI = _prod_db or f"mysql+pymysql://{os.environ.get('DB_USER', 'root')}:{os.environ.get('DB_PASSWORD', 'root')}@{os.environ.get('DB_HOST', 'localhost')}:{os.environ.get('DB_PORT', '3306')}/{os.environ.get('DB_NAME', 'event')}?charset=utf8mb4"
+    
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_HTTPONLY = True
