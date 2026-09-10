@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 from app.errors.error_code import ErrorCode
 from app.models import EventStatus
 from app.utils.exception import AppException
+from tests.test_manage_event.conftest import API_PREFIX
 from tests.test_manage_event.gen_data import make_event_payload, make_mock_event
 
 
@@ -18,8 +19,8 @@ class TestCreateEventRoute:
         """Tạo nháp sự kiện thành công (status != PUBLISHED hoặc không truyền status)."""
         mock_create_draft.return_value = SimpleNamespace(id=1)
 
-        payload = make_event_payload(status="draft")
-        res = client.post("/events", json=payload)
+        payload = make_event_payload(status="DRAFT")
+        res = client.post(f"{API_PREFIX}/events", json=payload)
 
         assert res.status_code == 201
         assert res.json["status"].upper() == "SUCCESS"
@@ -32,8 +33,8 @@ class TestCreateEventRoute:
         """Tạo và xuất bản sự kiện thành công (status == 'PUBLISHED')."""
         mock_create_publish.return_value = SimpleNamespace(id=2)
 
-        payload = make_event_payload(name="Đại Nhạc Hội 2026", status="published")
-        res = client.post("/events", json=payload)
+        payload = make_event_payload(name="Đại Nhạc Hội 2026", status="PUBLISHED")
+        res = client.post(f"{API_PREFIX}/events", json=payload)
         print("\n--- SCHEMA VALIDATION ERROR ---:", res.json)
 
 
@@ -54,7 +55,7 @@ class TestGetEventDetailRoute:
         """Lấy chi tiết sự kiện thành công."""
         mock_get_detail.return_value = make_mock_event(id=1, name="Đại Nhạc Hội 2026")
 
-        res = client.get("/events/1")
+        res = client.get(f"{API_PREFIX}/events/1")
 
         assert res.status_code == 200
         assert res.json["status"].upper() == "SUCCESS"
@@ -67,7 +68,7 @@ class TestGetEventDetailRoute:
         """Trả về 404 khi không tìm thấy sự kiện."""
         mock_get_detail.side_effect = AppException(ErrorCode.EVENT_NOT_FOUND)
 
-        res = client.get("/events/999")
+        res = client.get(f"{API_PREFIX}/events/999")
 
         assert res.status_code == 404
         assert res.json["status"].upper() == "ERROR"
@@ -85,7 +86,7 @@ class TestUpdateEventRoute:
         mock_update.return_value = make_mock_event(id=1, name="Tên Sự Kiện Mới")
 
         payload = {"name": "Tên Sự Kiện Mới"}
-        res = client.patch("/events/1", json=payload)
+        res = client.patch(f"{API_PREFIX}/events/1", json=payload)
 
         assert res.status_code == 200
         assert res.json["status"].upper() == "SUCCESS"
@@ -111,7 +112,7 @@ class TestGetEventsListRoute:
         )
         mock_get_list.return_value = mock_response_dto
 
-        res = client.get("/events?page=1&page_size=10")
+        res = client.get(f"{API_PREFIX}/events?page=1&page_size=10")
 
         assert res.status_code == 200
         assert res.json["status"].upper() == "SUCCESS"
@@ -131,7 +132,7 @@ class TestDeleteEventRoute:
         """Xóa sự kiện thành công (HTTP 204)."""
         mock_delete.return_value = None
 
-        res = client.delete("/events/1")
+        res = client.delete(f"{API_PREFIX}/events/1")
 
         assert res.status_code == 204
         assert res.data == b""
@@ -142,7 +143,7 @@ class TestDeleteEventRoute:
         """Báo lỗi khi cố xóa sự kiện đã xuất bản (PUBLISHED)."""
         mock_delete.side_effect = AppException(ErrorCode.EVENT_CANNOT_DELETE_PUBLISHED)
 
-        res = client.delete("/events/1")
+        res = client.delete(f"{API_PREFIX}/events/1")
 
         assert res.status_code == 400
         assert res.json["status"].upper() == "ERROR"
@@ -159,7 +160,7 @@ class TestCancelEventRoute:
         """Hủy sự kiện thành công."""
         mock_cancel.return_value = make_mock_event(id=1, status=EventStatus.CANCELLED)
 
-        res = client.patch("/events/1/cancel")
+        res = client.patch(f"{API_PREFIX}/events/1/cancel")
 
         assert res.status_code == 200
         assert res.json["status"].upper() == "SUCCESS"
@@ -177,7 +178,7 @@ class TestRestoreEventRoute:
         """Khôi phục sự kiện thành công."""
         mock_restore.return_value = None
 
-        res = client.patch("/events/1/restore")
+        res = client.patch(f"{API_PREFIX}/events/1/restore")
 
         assert res.status_code == 200
         assert res.json["status"].upper() == "SUCCESS"
@@ -196,7 +197,7 @@ class TestPublishEventRoute:
         """Xuất bản sự kiện thành công."""
         mock_publish.return_value = make_mock_event(id=1, status=EventStatus.PUBLISHED)
 
-        res = client.patch("/events/1/publish")
+        res = client.patch(f"{API_PREFIX}/events/1/publish")
 
         assert res.status_code == 200
         assert res.json["status"].upper() == "SUCCESS"

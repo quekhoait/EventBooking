@@ -2,6 +2,8 @@ import pytest
 from app import create_app, db
 from tests.test_manage_event.gen_data import create_event
 
+API_PREFIX = "/api"
+
 
 @pytest.fixture(autouse=True)
 def app_context():
