@@ -10,7 +10,7 @@ import CompanyProfilePage from "../pages/User/CompanyProfilePage";
 import LoginCallbackPage from "../pages/Auth/LoginCallbackPage";
 import { PreviewTicket } from "../pages/PreviewTicket";
 import SelectPreferencesPage from "../pages/Auth/SelectPreferencesPage";
-import RegisterCompanyPage from "../pages/User/registerCompanyPage";
+import RegisterCompanyPage from "../pages/User/RegisterCompanyPage";
 import CreateEventPage from "../pages/Event/CreateEventPage";
 import EventManagementPage from "../pages/Event/EventManagementPage";
 export const routes = [

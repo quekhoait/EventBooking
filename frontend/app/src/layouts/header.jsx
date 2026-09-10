@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import { useAuth } from "../context/AuthContext";
 // import Nav from "./nav";
-import GlobalLoadingOverlay from "../components/Common/GlobalLoadingOverlay";
+import GlobalLoadingOverlay from "../components/common/GlobalLoadingOverlay";
 import NotificationModal from "../components/events/ModelNoti";
 import { BASE_URL } from "../config/Apis";
 import { eventService } from "../services/eventService";
