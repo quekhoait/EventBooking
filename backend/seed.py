@@ -457,7 +457,7 @@ def seed_users():
         user = User(
             username="testuser",
             email="testuser@gmail.com",
-            password=bcrypt.hashpw("123456".encode("utf-8"), bcrypt.gensalt()),  # Hoặc pass_hash nếu dự án dùng Werkzeug/Bcrypt
+            password=bcrypt.hashpw("123456".encode("utf-8"), bcrypt.gensalt()).decode("utf-8"),
             full_name="Nguyễn Văn A",
             phone_number="0987654321",
             role=RoleEnum.USER,

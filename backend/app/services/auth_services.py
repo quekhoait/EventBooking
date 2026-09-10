@@ -81,7 +81,17 @@ def send_otp(email, otp_code):
 
 
 def generate_hash_password(password):
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def _password_hash_bytes(password_hash):
+    if isinstance(password_hash, bytes):
+        return password_hash
+
+    password_hash = str(password_hash)
+    if password_hash.startswith("b'$2") and password_hash.endswith("'"):
+        password_hash = password_hash[2:-1]
+    return password_hash.encode("utf-8")
 
 
 def register_with_email(data):
@@ -198,7 +208,9 @@ def re_send_otp(email: str):
     user_repo.create_email_otp(
         user_id=user.id,
         email=email,
-        otp_code_hash=bcrypt.hashpw(otp_code.encode("utf-8"), bcrypt.gensalt()),
+        otp_code_hash=bcrypt.hashpw(otp_code.encode("utf-8"), bcrypt.gensalt()).decode(
+            "utf-8"
+        ),
         expires_at=datetime.now()
         + timedelta(minutes=2),  # Set the expiration time as needed
     )
@@ -324,7 +336,15 @@ def login(data):
     user = user_repo.find_one(email=data.email)
     if not user:
         raise AppException("Người dùng không tồn tại", status_code=404)
-    if not bcrypt.checkpw(data.password.encode("utf-8"), user.password.encode("utf-8")):
+    try:
+        password_matches = bcrypt.checkpw(
+            data.password.encode("utf-8"),
+            _password_hash_bytes(user.password),
+        )
+    except (TypeError, ValueError):
+        password_matches = False
+
+    if not password_matches:
         raise AppException("Mật khẩu không đúng", status_code=401)
 
     print(f"[LOGIN] User {user.email} logged in successfully.")
