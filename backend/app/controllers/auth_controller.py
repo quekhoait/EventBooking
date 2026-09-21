@@ -143,7 +143,7 @@ def initiate_google_login():
 
 @auth_api.route("/google/callback", methods=["POST", "GET"])
 def handle_google_callback():
-    frontend_base_url = "http://localhost:5173"
+    frontend_base_url = "https://eventbooking-f9pb.onrender.com"
 
     if request.method == "GET":
         error = request.args.get("error")

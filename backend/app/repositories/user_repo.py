@@ -134,7 +134,6 @@ def update_user_profile(user, profile_data):
     )
     db.session.commit()
 
-    print(f"Returning updated user profile: {user.full_name}", flush=True)
     return user
 
 
