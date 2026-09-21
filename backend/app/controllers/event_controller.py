@@ -1,14 +1,15 @@
 import json
 
 from flask import Blueprint, request
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_jwt_extended import jwt_required
 from sqlalchemy import true
 
 from app.dto.event_dto import EventDraftSchema, EventPublishSchema, EventDetailResponseSchema, EventUpdateSchema, \
     EventFilterQuerySchema, EventListResponseSchema, EventTicketTypeSchema,ReportEventResponse, EventSeatDetailSchema, ReportEventSchema
-from app.models import EventStatus
+from app.models import EventStatus, UserModel
 from app.services import event_service
 from app import socketio, user_room
+from app.utils.middleware import require_organizer
 from app.utils.json import NewPackage, StatusResponse
 from app.utils.validation import upload_image_file
 
@@ -49,12 +50,13 @@ def _parse_event_payload():
     return json_data
 
 @event_bp.route('/events', methods=['POST'])
+@jwt_required()
 def create_event():
     json_data = _parse_event_payload()
-    # creator_id = get_jwt_identity()
-    # print(creator_id)
-    creator_id = 1
-    json_data["company_id"] = 1
+    user = require_organizer()
+    creator_id = user.id
+    json_data["company_id"] = user.company_id
+
     raw_status = str(json_data.get('status', EventStatus.PUBLISHED.name)).upper()
     if raw_status == EventStatus.PUBLISHED.name:
         event_dto = event_publish_schema.load(json_data)
@@ -87,19 +89,17 @@ def get_event_detail(event_id: int):
     )
 
 @event_bp.route('/events/<int:event_id>', methods=['PATCH'])
+@jwt_required()
 def update_event(event_id: int):
     json_data = _parse_event_payload()
-    # breakpoint()
-    # 1. Validate & Parse payload bằng EventUpdateSchema
+    require_organizer()
+
     event_dto = event_update_schema.load(json_data)
 
-    # 2. Gọi service cập nhật
     updated_event = event_service.update_event(event_id, event_dto)
 
-    # 3. Serialize dữ liệu sự kiện sau khi cập nhật để trả về
     event_data = event_detail_schema.dump(updated_event)
 
-    # 4. Trả response
     return NewPackage(
         status=StatusResponse.SUCCESS,
         data=event_data,
@@ -142,7 +142,9 @@ def get_events_by_creator(creator_id: int):
     )
 
 @event_bp.route('/events/<int:event_id>', methods=['DELETE'])
+@jwt_required()
 def delete_event(event_id: int):
+    require_organizer()
     event_service.delete_event(event_id)
 
     return NewPackage(
@@ -153,7 +155,9 @@ def delete_event(event_id: int):
     )
 
 @event_bp.route('/events/<int:event_id>/cancel', methods=['PATCH'])
+@jwt_required()
 def cancel_event(event_id: int):
+    require_organizer()
     event = event_service.cancel_event(event_id)
     event_data = event_detail_schema.dump(event)
 
@@ -165,7 +169,9 @@ def cancel_event(event_id: int):
     )
 
 @event_bp.route('/events/<int:event_id>/restore', methods=['PATCH'])
+@jwt_required()
 def restore_event(event_id: int):
+    require_organizer()
     event_service.restore_event(event_id)
 
     return NewPackage(
@@ -176,7 +182,9 @@ def restore_event(event_id: int):
     )
 
 @event_bp.route('/events/<int:event_id>/publish', methods=['PATCH'])
+@jwt_required()
 def publish_event(event_id: int):
+    require_organizer()
     # Gọi Service thực hiện xuất bản
     published_event = event_service.publish_event(event_id)
 

@@ -33,6 +33,7 @@ class ErrorCode(Enum):
     LOCATION_NOT_FOUND = ("Vị trí địa lý không tồn tại", 404)
     COMPANY_NOT_FOUND = ("Công ty/Ban tổ chức không tồn tại", 404)
     COMPANY_INACTIVE = ("Công ty chưa được kích hoạt hoặc đã ngưng hoạt động", 400)
+    USER_NOT_IN_COMPANY = ("Người dùng chưa thuộc công ty nào, không thể tạo sự kiện", 400)
 
     # ==========================================
     # 4. Event Category Errors
