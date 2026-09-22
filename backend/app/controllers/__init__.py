@@ -6,6 +6,7 @@ from .event_controller import event_bp
 from .payment_controller import payment_api
 from .reference_data_controller import data_api
 from .user_controller import user_api
+from ..admin.security import register_admin_auth
 
 api = Blueprint("api", __name__, url_prefix="/api")
 api.register_blueprint(booking_api)

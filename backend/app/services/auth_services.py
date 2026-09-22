@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 import traceback
 from types import SimpleNamespace
 from urllib.parse import urlencode
-
 import requests
 from config import Config
 from flask_jwt_extended import (
@@ -332,10 +331,15 @@ def login_with_google(data):
     return payload
 
 
+from flask_login import login_user
+
+
 def login(data):
     user = user_repo.find_one(email=data.email)
+
     if not user:
         raise AppException("Người dùng không tồn tại", status_code=404)
+
     try:
         password_matches = bcrypt.checkpw(
             data.password.encode("utf-8"),
@@ -349,18 +353,29 @@ def login(data):
 
     print(f"[LOGIN] User {user.email} logged in successfully.")
     print(
-        f"[LOGIN] User data: {user.id}, {user.username}, {user.email}, {user.role}, {user.is_active}, {user.is_verified}"
+        f"[LOGIN] User data: "
+        f"{user.id}, {user.username}, {user.email}, "
+        f"{user.role}, {user.is_active}, {user.is_verified}"
     )
+
+    role = (user.role.value if hasattr(user.role, "value") else str(user.role)).upper()
+
+    if role == "ADMIN" and user.is_active:
+        session["admin_user_id"] = user.id
+        session.permanent = True
+        session.modified = True
+
+        print(f"[LOGIN] ADMIN session created for {user.email}")
 
     access_token, refresh_token = generate_token(user.id)
 
     user_provider = user_repo.find_by_provider(UserProvider.EMAIL.value, user.email)
+
     if user_provider:
         user_provider.refresh_token = refresh_token
         db.session.commit()
 
     has_preferences = user_repo.check_user_has_preferences(user.id)
-
     has_company = user.company_id is not None
 
     payload = {
@@ -369,6 +384,7 @@ def login(data):
         "has_preferences": has_preferences,
         "has_company": has_company,
     }
+
     return payload
 
 

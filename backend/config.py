@@ -29,7 +29,7 @@ class Config:
     SECRET_KEY = os.environ.get(
         "SECRET_KEY", "1ee5da987f2df0cb87b9870d7a23f02dece7648ad518cf9a43"
     )
-    
+
     # Cache
     CACHE_TYPE = "SimpleCache"
     CACHE_DEFAULT_TIMEOUT = os.environ.get("CACHE_DEFAULT_TIMEOUT", 300)
@@ -86,7 +86,7 @@ class DevelopmentConfig(Config):
     DEBUG = True
     _dev_db = os.environ.get("DATABASE_URL") or os.environ.get("DEV_DATABASE_URI")
     _dev_db = normalize_database_url(_dev_db)
-    
+
     SQLALCHEMY_DATABASE_URI = _dev_db or "sqlite:///event_booking.db"
 
 
@@ -109,11 +109,11 @@ class ProductionConfig(Config):
     _prod_db = normalize_database_url(os.environ.get("DATABASE_URL"))
 
     SQLALCHEMY_DATABASE_URI = _prod_db or "sqlite:///event_booking.db"
-    
-    SESSION_COOKIE_SECURE = True
+
+    SESSION_COOKIE_SECURE = False
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_TYPE = "filesystem"
+    # SESSION_TYPE = "filesystem"
 
     @classmethod
     def init_app(cls, app):

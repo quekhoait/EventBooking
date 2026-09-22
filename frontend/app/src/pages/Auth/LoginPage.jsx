@@ -78,8 +78,10 @@ export default function LoginPage() {
     }
 
     if (cleanRole === "ADMIN") {
-      loginUser(authData);
-      navigate("/profile", { replace: true });
+
+      // ADMIN → chuyển sang trang quản trị Django
+      window.location.href = "http://localhost:8000/admin/organizer-admin/";
+
       return;
     }
 
@@ -112,10 +114,7 @@ export default function LoginPage() {
 
     const rawRole = rawUser.role;
     const tokenValue =
-      resPayload.access_token ||
-      rawUser.access_token ||
-      rawUser.token ||
-      "";
+      resPayload.access_token || rawUser.access_token || rawUser.token || "";
 
     if (tokenValue) {
       localStorage.setItem("access_token", tokenValue);

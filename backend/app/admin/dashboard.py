@@ -8,14 +8,14 @@ from jinja2 import ChoiceLoader, FileSystemLoader
 
 from app import db
 from app.models import Company, EventModel, PaymentModel, PaymentStatus, PaymentType
-
+from app.admin.security import SecureAdminMixin
 
 TEMPLATE_DIRECTORY = Path(__file__).with_name("templates")
 VALID_PERIODS = {"day", "month", "year", "custom"}
 VALID_GROUPS = {"day", "month", "year"}
 
 
-class AdminDashboardView(AdminIndexView):
+class AdminDashboardView(AdminIndexView, SecureAdminMixin):
     """Single system-wide overview for the Flask-Admin area."""
 
     @expose("/")
@@ -118,7 +118,8 @@ def build_dashboard_data(start_date: date, end_date: date, group_by: str) -> dic
         "event_count": len(events),
         "organizer_count": len(organizers),
         "published_count": sum(
-            getattr(event.status, "value", event.status) == "PUBLISHED" for event in events
+            getattr(event.status, "value", event.status) == "PUBLISHED"
+            for event in events
         ),
         "labels": [bucket["label"] for bucket in buckets],
         "revenue_values": revenue_values,
@@ -138,7 +139,9 @@ def build_buckets(start_date: date, end_date: date, group_by: str) -> list[dict]
             label = str(cursor.year)
             next_cursor = date(cursor.year + 1, 1, 1)
         elif group_by == "month":
-            bucket_end = date(cursor.year, cursor.month, monthrange(cursor.year, cursor.month)[1])
+            bucket_end = date(
+                cursor.year, cursor.month, monthrange(cursor.year, cursor.month)[1]
+            )
             key = f"{cursor.year:04d}-{cursor.month:02d}"
             label = f"{cursor.month:02d}/{cursor.year}"
             next_cursor = bucket_end + timedelta(days=1)
@@ -147,12 +150,21 @@ def build_buckets(start_date: date, end_date: date, group_by: str) -> list[dict]
             key = cursor.isoformat()
             label = cursor.strftime("%d/%m")
             next_cursor = cursor + timedelta(days=1)
-        buckets.append({"key": key, "label": label, "start": cursor, "end": min(bucket_end, end_date)})
+        buckets.append(
+            {
+                "key": key,
+                "label": label,
+                "start": cursor,
+                "end": min(bucket_end, end_date),
+            }
+        )
         cursor = next_cursor
     return buckets
 
 
-def aggregate_values(items, buckets: list[dict], group_by: str, field: str | None = None) -> list[float | int]:
+def aggregate_values(
+    items, buckets: list[dict], group_by: str, field: str | None = None
+) -> list[float | int]:
     values = {bucket["key"]: 0 for bucket in buckets}
     for item in items:
         created_at = getattr(item, "created_at", None)

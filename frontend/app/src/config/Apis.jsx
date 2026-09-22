@@ -51,7 +51,7 @@ export const endpoints = {
   update_profile: "/user/profile",
 };
 
-export const BASE_URL =  import.meta.env.VITE_BACKEND_API_URL || "http://127.0.0.1:8000/api";
+export const BASE_URL =  import.meta.env.VITE_BACKEND_API_URL || "http://localhost:8000/api";
 
 export const Apis = () => {
   const storedToken = localStorage.getItem("access_token");

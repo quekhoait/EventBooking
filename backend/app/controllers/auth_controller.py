@@ -5,8 +5,8 @@ from flask_jwt_extended import jwt_required, set_access_cookies, set_refresh_coo
 import urllib
 from app.dto.user_dto import UserResponseDto
 
-from flask import Blueprint, redirect
-from flask import request
+from flask import Blueprint, current_app, redirect
+from flask import request, session
 from marshmallow import ValidationError
 from app.dto import auth_dto, user_dto
 
@@ -213,14 +213,32 @@ def update_user_role():
 def login():
     try:
         data = request.get_json()
+
         validated_data = auth_dto.LoginRequestDto().load(data)
+
         user_response = auth_services.login(validated_data)
+
+        user = user_response["user"]
+
+        role = (
+            user.role.value if hasattr(user.role, "value") else str(user.role)
+        ).upper()
+
+        if role == "ADMIN" and user.is_active:
+            session["admin_user_id"] = user.id
+            session.permanent = True
+            session.modified = True
+
+            print("[LOGIN] ADMIN SESSION CREATED")
+            print("[LOGIN] SESSION:", dict(session))
+
         access_token = user_response.get("access_token")
         has_preferences = user_response.get("has_preferences")
         has_company = user_response.get("has_company")
-        result = user_dto.UserResponseDto().dump(user_response["user"])
 
-        return NewPackage(
+        result = user_dto.UserResponseDto().dump(user)
+
+        response = NewPackage(
             status=StatusResponse.SUCCESS,
             message="Đăng nhập thành công",
             data={
@@ -231,12 +249,28 @@ def login():
             },
             status_code=200,
         )
+
+        session.modified = True
+
+        current_app.session_interface.save_session(current_app, session, response)
+
+        # 8. Debug
+        print("\n========== LOGIN RESPONSE ==========")
+        print("SESSION:", dict(session))
+        print("SET-COOKIE:")
+        for cookie in response.headers.getlist("Set-Cookie"):
+            print(cookie)
+        print("====================================\n")
+
+        return response
+
     except AppException as e:
         return NewPackage(
             status=StatusResponse.ERROR,
             message=e.message,
             status_code=e.status_code,
         )
+
     except ValidationError as e:
         return NewPackage(
             status=StatusResponse.ERROR,
