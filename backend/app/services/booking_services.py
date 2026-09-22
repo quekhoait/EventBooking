@@ -8,7 +8,7 @@ from app import db
 import random
 
 from app.dto.payment_dto import PaymentRequest
-from app.errors.ErrorCode import ErrorCode
+from app.errors.error_code import ErrorCode
 from app.models import EventModel, TicketModel, Seat, PaymentModel, PaymentStatus, EventSeat, DiscountModel
 from app.services import payment_services
 from app.utils.exception import AppException
@@ -18,9 +18,14 @@ from app import mail
 
 def check_authorization():
     user_id = get_jwt_identity()
-    if not user_id:
+    print(user_id)
+    if user_id is None:
         raise AppException(ErrorCode.UNAUTHORIZED)
-    return user_id
+    try:
+        return int(user_id)
+    except (TypeError, ValueError):
+        raise AppException(ErrorCode.UNAUTHORIZED)
+    
 
 def generate_random_code(length=8):
     chars = string.ascii_uppercase + string.digits
@@ -51,6 +56,7 @@ def use_discount(id, price):
     return price, None
  
 def get_discount(data):
+    check_authorization()
     discount = booking_repo.find_discount_by_code(event_id=data.event_id, code=data.code)
     if not discount:
         raise AppException("Mã khuyến mãi không hợp lệ")
@@ -59,10 +65,8 @@ def get_discount(data):
     raise AppException("Thời gian sử dụng không hợp lệ")
 
 def create(data: CreateTicketRequestDTO):
-    # user_id = check_authorization()
-    user_id = 1
+    user_id = check_authorization()
     event = event_repo.find_event_by_id(data.event_id)
-    print(data)
     if not event:
         raise AppException(ErrorCode.NOT_FOUND)
     if event.max_per_user:
@@ -100,9 +104,7 @@ def create(data: CreateTicketRequestDTO):
 
 
 def get_by_code(code: str):
-    # user_id = check_authorization()
-    user_id = 1
-
+    user_id = check_authorization()
     ticket = booking_repo.get_ticket_details(code)
 
     if not ticket:
@@ -117,6 +119,24 @@ def list_tickets():
     user_id = check_authorization()
     tickets = booking_repo.get_list(user_id)
     return tickets
+
+def list_tickets_by_event_creator(code):
+    user_id = check_authorization()
+    ticket = booking_repo.get_ticket_by_event_creator(code, user_id)
+    if not ticket:
+        raise AppException(ErrorCode.NOT_FOUND)
+    return ticket
+
+def checkin_ticket_by_event_creator(code):
+    user_id = check_authorization()
+    ticket = booking_repo.get_ticket_by_event_creator(code, user_id)
+    if not ticket:
+        raise AppException(ErrorCode.NOT_FOUND)
+    if ticket.is_checkin:
+        raise AppException("Vé đã được check-in", status_code=400)
+
+    ticket = booking_repo.checkin_ticket(code, user_id)
+    return ticket
 
 
 def send_ticket(ticket_code):
@@ -149,8 +169,7 @@ def send_ticket(ticket_code):
 
 
 def cancel_ticket(data):
-    # user_id = check_authorization()
-    user_id = 1
+    user_id = check_authorization()
     ticket_code = data.get('ticket_code') if isinstance(data, dict) else getattr(data, 'ticket_code', None)
     ticket = booking_repo.find_ticket_by_code(ticket_code)
     if not ticket:
@@ -165,7 +184,7 @@ def cancel_ticket(data):
     return payment_services.refund(data)
 
 def create_discount(data):
-     # user_id = check_authorization()
+    check_authorization()
     event = event_repo.find_event_by_id(data.event_id)
     if not event:
         raise AppException(ErrorCode.NOT_FOUND)

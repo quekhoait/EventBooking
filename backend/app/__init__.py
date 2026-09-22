@@ -21,7 +21,10 @@ cache = Cache()
 jwt = JWTManager()
 oauth = OAuth()
 migrate = Migrate()
-socketio = SocketIO(manage_session=False)
+socketio = SocketIO(
+    manage_session=False,
+    async_mode=os.environ.get("SOCKETIO_ASYNC_MODE", "threading"),
+)
 
 
 def user_room(user_id):

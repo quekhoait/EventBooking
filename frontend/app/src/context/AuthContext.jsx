@@ -4,7 +4,8 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const token = localStorage.getItem("access_token");
+    const storedToken = localStorage.getItem("access_token");
+    const token = storedToken === "authenticated_session" ? null : storedToken;
     const id = localStorage.getItem("user_id");
 
     if (token && id) {
@@ -36,7 +37,8 @@ export function AuthProvider({ children }) {
     const rawRole = String(userData.role || "USER");
     const cleanRole = rawRole.replace("RoleEnum.", "").toUpperCase();
 
-    const token = userData.token || localStorage.getItem("access_token") || "";
+    const storedToken = localStorage.getItem("access_token");
+    const token = userData.token || (storedToken === "authenticated_session" ? "" : storedToken) || "";
     const id = userData.id || "";
     const username = userData.username || "";
     const fullName = userData.full_name || userData.username || "";

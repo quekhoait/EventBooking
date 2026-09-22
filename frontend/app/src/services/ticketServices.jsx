@@ -1,4 +1,3 @@
-import { data } from "react-router-dom";
 import { Apis, endpoints } from "../config/Apis.jsx";
 
     export const ticketService = {
@@ -6,8 +5,20 @@ import { Apis, endpoints } from "../config/Apis.jsx";
             return await Apis().get(endpoints.get_ticket_detail(code));
         },
 
+        getOrganizerTickets: async (code) => {
+            return await Apis().get(endpoints.get_organizer_tickets(code));
+        },
+
+        checkinOrganizerTicket: async (code) => {
+            return await Apis().post(endpoints.checkin_organizer_ticket(code));
+        },
+
         createTicket: async (bookingData) => {
             return await Apis().post(endpoints.create_ticket, bookingData);
+        },
+
+        getTicketByUserId: async()=>{
+            return await Apis().get(endpoints.get_ticket_by_userId)
         },
 
         createPayment: async(payload)=> {

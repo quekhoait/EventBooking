@@ -66,6 +66,43 @@ def get_list(user_id):
         joinedload(TicketModel.seat)
             .joinedload(Seat.event)
     ).filter(TicketModel.user_id == user_id).all()
+
+def get_ticket_by_event_creator(code, creator_id):
+    return (
+        TicketModel.query
+        .join(Seat, TicketModel.seat_id == Seat.id)
+        .join(EventModel, Seat.event_id == EventModel.id)
+        .options(
+            joinedload(TicketModel.user),
+            joinedload(TicketModel.seat)
+                .joinedload(Seat.event)
+                .joinedload(EventModel.location),
+        )
+        .filter(
+            TicketModel.code == code,
+            EventModel.creator_id == creator_id,
+        )
+        .first()
+    )
+
+def checkin_ticket(code, creator_id):
+    ticket = (
+        TicketModel.query
+        .join(Seat, TicketModel.seat_id == Seat.id)
+        .join(EventModel, Seat.event_id == EventModel.id)
+        .filter(
+            TicketModel.code == code,
+            EventModel.creator_id == creator_id,
+        )
+        .first()
+    )
+    if not ticket:
+        return None
+
+    ticket.is_checkin = True
+    db.session.commit()
+    db.session.refresh(ticket)
+    return ticket
     
 def create_discount(code, value, unit, start_time, end_time, event_id):
     discount = DiscountModel(

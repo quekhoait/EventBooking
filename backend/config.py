@@ -58,6 +58,8 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     JWT_COOKIE_CSRF_PROTECT = False
+    JWT_COOKIE_SECURE = get_env_bool("RENDER", False)
+    JWT_COOKIE_SAMESITE = "None" if get_env_bool("RENDER", False) else "Lax"
 
     # PAYMENT
     ## MOMO

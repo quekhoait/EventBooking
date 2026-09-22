@@ -1,8 +1,10 @@
-from gevent import monkey
-
-monkey.patch_all()  
-
 import os
+
+if os.environ.get("SOCKETIO_ASYNC_MODE") == "gevent":
+  from gevent import monkey
+
+  monkey.patch_all()
+
 from app import create_app, db, socketio
 from app.models import *
 

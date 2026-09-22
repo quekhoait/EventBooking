@@ -1,20 +1,24 @@
-import React from "react";
-
-export default function UserTicketCard({ ticket }) {
-  const {
-    id,
-    eventName,
-    organizer,
-    category,
-    date,
-    time,
-    location,
-    ticketType,
-    quantity,
-    totalPrice,
-    status,
-    qrCodeUrl,
-  } = ticket;
+export default function UserTicketCard({ ticket, onViewDetails }) {
+  const event = ticket?.seat?.event || {};
+  const status = ticket?.status || "";
+  const category = event.category?.name || event.category_name || "SỰ KIỆN";
+  const organizer = event.company?.name || event.organizer?.name || "Hokinuva";
+  const startTime = event.event_start_time || event.start_time;
+  const date = startTime
+    ? new Date(startTime).toLocaleDateString("vi-VN")
+    : "Chưa cập nhật";
+  const time = startTime
+    ? new Date(startTime).toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "Chưa cập nhật";
+  const location = event.location?.name || event.location_name || "Chưa xác định";
+  const ticketType = ticket?.seat?.name || ticket?.ticket_type?.name || "Vé tham dự";
+  const quantity = ticket?.quantity || 1;
+  const totalPrice = `${Number(ticket?.price || 0).toLocaleString("vi-VN")} đ`;
+  const qrCodeUrl = ticket?.qr_code || ticket?.qrCode || "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" + encodeURIComponent(ticket?.code || "ticket");
+  const id = ticket?.code || ticket?.id || "-";
 
   return (
     <article className="relative flex flex-col overflow-hidden rounded-2xl border border-[#2A2A2A] bg-[#F4F1EB] shadow-lg md:flex-row">
@@ -29,7 +33,7 @@ export default function UserTicketCard({ ticket }) {
         </div>
 
         <h3 className="mt-3 text-xl font-extrabold leading-snug text-[#171717]">
-          {eventName}
+          {ticket.seat.event.name}
         </h3>
         <p className="mt-1 text-xs font-medium text-[#8A8781]">
           Tổ chức bởi: <span className="text-[#171717]">{organizer}</span>
@@ -61,6 +65,14 @@ export default function UserTicketCard({ ticket }) {
             </p>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => onViewDetails(event)}
+          className="mt-6 rounded-xl bg-[#171717] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#E85B2A]"
+        >
+          XEM CHI TIẾT SỰ KIỆN
+        </button>
       </div>
 
       <div className="relative hidden w-px border-r-2 border-dashed border-[#D6D1C8] md:block" />

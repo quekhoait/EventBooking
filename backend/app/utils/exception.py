@@ -14,11 +14,11 @@ class AppException(Exception):
         self.error_code = error if isinstance(error, ErrorCode) else None
 
         # 1. Nếu tham số đầu tiên là ErrorCode Enum
-        if isinstance(error, ErrorCode):
+        if isinstance(error, ErrorCode) or (
+            hasattr(error, "message") and hasattr(error, "status_code")
+        ):
             raw_message = error.message
-            # Ưu tiên status_code truyền vào, nếu không thì lấy status_code mặc định của Enum
             self.status_code = status_code or error.status_code
-        # 2. Nếu tham số đầu tiên là chuỗi String
         else:
             raw_message = error
             self.status_code = status_code or 400

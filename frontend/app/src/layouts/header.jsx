@@ -12,16 +12,18 @@ const SOCKET_URL = BASE_URL.replace(/\/api\/?$/, "");
 
 export default function Header() {
   const [profileOpen, setProfileOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(""); 
+  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
   const { user, logoutUser } = useAuth();
   const [isNavigating, setIsNavigating] = useState(false);
   const [navProgress, setNavProgress] = useState(0);
   const [navTitle, setNavTitle] = useState("Đang chuyển trang...");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  
+
   const [notifications, setNotifications] = useState([]);
-  const unreadNotifications = notifications.filter((notification) => !notification.read).length;
+  const unreadNotifications = notifications.filter(
+    (notification) => !notification.read,
+  ).length;
 
   useEffect(() => {
     if (!user?.id) return;
@@ -30,7 +32,7 @@ export default function Header() {
       try {
         const res = await eventService.getReportByUser();
         const rawData = res.data?.data || [];
-          console.log(rawData)
+        console.log(rawData);
         const formattedNotifications = rawData.map((item) => ({
           id: `report-${item.id}`,
           type: "report_created",
@@ -39,7 +41,7 @@ export default function Header() {
           event_id: item.event_id,
           report: item,
           created_at: item.created_at || new Date().toISOString(),
-          read: item.is_read || false, 
+          read: item.is_read || false,
         }));
 
         setNotifications(formattedNotifications);
@@ -67,7 +69,9 @@ export default function Header() {
         {
           id: `report-${payload.report?.id || Date.now()}`,
           type: payload.type || "report_created",
-          title: "Báo cáo mới: " + (payload.report?.event?.name || payload.report?.name || ""),
+          title:
+            "Báo cáo mới: " +
+            (payload.report?.event?.name || payload.report?.name || ""),
           message: payload.content || "Có báo cáo mới cho sự kiện của bạn",
           event_id: payload.event_id,
           report: payload.report,
@@ -88,7 +92,10 @@ export default function Header() {
     };
   }, [user?.id]);
 
-  const handleNavigateWithLoading = (targetPath, title = "Đang chuyển trang...") => {
+  const handleNavigateWithLoading = (
+    targetPath,
+    title = "Đang chuyển trang...",
+  ) => {
     setProfileOpen(false);
     setNavTitle(title);
     setIsNavigating(true);
@@ -113,7 +120,9 @@ export default function Header() {
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     const query = searchTerm.trim();
-    const targetPath = query ? `/events?keyword=${encodeURIComponent(query)}` : "/events";
+    const targetPath = query
+      ? `/events?keyword=${encodeURIComponent(query)}`
+      : "/events";
     handleNavigateWithLoading(targetPath, "Đang tìm kiếm sự kiện...");
   };
 
@@ -154,7 +163,9 @@ export default function Header() {
       <header className="nav-shadow sticky top-0 z-20 bg-[#ff6b12] text-[#171717]">
         <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-5 py-3 lg:px-10">
           <button
-            onClick={() => handleNavigateWithLoading("/", "Đang về trang chủ...")}
+            onClick={() =>
+              handleNavigateWithLoading("/", "Đang về trang chủ...")
+            }
             className="shrink-0 cursor-pointer text-left leading-none"
           >
             <div className="font-display text-3xl font-extrabold italic tracking-tight text-[#171717]">
@@ -166,7 +177,10 @@ export default function Header() {
             onSubmit={handleSearchSubmit}
             className="mx-auto hidden min-w-0 max-w-xl flex-1 items-center rounded-full bg-white px-4 py-2 text-[#9d9696] shadow-[5px_5px_0_rgba(150,46,0,.35)] md:flex"
           >
-            <button type="submit" className="mr-3 text-2xl leading-none select-none cursor-pointer">
+            <button
+              type="submit"
+              className="mr-3 text-2xl leading-none select-none cursor-pointer"
+            >
               <i className="fa-solid fa-magnifying-glass text-lg"></i>
             </button>
             <input
@@ -211,23 +225,36 @@ export default function Header() {
               {profileOpen && (
                 <div className="absolute right-0 top-10 z-50 w-48 rounded-b-3xl rounded-tl-2xl bg-[#ffe6d2] p-4 text-left text-sm font-normal normal-case italic text-[#3b302b] shadow-xl animate-fade-in">
                   {user && (user.role === "STAFF" || user.role === "ADMIN") && (
-                     <div
-                    onClick={() =>
-                      handleNavigateWithLoading(
-                        "/dashboard/organizer",
-                        "Đang mở quản lý sự kiện..."
-                      )
-                    }
-                    className="cursor-pointer border-b border-[#e5b99c] pb-3 hover:font-semibold"
-                  >
-                    ◎ &nbsp; Quản lý sự kiện
-                  </div>
+                    <div>
+                      <div
+                        onClick={() =>
+                          handleNavigateWithLoading(
+                            "/dashboard/checkin",
+                            "Đang mở checkin sự kiện...",
+                          )
+                        }
+                        className="cursor-pointer border-b border-[#e5b99c] pb-3 hover:font-semibold"
+                      >
+                        &nbsp; Checkin vé
+                      </div>
+                      <div
+                        onClick={() =>
+                          handleNavigateWithLoading(
+                            "/dashboard/organizer",
+                            "Đang mở quản lý sự kiện...",
+                          )
+                        }
+                        className="cursor-pointer border-b border-[#e5b99c] pb-3 hover:font-semibold"
+                      >
+                        ◎ &nbsp; Quản lý sự kiện
+                      </div>
+                    </div>
                   )}
                   <div
                     onClick={() =>
                       handleNavigateWithLoading(
                         "/profile",
-                        "Đang tải hồ sơ tài khoản..."
+                        "Đang tải hồ sơ tài khoản...",
                       )
                     }
                     className="cursor-pointer border-b border-[#e5b99c] pb-3 hover:font-semibold"
@@ -238,7 +265,7 @@ export default function Header() {
                     onClick={() =>
                       handleNavigateWithLoading(
                         "/my-tickets",
-                        "Đang tải danh sách vé..."
+                        "Đang tải danh sách vé...",
                       )
                     }
                     className="cursor-pointer border-b border-[#e5b99c] py-3 hover:font-semibold"
@@ -259,7 +286,10 @@ export default function Header() {
               <button
                 type="button"
                 onClick={() =>
-                  handleNavigateWithLoading("/login", "Đang tới trang đăng nhập...")
+                  handleNavigateWithLoading(
+                    "/login",
+                    "Đang tới trang đăng nhập...",
+                  )
                 }
                 className="hover:text-white cursor-pointer"
               >
@@ -268,7 +298,10 @@ export default function Header() {
               <button
                 type="button"
                 onClick={() =>
-                  handleNavigateWithLoading("/register", "Đang tới trang đăng ký...")
+                  handleNavigateWithLoading(
+                    "/register",
+                    "Đang tới trang đăng ký...",
+                  )
                 }
                 className="rounded-full bg-black px-4 py-1.5 text-white hover:bg-[#2A2A2A] cursor-pointer"
               >
@@ -277,33 +310,31 @@ export default function Header() {
             </div>
           )}
 
-
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => {
-              setNotificationsOpen((isOpen) => !isOpen);
-              setProfileOpen(false);
-            }}
-            aria-label="Mở thông báo"
-            aria-expanded={notificationsOpen}
-            className="relative inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-all hover:bg-gray-200 hover:text-gray-900"
-          >
-            <i className="fa-solid fa-bell text-lg" />
-            {unreadNotifications > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-3 min-w-3 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white ring-2 ring-white">
-                {unreadNotifications > 9 ? "9+" : unreadNotifications}
-              </span>
-            )}
-          </button>
-          <NotificationModal
-            isOpen={notificationsOpen}
-            onClose={() => setNotificationsOpen(false)}
-            notifications={notifications}
-          />
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setNotificationsOpen((isOpen) => !isOpen);
+                setProfileOpen(false);
+              }}
+              aria-label="Mở thông báo"
+              aria-expanded={notificationsOpen}
+              className="relative inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-all hover:bg-gray-200 hover:text-gray-900"
+            >
+              <i className="fa-solid fa-bell text-lg" />
+              {unreadNotifications > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-3 min-w-3 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white ring-2 ring-white">
+                  {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                </span>
+              )}
+            </button>
+            <NotificationModal
+              isOpen={notificationsOpen}
+              onClose={() => setNotificationsOpen(false)}
+              notifications={notifications}
+            />
+          </div>
         </div>
-        </div>
-
 
         {/* <Nav
           onNavigate={handleNavigateWithLoading}

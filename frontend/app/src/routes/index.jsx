@@ -1,7 +1,6 @@
 import HomePage from "../pages/HomePage";
 import EventPage from "../pages/EventPage";
 import BookingPage from "../pages/bookingPage";
-import DigitalTicketPage from "../pages/DigitalTicketPage";
 import LoginPage from "../pages/Auth/LoginPage";
 import RegisterPage from "../pages/Auth/RegisterPage";
 import PreferencePage from "../pages/Auth/PreferencePage";
@@ -13,11 +12,13 @@ import SelectPreferencesPage from "../pages/Auth/SelectPreferencesPage";
 import RegisterCompanyPage from "../pages/User/RegisterCompanyPage";
 import CreateEventPage from "../pages/Event/CreateEventPage";
 import EventManagementPage from "../pages/Event/EventManagementPage";
+import { CheckinPage } from "../pages/Event/CheckinPage";
 export const routes = [
   { path: "/", name: "home", page: HomePage },
   { path: "/events", name: "events", page: EventPage },
   { path: "/events/create", name: "create-event", page: CreateEventPage },
   { path: "/dashboard/organizer", name: "organizer-events", page: EventManagementPage },
+  { path: "/dashboard/checkin", name: "checkin-events", page: CheckinPage },
   { path: "/booking", name: "booking", page: BookingPage },
   // Auth routes
   { path: "/login", name: "login", page: LoginPage },

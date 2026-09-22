@@ -359,32 +359,18 @@ def clear_data():
     """Xóa sạch toàn bộ dữ liệu tất cả các bảng và reset ID về 1."""
     print("🧹 Đang dọn dẹp dữ liệu và reset ID các bảng...")
     try:
-        db.session.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
-
-        # Danh sách các bảng cần truncate (bao gồm cả bảng ở file seed 2)
-        tables = [
-            "seat",
-            "event_seat",
-            "event_ticket_type",
-            "discount",
-            "event",
-            "company",
-            "event_category",
-            "location",
-            "ticket",
-            "payment",
-            "user" # Thay tên bảng user thực tế trong DB của bạn nếu khác (ví dụ: user / users)
-        ]
-
-        for table in tables:
-            db.session.execute(text(f"TRUNCATE TABLE `{table}`;"))
-
-        db.session.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
+        tables = [table.name for table in db.metadata.sorted_tables]
+        if tables:
+            quoted_tables = ", ".join(f'"{table}"' for table in tables)
+            db.session.execute(
+                text(f"TRUNCATE TABLE {quoted_tables} RESTART IDENTITY CASCADE")
+            )
         db.session.commit()
         print("✅ Dọn dẹp và reset ID tất cả các bảng thành công!")
     except Exception as e:
         db.session.rollback()
         print(f"❌ Dọn dẹp dữ liệu thất bại: {e}")
+        raise
 
 
 # ----------------------------------------------------------------------

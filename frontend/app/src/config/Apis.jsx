@@ -35,8 +35,11 @@ export const endpoints = {
   cancel_event: (id) => `/events/${id}/cancel`,
   restore_event: (id) => `/events/${id}/restore`,
   get_ticket_detail: (code) => `/bookings/details/${code}`,
+  get_organizer_tickets: (code) => `/bookings/organizer/tickets/${code}`,
+  checkin_organizer_ticket: (code) => `/bookings/organizer/tickets/${code}/checkin`,
   create_ticket: "/bookings/create",
   create_payment: "/payments/create",
+  get_ticket_by_userId: "/bookings/list",
 
   // Company endpoints
   get_company_by_user: (userId) => `/data/company/user/${userId}`,
@@ -51,11 +54,17 @@ export const endpoints = {
 export const BASE_URL =  import.meta.env.VITE_BACKEND_API_URL || "http://127.0.0.1:8000/api";
 
 export const Apis = () => {
+  const storedToken = localStorage.getItem("access_token");
+  const token = storedToken === "authenticated_session" ? "" : storedToken;
+
   return axios.create({
     baseURL: BASE_URL,
     withCredentials: true,
     headers: {
       "Content-Type": "application/json",
+      ...(token && token !== "authenticated_session"
+        ? { Authorization: `Bearer ${token}` }
+        : {}),
     },
   });
 };

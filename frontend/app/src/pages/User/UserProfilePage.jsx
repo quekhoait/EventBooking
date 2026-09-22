@@ -10,6 +10,7 @@ import UserTicketList from "../../components/User/UserTicketList";
 import PreferenceModal from "../../components/User/PreferenceModal";
 import GlobalLoadingOverlay from "../../components/common/GlobalLoadingOverlay";
 import { userService } from "../../services/userServices";
+import { ticketService } from "../../services/ticketServices";
 
 const getCategoryIcon = (category) => {
   if (category?.icon) return category.icon;
@@ -68,23 +69,8 @@ export default function UserProfilePage() {
     .filter((cat) => cat.id !== null)
     .map((cat) => ({ ...cat, icon: getCategoryIcon(cat) }));
 
-  const [tickets] = useState([
-    {
-      id: "TKT-2026-9871",
-      eventName: "TechFest Vietnam 2026: AI & The Future",
-      organizer: "Hokinuva Media",
-      category: "Công nghệ & Startup",
-      date: "15/10/2026",
-      time: "08:30 - 17:30",
-      location: "Trung tâm SECC, Quận 7, TP.HCM",
-      ticketType: "VIP Pass",
-      quantity: 1,
-      totalPrice: "850.000đ",
-      status: "CONFIRMED",
-      qrCodeUrl:
-        "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=TKT-2026-9871",
-    },
-  ]);
+  const [tickets, setTickets] = useState([]);
+
 
   // Nạp Preferences (User)
   const fetchPreferences = useCallback(async (userId) => {
@@ -107,7 +93,17 @@ export default function UserProfilePage() {
     }
   }, []);
 
-  // Nạp Company & Locations (Staff)
+  const fetchTickets = useCallback(async () => {
+    try {
+      const response = await ticketService.getTicketByUserId();
+      console.log(response.data.data)
+      setTickets(response?.data.data)
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách vé:", error);
+      setTickets([]);
+    }
+  }, []);
+
   const fetchCompanyData = useCallback(async (userId) => {
     if (!userId) return;
     try {
@@ -137,7 +133,7 @@ export default function UserProfilePage() {
 
       const loader = isStaff
         ? fetchCompanyData(authUser.id)
-        : fetchPreferences(authUser.id);
+        : Promise.all([fetchPreferences(authUser.id), fetchTickets()]);
 
       loader.finally(() => {
         clearInterval(timer);
@@ -148,7 +144,7 @@ export default function UserProfilePage() {
         }, 250);
       });
     }
-  }, [authUser, isStaff, fetchCompanyData, fetchPreferences]);
+  }, [authUser, isStaff, fetchCompanyData, fetchPreferences, fetchTickets]);
 
   // Cập nhật Profile cá nhân
   const handleUpdateProfile = async (e) => {

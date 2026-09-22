@@ -9,6 +9,7 @@ import { ticketService } from "../services/ticketServices";
 import DigitalTicketPage from "./DigitalTicketPage";
 import { logError } from "../utils/log";
 import { eventService } from "../services/eventService";
+import { useAuth } from "../context/AuthContext";
 
 function BookingPage({ onBack }) {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ function BookingPage({ onBack }) {
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [step, setStep] = useState(0);
 
+  const { user, logoutUser } = useAuth();
   useEffect(() => {
     if (!eventId) return;
 
@@ -111,6 +113,7 @@ function BookingPage({ onBack }) {
     setSaveError("");
     try {
       const bookingPayload = {
+        // user_id: user?.id,
         event_id: eventId,
         seat_type_id: selectedTicket.event_ticket_type_id,
         discount_id: disountId,

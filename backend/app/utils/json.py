@@ -23,8 +23,8 @@ def NewPackage(status: StatusResponse, message: str, data=None, status_code=200)
 
     is_dict_data = isinstance(serialized_data, dict)
     if is_dict_data:
-        access_token = serialized_data.pop("access_token", None)
-        refresh_token = serialized_data.pop("refresh_token", None)
+        access_token = serialized_data.get("access_token")
+        refresh_token = serialized_data.get("refresh_token")
 
     body = {
         'status': status.value[0] if hasattr(status, 'value') else status,

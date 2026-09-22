@@ -115,7 +115,7 @@ export default function LoginPage() {
       resPayload.access_token ||
       rawUser.access_token ||
       rawUser.token ||
-      "authenticated_session";
+      "";
 
     if (tokenValue) {
       localStorage.setItem("access_token", tokenValue);
