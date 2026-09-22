@@ -5,11 +5,13 @@ import OrderSummary from "../components/OrderSummary";
 import TicketSelector from "../components/TicketSelector";
 import ReportModal from "../components/events/ModelReport";
 import { EventContext } from "../context/EventContext";
+import { eventServices } from "../services/eventServices";
 import { ticketService } from "../services/ticketServices";
 import DigitalTicketPage from "./DigitalTicketPage";
 import { logError } from "../utils/log";
 import { eventService } from "../services/eventService";
 import { useAuth } from "../context/AuthContext";
+import ChatBox from "../components/ChatBox/ChatBox";
 
 function BookingPage({ onBack }) {
   const navigate = useNavigate();
@@ -22,7 +24,6 @@ function BookingPage({ onBack }) {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [discountCode, setDiscountCode] = useState("");
   const [discount, setDiscount] = useState(0);
-  const [disountId, setDiscountId] = useState();
   const [faceImage, setFaceImage] = useState("");
   const [ticketResult, setTicketResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -43,7 +44,7 @@ function BookingPage({ onBack }) {
         }
         const response = await eventService.getTicketsType(eventId);
         if (response?.status === 200) {
-          setTickets(response?.data.data );
+          setTickets(response?.data.data);
         }
       } catch (error) {
         console.error("Lỗi tải loại vé:", error);
@@ -55,7 +56,7 @@ function BookingPage({ onBack }) {
     fetchData();
   }, [eventId, eventFromState, fetchEventDetail]);
 
-
+  // Tính tổng tiền: Giá vé - Giảm giá
   const total = useMemo(() => {
     if (!selectedTicket) return 0;
     return selectedTicket.price -discount;
@@ -71,7 +72,7 @@ function BookingPage({ onBack }) {
     const discountInfo = res.data?.data;
     if (!discountInfo) return;
     const originalPrice = selectedTicket?.price ;
-    let discountAmount = 0; 
+    let discountAmount = 0;
     if (discountInfo.unit === "percentage") {
       discountAmount = (originalPrice * discountInfo.value) / 100;
     } else if(discountInfo.unit === "mount"){
@@ -104,16 +105,17 @@ function BookingPage({ onBack }) {
     }
     setStep(1);
   };
+
   const saveBookingAndViewTicket = async () => {
     if (!faceImage) {
       alert("Vui lòng chụp ảnh khuôn mặt trước.");
       return;
     }
+
     setIsSavingTicket(true);
     setSaveError("");
     try {
       const bookingPayload = {
-        // user_id: user?.id,
         event_id: eventId,
         seat_type_id: selectedTicket.event_ticket_type_id,
         discount_id: disountId,
@@ -127,7 +129,7 @@ function BookingPage({ onBack }) {
       setTicketResult(ticketData);
       const paymentPayload = {
         ticket_code: ticketCode,
-        method: "momo", 
+        method: "momo",
       };
       const paymentRes = await ticketService.createPayment(paymentPayload);
       const paymentData = paymentRes?.data?.data;
@@ -135,6 +137,7 @@ function BookingPage({ onBack }) {
         window.location.href = paymentData.payUrl;
         return;
       }
+
     } catch (error) {
       logError(error)
       console.error("Backend Error Details:", error.response?.data);
@@ -241,16 +244,24 @@ useEffect(() => {
     );
   }
 
+  // Bước 0: Chọn vé
   return (
     <main className="mx-auto max-w-[1240px] px-5 py-8 lg:px-10 lg:py-12">
-      <button onClick={handleBack} className="mb-6 text-xs font-bold uppercase text-[#ff985c] hover:underline">
+      <button
+        onClick={handleBack}
+        className="mb-6 text-xs font-bold uppercase text-[#ff985c] hover:underline"
+      >
         ← Quay lại
       </button>
 
       <div className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">Đặt vé sự kiện</p>
-          <h1 className="font-display text-4xl font-extrabold uppercase text-white sm:text-4xl">Chọn loại vé</h1>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">
+            Đặt vé sự kiện
+          </p>
+          <h1 className="font-display text-4xl font-extrabold uppercase text-white sm:text-4xl">
+            Chọn loại vé
+          </h1>
         </div>
         <BookingProgress currentStep={step} />
       </div>
@@ -326,7 +337,9 @@ useEffect(() => {
 
       <div className="grid items-start gap-7 lg:grid-cols-[1fr_340px]">
         <section className="rounded-2xl border border-white/10 bg-[#1b1c1d] p-5 sm:p-7">
-          <h2 className="mb-4 font-display text-xl font-bold uppercase text-white">1. Chọn loại vé</h2>
+          <h2 className="mb-4 font-display text-xl font-bold uppercase text-white">
+            1. Chọn loại vé
+          </h2>
           <TicketSelector
             tickets={tickets}
             selectedTicket={selectedTicket}
@@ -347,6 +360,8 @@ useEffect(() => {
           completed={false}
         />
       </div>
+
+      <ChatBox />
 
       <ReportModal
         isOpen={isReportOpen}

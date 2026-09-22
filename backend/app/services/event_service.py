@@ -5,11 +5,20 @@ from flask import current_app
 from app import db
 from app.dto.pagination_dto import LoadMoreResponse
 from app.errors.error_code import ErrorCode
-from app.models import EventModel, LocationModel, Company, EventCategory, EventSeat, EventStatus, EventTicketType, \
-    TicketModel
+from app.models import (
+    EventModel,
+    LocationModel,
+    Company,
+    EventCategory,
+    EventSeat,
+    EventStatus,
+    EventTicketType,
+    TicketModel,
+)
 from app.repositories import base_repo, event_repo
 from app.utils.exception import AppException
 from app.utils.signals import event_cancelled_signal
+from tests.test_manage_event.conftest import event
 
 
 def create_and_publish_event(event_dto, creator_id: int | None = None) -> EventModel:
@@ -108,9 +117,7 @@ def delete_event(event_id: int) -> bool:
 
     # 2. Check nghiệp vụ: Sự kiện đã PUBLISHED thì không cho xóa
     if event.status == EventStatus.PUBLISHED:
-        raise AppException(
-            ErrorCode.EVENT_CANNOT_DELETE_PUBLISHED
-        )
+        raise AppException(ErrorCode.EVENT_CANNOT_DELETE_PUBLISHED)
 
     # 3. Nếu là DRAFT -> Tiến hành Soft Delete qua Base Repo
     return event_repo.delete_event(event)
@@ -169,13 +176,20 @@ def publish_event(event_id: int) -> EventModel:
     if not event.seats or len(event.seats) == 0:
         raise AppException(ErrorCode.EVENT_MUST_HAVE_SEATS)
 
-    location, company, category = _validate_publish_event(event, exclude_event_id=event_id)
+    # 4. Tái sử dụng helper _validate_publish_event để validate thời gian, địa điểm, công ty...
+    # (Do _validate_publish_event nhận parameter dạng DTO, ta truyền trực tiếp object event vào)
+    location, company, category = _validate_publish_event(
+        event, exclude_event_id=event_id
+    )
 
     try:
         # 5. Cập nhật trạng thái và thông tin địa điểm chuẩn
         event.status = EventStatus.PUBLISHED
-        event.location_name = location.full_name() if callable(
-            getattr(location, 'full_name', None)) else location.full_name
+        event.location_name = (
+            location.full_name()
+            if callable(getattr(location, "full_name", None))
+            else location.full_name
+        )
 
         # 6. Luân chuyển thay đổi vào DB
         db.session.commit()
@@ -280,6 +294,25 @@ def get_tickets(id)->EventTicketType:
         return None
     return event_repo.get_tickets(id)
 
+
+def get_is_chatbox_enabled(event_id: int) -> bool:
+    """Lấy trạng thái is_chatbox_enabled của một sự kiện."""
+    is_chatbox_enabled = event_repo.get_is_chatbox_enabled(event_id)
+    if is_chatbox_enabled is None:
+        raise AppException(ErrorCode.EVENT_NOT_FOUND)
+    return is_chatbox_enabled
+
+
+def set_is_chatbox_enabled(event_id: int, enabled: bool) -> EventModel:
+    """Cập nhật trạng thái is_chatbox_enabled của một sự kiện."""
+
+    is_chatbox_enabled = event_repo.set_is_chatbox_enabled(event_id, enabled)
+    if is_chatbox_enabled is None:
+        raise AppException(ErrorCode.EVENT_NOT_FOUND)
+    saved_event = base_repo.save(event)
+    return saved_event
+
+
 #Lấy sự kiện theo người tạo
 def get_events_by_creator(
     creator_id: int,
@@ -291,14 +324,14 @@ def get_events_by_creator(
     )
 def create_report(event_id, data):
     user_id = getattr(data, "user_id", None) or 1
-    
+
     report_data = {
         "user_id": user_id,
         "event_id": event_id,
         "name": data.name,
         "content": data.content
     }
-    
+
     report = event_repo.create_report(data=report_data)
     return report
 

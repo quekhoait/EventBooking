@@ -1,9 +1,17 @@
-import json
-
 from flask import Blueprint, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import true
 
+from app.dto.event_dto import (
+    EventDraftSchema,
+    EventPublishSchema,
+    EventDetailResponseSchema,
+    EventUpdateSchema,
+    EventFilterQuerySchema,
+    EventListResponseSchema,
+    EventTicketTypeSchema,
+    EventSeatDetailSchema,
+)
 from app.dto.event_dto import EventDraftSchema, EventPublishSchema, EventDetailResponseSchema, EventUpdateSchema, \
     EventFilterQuerySchema, EventListResponseSchema, EventTicketTypeSchema,ReportEventResponse, EventSeatDetailSchema, ReportEventSchema
 from app.models import EventStatus, UserModel
@@ -16,6 +24,7 @@ from app.utils.validation import upload_image_file
 
 event_bp = Blueprint('event', __name__)
 
+# Khai báo 2 instance Schema
 event_draft_schema = EventDraftSchema()
 event_publish_schema = EventPublishSchema()
 event_detail_schema = EventDetailResponseSchema()
@@ -49,8 +58,8 @@ def _parse_event_payload():
 
     return json_data
 
-@event_bp.route('/events', methods=['POST'])
-@jwt_required()
+
+@event_bp.route("/events", methods=["POST"])
 def create_event():
     json_data = _parse_event_payload()
     user = require_organizer()
@@ -60,11 +69,11 @@ def create_event():
     raw_status = str(json_data.get('status', EventStatus.PUBLISHED.name)).upper()
     if raw_status == EventStatus.PUBLISHED.name:
         event_dto = event_publish_schema.load(json_data)
-        created_event = event_service.create_and_publish_event(event_dto, creator_id=creator_id)
+        created_event = event_service.create_and_publish_event(event_dto)
         message = "Xuất bản sự kiện thành công"
     else:
         event_dto = event_draft_schema.load(json_data)
-        created_event = event_service.create_draft_event(event_dto, creator_id=creator_id)
+        created_event = event_service.create_draft_event(event_dto)
         message = "Lưu nháp sự kiện thành công"
 
     # 3. Trả về response
@@ -100,6 +109,7 @@ def update_event(event_id: int):
 
     event_data = event_detail_schema.dump(updated_event)
 
+    # 4. Trả response
     return NewPackage(
         status=StatusResponse.SUCCESS,
         data=event_data,
@@ -109,14 +119,18 @@ def update_event(event_id: int):
 
 @event_bp.route('/events', methods=['GET'])
 def get_events():
+    # 1. Validate & Parse query parameters từ URL qua Schema
     query_params = event_filter_schema.load(request.args)
 
+    # 2. Gọi service xử lý Load More (truy vấn 1 query duy nhất)
     response_dto = event_service.get_events_load_more(
         **vars(query_params)
     )
 
+    # 3. Serialize danh sách EventModel -> JSON List qua Response Schema
     serialized_items = event_list_schema.dump(response_dto.items, many=True)
 
+    # 4. Đóng gói kết quả trả về
     return NewPackage(
         status=StatusResponse.SUCCESS,
         data={
@@ -206,13 +220,46 @@ def get_tickets(event_id: int):
         status=StatusResponse.SUCCESS,
         data=tickets,
         message="Lấy loại vé thành công!",
-        status_code=200
+        status_code=200,
     )
-    
+
+
+@event_bp.route("/events/<int:event_id>/chatbox", methods=["GET"])
+def get_chatbox_status(event_id: int):
+    is_enabled = event_service.get_is_chatbox_enabled(event_id)
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        data={"is_chatbox_enabled": is_enabled},
+        message="Lấy trạng thái chatbox thành công!",
+        status_code=200,
+    )
+
+
+@event_bp.route("/events/<int:event_id>/chatbox", methods=["PATCH"])
+def update_chatbox_status(event_id: int):
+    json_data = request.get_json() or {}
+    is_enabled = json_data.get("is_chatbox_enabled")
+    if is_enabled is None:
+        return NewPackage(
+            status=StatusResponse.FAILURE,
+            data=None,
+            message="Thiếu trường 'is_chatbox_enabled' trong payload.",
+            status_code=400,
+        )
+
+    updated_status = event_service.set_is_chatbox_enabled(event_id, is_enabled)
+    return NewPackage(
+        status=StatusResponse.SUCCESS,
+        data={"is_chatbox_enabled": updated_status},
+        message="Cập nhật trạng thái chatbox thành công!",
+        status_code=200,
+    )
+
+
 @event_bp.route('/events/<int:event_id>/report', methods=['POST'])
 def createReport(event_id: int):
     payload = ReportEventSchema().load(request.get_json()  )
-    result = event_service.create_report(event_id=event_id, data=payload)    
+    result = event_service.create_report(event_id=event_id, data=payload)
     schema = ReportEventResponse().dump(result)
     organizer_id = event_service.get_event_creator_id(event_id)
     notification = {
@@ -237,8 +284,9 @@ def createReport(event_id: int):
         )
 
 @event_bp.route('/events/<int:event_id>/report', methods=['GET'])
+@jwt_required()
 def getReport(event_id:int):
-    user_id = 2
+    user_id = get_jwt_identity()
     res = event_service.get_report(event_id=event_id, user_id=user_id)
     schema = ReportEventResponse(many=True).dump(res)
     return NewPackage(
@@ -247,10 +295,11 @@ def getReport(event_id:int):
             message="lấy báo cáo thành công",
             status_code=200
         )
-    
+
 @event_bp.route('/events/report_user', methods=['GET'])
+@jwt_required()
 def getReportUser():
-    user_id =1
+    user_id = get_jwt_identity()
     res = event_service.get_report_by_userId(user_id=user_id)
     schema = ReportEventResponse(many=True).dump(res)
     return NewPackage(

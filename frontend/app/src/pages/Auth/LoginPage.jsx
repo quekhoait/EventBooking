@@ -394,7 +394,7 @@ export default function LoginPage() {
           onSelectRole={handleSelectRole}
           loading={loading}
         />
-
+    
         {/* Modal 2: Bắt buộc chọn sở thích cho USER */}
         <PreferenceModal
           isOpen={showPrefModal}

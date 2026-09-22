@@ -12,13 +12,14 @@ class EventStatus(Enum):
 
 
 class EventCategory(BaseModel):
-    __tablename__ = 'event_category'
+    __tablename__ = "event_category"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False)
     image = db.Column(db.String(255), nullable=True)
 
+
 class EventModel(SoftDeleteModel):
-    __tablename__ = 'event'
+    __tablename__ = "event"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=False)
     image = db.Column(db.String(255), nullable=True)
@@ -27,7 +28,7 @@ class EventModel(SoftDeleteModel):
     max_per_user = db.Column(db.Integer, default=5)
     start_time = db.Column(db.DateTime, nullable=True)
     end_time = db.Column(db.DateTime, nullable=True)
-    #thời gian diễn ra sự kiện
+    # thời gian diễn ra sự kiện
     event_start_time = db.Column(db.DateTime, nullable=True)
     event_end_time = db.Column(db.DateTime, nullable=True)
 
@@ -38,9 +39,13 @@ class EventModel(SoftDeleteModel):
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     category_id = db.Column(db.Integer, db.ForeignKey('event_category.id'), nullable=True)
     location_name = db.Column(db.String(255))
-    seats = db.relationship('EventSeat', backref='event', lazy=True)
+    seats = db.relationship("EventSeat", backref="event", lazy=True)
+
+    is_chatbox_enabled = db.Column(db.Boolean, default=True, nullable=False)
+
     # tickets = db.relationship('TicketModel', backref='event', lazy=True)
-    discount = db.relationship('DiscountModel', backref='event', lazy=True)
+    discount = db.relationship("DiscountModel", backref="event", lazy=True)
+
 
     company = db.relationship('Company', backref='events', lazy=True)  # <-- THÊM DÒNG NÀY
     creator = db.relationship('User', backref='created_events', lazy=True)

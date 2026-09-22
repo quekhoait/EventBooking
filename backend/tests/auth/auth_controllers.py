@@ -26,9 +26,6 @@ def client(app_context):
     return app_context.test_client()
 
 
-# ============================================================
-# REGISTER
-# ============================================================
 
 def test_register_success(client, mocker):
     mock_service = mocker.patch(

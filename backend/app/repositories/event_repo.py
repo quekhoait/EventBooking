@@ -6,6 +6,15 @@ from sqlalchemy import select, or_, func
 from sqlalchemy.orm import selectinload
 
 from app import db
+from app.models import (
+    EventModel,
+    EventStatus,
+    User,
+    TicketModel,
+    Seat,
+    EventSeat,
+    EventTicketType,
+)
 from app.models.BaseModel import Notification
 from app.models import EventModel, Report,  EventStatus, User, TicketModel, Seat, EventSeat, EventTicketType
 from app.repositories import base_repo
@@ -162,6 +171,26 @@ def get_tickets(event_id: int):
 
     return tickets
 
+
+# ChatBox
+
+
+def get_is_chatbox_enabled(event_id: int) -> bool:
+    event = base_repo.get_by_id(EventModel, event_id)
+    if not event:
+        raise ValueError(f"Event with ID {event_id} not found.")
+    return event.is_chatbox_enabled
+
+
+def set_is_chatbox_enabled(event_id: int, enabled: bool) -> bool:
+    event = base_repo.get_by_id(EventModel, event_id)
+    if not event:
+        raise ValueError(f"Event with ID {event_id} not found.")
+    event.is_chatbox_enabled = enabled
+    db.session.commit()
+    return True
+
+
 def get_events_by_creator(
     creator_id: int,
     include_deleted: bool = False
@@ -188,18 +217,18 @@ def create_report(data: dict):
         event_id=data.get("event_id"),
         name=data.get("name"),
         content=data.get("content")
-    ) 
+    )
     db.session.add(new_report)
     db.session.commit()
     db.session.refresh(new_report)
-    
+
     return new_report
 
 def get_report(event_id):
      return Report.query.filter(
             Report.event_id == event_id,
         ).all()
-     
+
 def get_report_by_userId(user_id):
     return  Report.query.filter(
                 Report.user_id == user_id,

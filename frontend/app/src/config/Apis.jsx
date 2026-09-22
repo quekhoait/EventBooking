@@ -5,7 +5,7 @@ export const endpoints = {
   register: "/auth/register",
   verifyOtp: "/auth/verify-otp",
   resendOtp: "/auth/resend-otp",
-  
+
   get_event_by_creator: (creatorId) => `/events/creator/${creatorId}`,
   create_report: (eventId) => `/events/${eventId}/report`,
   get_report_by_user: "events/report_user",
@@ -26,7 +26,7 @@ export const endpoints = {
 
   categories: "/data/categories",
   ticket_types: "/data/ticket-types",
-  
+
   get_event: `/events`,
   get_event_detail: (id) => `/events/${id}`,
   get_tickets: (id) => `/events/${id}/tickets`,
@@ -46,6 +46,9 @@ export const endpoints = {
   save_company: "/data/company",
   get_locations: "/data/locations",
   get_location_tree: "/data/locations/tree",
+
+  //chatbox
+  chatbox: (id) => `/events/${id}/chatbox`,
 
   //user
   update_profile: "/user/profile",

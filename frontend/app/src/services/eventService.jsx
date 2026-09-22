@@ -35,7 +35,7 @@ export const eventService = {
     // Lấy chi tiết sự kiện
     getEventDetail: async (eventId) => {
         return await Apis().get(endpoints.get_event_detail(eventId));
-    },    
+    },
 
     getTicketsType: async (id)=> {
         return await Apis().get(endpoints.get_tickets(id))
@@ -97,3 +97,27 @@ export const eventService = {
         return await Apis().get(endpoints.get_report_by_user)
     }
 }
+    },
+
+    getChatboxStatus: async (eventId) => {
+        try {
+            const response = await Apis().get(endpoints.chatbox(eventId));
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching chatbox status:', error);
+            throw error;
+        }
+    },
+
+    setChatboxStatus: async (eventId, isEnabled) => {
+        try {
+            const response = await Apis().patch(endpoints.chatbox(eventId), {
+                is_chatbox_enabled: isEnabled,
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error setting chatbox status:', error);
+            throw error;
+        }
+    },
+};
