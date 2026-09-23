@@ -63,30 +63,40 @@ function BookingPage({ onBack }) {
     return selectedTicket.price -discount;
   }, [selectedTicket, discount]);
 
- const applyDiscount = async () => {
-  try {
-    const code = discountCode.trim().toUpperCase();
-    const res = await ticketService.getDiscount({
-      code: code,
-      event_id: eventId,
-    });
-    const discountInfo = res.data?.data;
-    if (!discountInfo) return;
-    const originalPrice = selectedTicket?.price ;
-    let discountAmount = 0;
-    if (discountInfo.unit === "percentage") {
-      discountAmount = (originalPrice * discountInfo.value) / 100;
-    } else if(discountInfo.unit === "mount"){
-      discountAmount = discountInfo.value;
-    }
-    discountAmount = Math.min(discountAmount, originalPrice);
-    setDiscount(discountAmount)
-    setDiscountId(res.data?.data.id)
 
-  } catch (err) {
-    console.error("Lỗi áp dụng mã giảm giá:", err);
-  }
-};
+  const applyDiscount = async () => {
+    try {
+      const code = discountCode.trim().toUpperCase();
+      if (!code) return; // Không gọi API nếu chưa nhập gì
+
+      const res = await ticketService.getDiscount({
+        code: code,
+        event_id: eventId,
+      });
+      
+      const discountInfo = res.data?.data;
+      console.log(discountInfo)
+      if (!discountInfo) return;
+
+      const originalPrice = selectedTicket?.price || 0;
+      let discountAmount = 0;
+
+      if (discountInfo.unit === "percentage" || discountInfo.unit === "%" ) {
+        discountAmount = (originalPrice * discountInfo.value) / 100;
+      } else if (discountInfo.unit === "amount" || discountInfo.unit === "mount") { 
+        discountAmount = discountInfo.value;
+      }
+
+      discountAmount = Math.min(discountAmount, originalPrice);
+      console.log("ds", discountAmount)
+      setDiscount(discountAmount);
+      setDiscountId(discountInfo.id);
+
+    } catch (err) {
+      console.error("Lỗi áp dụng mã giảm giá:", err);
+      alert(err.response?.data?.detail || "Mã giảm giá không hợp lệ hoặc đã hết hạn.");
+    }
+  };
 
   const handleReport = async (reportData) => {
     try {
@@ -349,7 +359,7 @@ useEffect(() => {
         </section>
 
         <OrderSummary
-          event={event}
+          event={eventDetail}
           quantity={selectedTicket ? 1 : 0}
           ticketName={selectedTicket?.ticket_type?.name || "Chưa chọn vé"}
           total={total}

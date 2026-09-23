@@ -13,7 +13,7 @@ function OrderSummary({
   continueLoading = false,
   canContinue = true,
 }) {
-
+  console.log(discount)
   const formattedDate = new Date(Date.now()).toLocaleDateString("vi-VN", {
     day: "2-digit",
     month: "2-digit",
@@ -27,7 +27,7 @@ function OrderSummary({
           <p className="font-display text-2xl font-bold uppercase">
             {completed ? "Đơn hàng hoàn tất" : "Vé của bạn"}
           </p>
-          <p className="text-xs text-[#806b60]">{event.name}</p>
+          <p className="text-xs text-[#806b60]">{event?.name}</p>
         </div>
         <span className="rounded-full bg-[#ff6b12] px-2 py-1 text-[10px] font-bold text-white">
           {quantity} VÉ
@@ -58,7 +58,7 @@ function OrderSummary({
               placeholder="Mã giảm giá"
               className="min-w-0 flex-1 rounded-lg border border-[#d8b7a0] bg-white/60 px-3 py-2 text-xs outline-none focus:border-[#ff6b12]"
             />
-            <button
+            <button type="button"
               onClick={onApplyDiscount}
               className="rounded-lg bg-[#33231d] px-3 text-xs font-bold text-white"
             >

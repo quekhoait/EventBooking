@@ -23,7 +23,7 @@ export const eventService = {
       if (params.event_to_date)
         queryParams.append("event_to_date", params.event_to_date);
 
-<<<<<<< HEAD
+
       const url = `/events?${queryParams.toString()}`;
       console.log("📤 Calling API:", url);
 
@@ -42,24 +42,6 @@ export const eventService = {
   getEventDetail: async (eventId) => {
     return await Apis().get(endpoints.get_event_detail(eventId));
   },
-=======
-    getReport: async(eventId)=> {
-        return await Apis().get(endpoints.get(eventId))
-    },
-    getReportByUser: async()=> {
-        return await Apis().get(endpoints.get_report_by_user)
-    },
-
-        getChatboxStatus: async (eventId) => {
-        try {
-            const response = await Apis().get(endpoints.chatbox(eventId));
-            return response.data;
-        } catch (error) {
-            console.error('Error fetching chatbox status:', error);
-            throw error;
-        }
-    },
->>>>>>> f0a511e6f922b652d671cfa2ad34a2c09c25fa74
 
   getTicketsType: async (id) => {
     return await Apis().get(endpoints.get_tickets(id));

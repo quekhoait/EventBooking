@@ -21,6 +21,11 @@ export default function Header() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const [notifications, setNotifications] = useState([]);
+  
+  // State quản lý xem chi tiết báo cáo
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
   const unreadNotifications = notifications.filter(
     (notification) => !notification.read,
   ).length;
@@ -32,7 +37,6 @@ export default function Header() {
       try {
         const res = await eventService.getReportByUser();
         const rawData = res.data?.data || [];
-        console.log(rawData);
         const formattedNotifications = rawData.map((item) => ({
           id: `report-${item.id}`,
           type: "report_created",
@@ -50,10 +54,10 @@ export default function Header() {
       }
     };
 
-    fetchReports(); // <-- Bắt buộc phải gọi hàm này
+    fetchReports();
   }, [user?.id]);
 
-  // 2. Lắng nghe thông báo Realtime từ Socket
+  // Lắng nghe thông báo Realtime từ Socket
   useEffect(() => {
     if (!user?.id) return undefined;
 
@@ -64,7 +68,6 @@ export default function Header() {
     };
 
     const handleReportCreated = (payload) => {
-      console.log("Socket payload:", payload);
       setNotifications((currentNotifications) => [
         {
           id: `report-${payload.report?.id || Date.now()}`,
@@ -91,6 +94,21 @@ export default function Header() {
       socket.disconnect();
     };
   }, [user?.id]);
+
+  // Hàm xử lý khi user click vào một thông báo cụ thể
+  const handleSelectNotification = (notification) => {
+    setNotifications((prev) =>
+      prev.map((item) =>
+        item.id === notification.id ? { ...item, read: true } : item
+      )
+    );
+
+    if (notification.report) {
+      setSelectedReport(notification.report);
+      setIsDetailModalOpen(true);
+      setNotificationsOpen(false); 
+    }
+  };
 
   const handleNavigateWithLoading = (
     targetPath,
@@ -332,17 +350,61 @@ export default function Header() {
               isOpen={notificationsOpen}
               onClose={() => setNotificationsOpen(false)}
               notifications={notifications}
+              onSelectNotification={handleSelectNotification}
             />
           </div>
         </div>
-
-        {/* <Nav
-          onNavigate={handleNavigateWithLoading}
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          onSearchSubmit={handleSearchSubmit}
-        /> */}
       </header>
+
+      {/* Modal hiển thị chi tiết thông tin báo cáo */}
+      {isDetailModalOpen && selectedReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-[#fff7f0] p-6 text-[#3b302b] shadow-2xl border border-[#e5b99c]">
+            <div className="flex items-center justify-between border-b border-[#f0d4c0] pb-3 mb-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[.18em] text-[#e85b2a]">Chi tiết</p>
+                <h3 className="text-lg font-bold">Nội dung báo cáo</h3>
+              </div>
+              <button 
+                onClick={() => setIsDetailModalOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-[#8a6b5b] transition-colors hover:bg-[#ffe6d2] hover:text-[#3b302b] cursor-pointer"
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <div className="space-y-3 text-sm">
+              <div>
+                <span className="font-semibold">Sự kiện: </span>
+                <span className="italic">{selectedReport.event?.name || "Không rõ"}</span>
+              </div>
+              <div>
+                <span className="font-semibold">Tiêu đề vấn đề: </span>
+                <span>{selectedReport.name}</span>
+              </div>
+              <div>
+                <span className="font-semibold">Nội dung chi tiết: </span>
+                <p className="mt-1 rounded-xl bg-white p-3 italic text-gray-800 border border-[#f0d4c0]">
+                  {selectedReport.content}
+                </p>
+              </div>
+              <div>
+                <span className="font-semibold">Thời gian gửi: </span>
+                <span>{new Date(selectedReport.created_at).toLocaleString("vi-VN")}</span>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                className="rounded-full bg-black px-6 py-2 text-xs font-bold uppercase text-white hover:bg-gray-800 cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
