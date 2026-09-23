@@ -5,7 +5,6 @@ import OrderSummary from "../components/OrderSummary";
 import TicketSelector from "../components/TicketSelector";
 import ReportModal from "../components/events/ModelReport";
 import { EventContext } from "../context/EventContext";
-import { eventServices } from "../services/eventServices";
 import { ticketService } from "../services/ticketServices";
 import DigitalTicketPage from "./DigitalTicketPage";
 import { logError } from "../utils/log";

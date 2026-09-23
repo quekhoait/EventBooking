@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { baseDataService } from "../../services/baseDataService";
 import companyServices from "../../services/companyServices";
-
+import { eventService } from "../../services/eventService";
 import EventForm from "../../components/events/EventForm";
 import { emptyEventForm } from "../../components/events/eventModel";
 
@@ -26,6 +26,50 @@ export default function CreateEventPage() {
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState("");
 
+  const [chatboxEnabled, setChatboxEnabled] = useState(false);
+  const [chatboxLoading, setChatboxLoading] = useState(false);
+  const [chatboxError, setChatboxError] = useState("");
+
+  const handleGetChatboxStatus = async (eventId) => {
+    if (!eventId) return;
+
+    try {
+      setChatboxLoading(true);
+      setChatboxError("");
+
+      const response = await eventService.getChatboxStatus(eventId);
+
+      const data = response?.data ?? response;
+
+      setChatboxEnabled(Boolean(data?.is_chatbox_enabled));
+    } catch (error) {
+      console.error("Error fetching chatbox status:", error);
+      setChatboxError("Không thể lấy trạng thái chatbox.");
+    } finally {
+      setChatboxLoading(false);
+    }
+  };
+
+  const handleSetChatboxStatus = async (eventId, isEnabled) => {
+    if (!eventId) return;
+
+    try {
+      setChatboxLoading(true);
+      setChatboxError("");
+
+      const response = await eventService.setChatboxStatus(eventId, isEnabled);
+
+      const data = response?.data ?? response;
+
+      setChatboxEnabled(Boolean(data?.is_chatbox_enabled));
+    } catch (error) {
+      console.error("Error setting chatbox status:", error);
+      setChatboxError("Không thể cập nhật trạng thái chatbox.");
+    } finally {
+      setChatboxLoading(false);
+    }
+  };
+
   useEffect(() => {
     let active = true;
     Promise.all([
@@ -36,14 +80,21 @@ export default function CreateEventPage() {
         ? companyServices.getCompanyByUserId(user.id)
         : Promise.resolve(null),
     ])
-      .then(([categoryResponse, locationResponse, ticketTypeResponse, companyResponse]) => {
-        if (!active) return;
-        setCategories(unwrapList(categoryResponse));
-        setLocations(unwrapList(locationResponse));
-        setTicketTypes(unwrapList(ticketTypeResponse));
-        const company = companyResponse?.data ?? companyResponse;
-        setCompanyId(company?.id ?? company?.company_id ?? null);
-      })
+      .then(
+        ([
+          categoryResponse,
+          locationResponse,
+          ticketTypeResponse,
+          companyResponse,
+        ]) => {
+          if (!active) return;
+          setCategories(unwrapList(categoryResponse));
+          setLocations(unwrapList(locationResponse));
+          setTicketTypes(unwrapList(ticketTypeResponse));
+          const company = companyResponse?.data ?? companyResponse;
+          setCompanyId(company?.id ?? company?.company_id ?? null);
+        },
+      )
       .catch(() =>
         setError("Không thể tải dữ liệu biểu mẫu. Vui lòng thử lại."),
       )
@@ -89,6 +140,11 @@ export default function CreateEventPage() {
             catalogMode
             saveContext={{ companyId, userId: user.id }}
             onCancel={() => navigate(-1)}
+            chatboxEnabled={chatboxEnabled}
+            chatboxLoading={chatboxLoading}
+            chatboxError={chatboxError}
+            onGetChatboxStatus={handleGetChatboxStatus}
+            onSetChatboxStatus={handleSetChatboxStatus}
           />
         </div>
       </div>

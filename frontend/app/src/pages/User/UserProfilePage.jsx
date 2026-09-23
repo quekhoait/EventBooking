@@ -71,7 +71,6 @@ export default function UserProfilePage() {
 
   const [tickets, setTickets] = useState([]);
 
-
   // Nạp Preferences (User)
   const fetchPreferences = useCallback(async (userId) => {
     if (!userId) return;
@@ -96,8 +95,8 @@ export default function UserProfilePage() {
   const fetchTickets = useCallback(async () => {
     try {
       const response = await ticketService.getTicketByUserId();
-      console.log(response.data.data)
-      setTickets(response?.data.data)
+      console.log(response.data.data);
+      setTickets(response?.data.data);
     } catch (error) {
       console.error("Lỗi khi tải danh sách vé:", error);
       setTickets([]);
@@ -256,9 +255,20 @@ export default function UserProfilePage() {
                 </div>
 
                 {/* Badge trạng thái */}
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-[11px] font-bold text-amber-800">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
-                  Đang chờ duyệt từ Admin
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold ${
+                    company?.is_active
+                      ? "bg-green-100 text-green-800"
+                      : "bg-red-100 text-red-800"
+                  }`}
+                >
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      company?.is_active ? "bg-green-500" : "bg-red-500"
+                    }`}
+                  />
+
+                  {company?.is_active ? "Đang hoạt động" : "Đã bị khóa"}
                 </span>
               </div>
 

@@ -1,3 +1,4 @@
+import json
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import true
@@ -12,8 +13,18 @@ from app.dto.event_dto import (
     EventTicketTypeSchema,
     EventSeatDetailSchema,
 )
-from app.dto.event_dto import EventDraftSchema, EventPublishSchema, EventDetailResponseSchema, EventUpdateSchema, \
-    EventFilterQuerySchema, EventListResponseSchema, EventTicketTypeSchema,ReportEventResponse, EventSeatDetailSchema, ReportEventSchema
+from app.dto.event_dto import (
+    EventDraftSchema,
+    EventPublishSchema,
+    EventDetailResponseSchema,
+    EventUpdateSchema,
+    EventFilterQuerySchema,
+    EventListResponseSchema,
+    EventTicketTypeSchema,
+    ReportEventResponse,
+    EventSeatDetailSchema,
+    ReportEventSchema,
+)
 from app.models import EventStatus, UserModel
 from app.services import event_service
 from app import socketio, user_room
@@ -21,8 +32,7 @@ from app.utils.middleware import require_organizer
 from app.utils.json import NewPackage, StatusResponse
 from app.utils.validation import upload_image_file
 
-
-event_bp = Blueprint('event', __name__)
+event_bp = Blueprint("event", __name__)
 
 # Khai báo 2 instance Schema
 event_draft_schema = EventDraftSchema()
@@ -47,12 +57,13 @@ def _parse_event_payload():
     if image_file and image_file.filename:
         json_data["image"] = upload_image_file(image_file, folder="events/images")
 
-
     # Parse danh sách ghế nếu được gửi dạng chuỗi JSON trong form
     event_seats = json_data.get("event_seats")
     if isinstance(event_seats, str):
         try:
-            json_data["event_seats"] = json.loads(event_seats) if event_seats.strip() else []
+            json_data["event_seats"] = (
+                json.loads(event_seats) if event_seats.strip() else []
+            )
         except ValueError:
             json_data["event_seats"] = []
 
@@ -60,20 +71,28 @@ def _parse_event_payload():
 
 
 @event_bp.route("/events", methods=["POST"])
+@jwt_required()
 def create_event():
     json_data = _parse_event_payload()
+    print("Received JSON data:", json_data)  # Debugging line
     user = require_organizer()
     creator_id = user.id
     json_data["company_id"] = user.company_id
+    json_data["creator_id"] = creator_id
 
-    raw_status = str(json_data.get('status', EventStatus.PUBLISHED.name)).upper()
+    raw_status = str(json_data.get("status", EventStatus.PUBLISHED.name)).upper()
     if raw_status == EventStatus.PUBLISHED.name:
         event_dto = event_publish_schema.load(json_data)
-        created_event = event_service.create_and_publish_event(event_dto)
+
+        created_event = event_service.create_and_publish_event(
+            event_dto, creator_id=creator_id
+        )
         message = "Xuất bản sự kiện thành công"
     else:
         event_dto = event_draft_schema.load(json_data)
-        created_event = event_service.create_draft_event(event_dto)
+        created_event = event_service.create_draft_event(
+            event_dto, creator_id=creator_id
+        )
         message = "Lưu nháp sự kiện thành công"
 
     # 3. Trả về response
@@ -81,10 +100,12 @@ def create_event():
         status=StatusResponse.SUCCESS,
         data={"id": created_event.id},
         message=message,
-        status_code=201
+        status_code=201,
     )
 
-@event_bp.route('/events/<int:event_id>', methods=['GET'])
+
+@event_bp.route("/events/<int:event_id>", methods=["GET"])
+@jwt_required()
 def get_event_detail(event_id: int):
     event = event_service.get_event_detail(event_id)
 
@@ -94,10 +115,11 @@ def get_event_detail(event_id: int):
         status=StatusResponse.SUCCESS,
         data=event_data,
         message="Lấy thông tin chi tiết sự kiện thành công",
-        status_code=200
+        status_code=200,
     )
 
-@event_bp.route('/events/<int:event_id>', methods=['PATCH'])
+
+@event_bp.route("/events/<int:event_id>", methods=["PATCH"])
 @jwt_required()
 def update_event(event_id: int):
     json_data = _parse_event_payload()
@@ -114,18 +136,17 @@ def update_event(event_id: int):
         status=StatusResponse.SUCCESS,
         data=event_data,
         message="Cập nhật sự kiện thành công",
-        status_code=200
+        status_code=200,
     )
 
-@event_bp.route('/events', methods=['GET'])
+
+@event_bp.route("/events", methods=["GET"])
 def get_events():
     # 1. Validate & Parse query parameters từ URL qua Schema
     query_params = event_filter_schema.load(request.args)
 
     # 2. Gọi service xử lý Load More (truy vấn 1 query duy nhất)
-    response_dto = event_service.get_events_load_more(
-        **vars(query_params)
-    )
+    response_dto = event_service.get_events_load_more(**vars(query_params))
 
     # 3. Serialize danh sách EventModel -> JSON List qua Response Schema
     serialized_items = event_list_schema.dump(response_dto.items, many=True)
@@ -137,13 +158,14 @@ def get_events():
             "items": serialized_items,
             "page": response_dto.page,
             "page_size": response_dto.page_size,
-            "has_next": response_dto.has_next
+            "has_next": response_dto.has_next,
         },
         message="Lấy danh sách sự kiện thành công",
-        status_code=200
+        status_code=200,
     )
 
-@event_bp.route('/events/creator/<int:creator_id>', methods=['GET'])
+
+@event_bp.route("/events/creator/<int:creator_id>", methods=["GET"])
 def get_events_by_creator(creator_id: int):
     events = event_service.get_events_by_creator(creator_id=creator_id)
     serialized_items = event_list_schema.dump(events, many=True)
@@ -155,7 +177,8 @@ def get_events_by_creator(creator_id: int):
         status_code=200,
     )
 
-@event_bp.route('/events/<int:event_id>', methods=['DELETE'])
+
+@event_bp.route("/events/<int:event_id>", methods=["DELETE"])
 @jwt_required()
 def delete_event(event_id: int):
     require_organizer()
@@ -165,10 +188,11 @@ def delete_event(event_id: int):
         status=StatusResponse.SUCCESS,
         data=None,
         message="Xóa sự kiện thành công.",
-        status_code=204
+        status_code=204,
     )
 
-@event_bp.route('/events/<int:event_id>/cancel', methods=['PATCH'])
+
+@event_bp.route("/events/<int:event_id>/cancel", methods=["PATCH"])
 @jwt_required()
 def cancel_event(event_id: int):
     require_organizer()
@@ -179,10 +203,11 @@ def cancel_event(event_id: int):
         status=StatusResponse.SUCCESS,
         data=event_data,
         message="Hủy sự kiện thành công.",
-        status_code=200
+        status_code=200,
     )
 
-@event_bp.route('/events/<int:event_id>/restore', methods=['PATCH'])
+
+@event_bp.route("/events/<int:event_id>/restore", methods=["PATCH"])
 @jwt_required()
 def restore_event(event_id: int):
     require_organizer()
@@ -192,10 +217,11 @@ def restore_event(event_id: int):
         status=StatusResponse.SUCCESS,
         data=None,
         message="Khôi phục sự kiện thành công.",
-        status_code=200
+        status_code=200,
     )
 
-@event_bp.route('/events/<int:event_id>/publish', methods=['PATCH'])
+
+@event_bp.route("/events/<int:event_id>/publish", methods=["PATCH"])
 @jwt_required()
 def publish_event(event_id: int):
     require_organizer()
@@ -209,10 +235,11 @@ def publish_event(event_id: int):
         status=StatusResponse.SUCCESS,
         data=event_data,
         message="Xuất bản sự kiện thành công.",
-        status_code=200
+        status_code=200,
     )
 
-@event_bp.route('/events/<int:event_id>/tickets', methods=['GET'])
+
+@event_bp.route("/events/<int:event_id>/tickets", methods=["GET"])
 def get_tickets(event_id: int):
     data = event_service.get_tickets(event_id)
     tickets = EventSeatDetailSchema(many=True).dump(data)
@@ -256,9 +283,9 @@ def update_chatbox_status(event_id: int):
     )
 
 
-@event_bp.route('/events/<int:event_id>/report', methods=['POST'])
+@event_bp.route("/events/<int:event_id>/report", methods=["POST"])
 def createReport(event_id: int):
-    payload = ReportEventSchema().load(request.get_json()  )
+    payload = ReportEventSchema().load(request.get_json())
     result = event_service.create_report(event_id=event_id, data=payload)
     schema = ReportEventResponse().dump(result)
     organizer_id = event_service.get_event_creator_id(event_id)
@@ -277,34 +304,36 @@ def createReport(event_id: int):
                 to=user_room(recipient_id),
             )
     return NewPackage(
-            status=StatusResponse.SUCCESS,
-            data=schema,
-            message="Tạo báo cáo thành công",
-            status_code=200
-        )
+        status=StatusResponse.SUCCESS,
+        data=schema,
+        message="Tạo báo cáo thành công",
+        status_code=200,
+    )
 
-@event_bp.route('/events/<int:event_id>/report', methods=['GET'])
+
+@event_bp.route("/events/<int:event_id>/report", methods=["GET"])
 @jwt_required()
-def getReport(event_id:int):
+def getReport(event_id: int):
     user_id = get_jwt_identity()
     res = event_service.get_report(event_id=event_id, user_id=user_id)
     schema = ReportEventResponse(many=True).dump(res)
     return NewPackage(
-            status=StatusResponse.SUCCESS,
-            data=schema,
-            message="lấy báo cáo thành công",
-            status_code=200
-        )
+        status=StatusResponse.SUCCESS,
+        data=schema,
+        message="lấy báo cáo thành công",
+        status_code=200,
+    )
 
-@event_bp.route('/events/report_user', methods=['GET'])
+
+@event_bp.route("/events/report_user", methods=["GET"])
 @jwt_required()
 def getReportUser():
     user_id = get_jwt_identity()
     res = event_service.get_report_by_userId(user_id=user_id)
     schema = ReportEventResponse(many=True).dump(res)
     return NewPackage(
-            status=StatusResponse.SUCCESS,
-            data=schema,
-            message="lấy báo cáo thành công",
-            status_code=200
-        )
+        status=StatusResponse.SUCCESS,
+        data=schema,
+        message="lấy báo cáo thành công",
+        status_code=200,
+    )

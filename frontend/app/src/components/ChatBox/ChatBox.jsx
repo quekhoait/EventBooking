@@ -1,8 +1,14 @@
-import { useEffect, useState } from "react";
-import { FaRegCommentDots, FaPaperPlane, FaTimes } from "react-icons/fa";
+import { useEffect, useMemo, useState } from "react";
+
+import {
+  FaRegCommentDots,
+  FaPaperPlane,
+  FaTimes,
+} from "react-icons/fa";
 
 import { useEvent } from "../../context/EventContext";
 import { useAuth } from "../../context/AuthContext";
+
 import { chatServices } from "../../services/chat.service";
 import { eventService } from "../../services/eventService";
 
@@ -11,96 +17,235 @@ const ChatBox = () => {
   const { user } = useAuth();
 
   const [isOpen, setIsOpen] = useState(false);
-  const [isChatboxEnabled, setIsChatboxEnabled] = useState(false);
+
+  const [isChatboxEnabled, setIsChatboxEnabled] =
+    useState(false);
+
   const [message, setMessage] = useState("");
+
   const [messages, setMessages] = useState([]);
 
-  const eventId = eventDetail?.id;
-  const userId = user?.id;
-  const companyName = eventDetail?.company?.name || "Đơn vị tổ chức";
+  const [chatLoading, setChatLoading] =
+    useState(false);
 
-  // Lấy trạng thái ChatBox từ API
+  const eventId = eventDetail?.id;
+
+  const userId = user?.id;
+
+  /*
+   * ==========================================
+   * LẤY ORGANIZER ID
+   * ==========================================
+   *
+   * Ưu tiên creator_id.
+   *
+   * Nếu API event của bạn dùng company.id
+   * thì fallback sang company.id.
+   */
+  const organizerId =
+    eventDetail?.creator_id ??
+    eventDetail?.creator?.id ??
+    eventDetail?.company?.id ??
+    null;
+
+  const companyName =
+    eventDetail?.company?.name ||
+    eventDetail?.creator?.name ||
+    "Đơn vị tổ chức";
+
+  /*
+   * ==========================================
+   * LẤY TRẠNG THÁI CHATBOX
+   * ==========================================
+   */
   useEffect(() => {
     if (!eventId) {
       setIsChatboxEnabled(false);
+      setIsOpen(false);
       return;
     }
 
+    let cancelled = false;
+
     const fetchChatboxStatus = async () => {
       try {
-        const response = await eventService.getChatboxStatus(eventId);
+        const response =
+          await eventService.getChatboxStatus(
+            eventId
+          );
 
-        const enabled = response?.data?.is_chatbox_enabled === true;
+        if (cancelled) return;
+
+        const data =
+          response?.data ?? response;
+
+        const enabled =
+          data?.is_chatbox_enabled === true;
 
         setIsChatboxEnabled(enabled);
 
-        // Nếu backend tắt chat trong lúc đang mở
         if (!enabled) {
           setIsOpen(false);
         }
       } catch (error) {
-        console.error("Failed to get chatbox status:", error);
+        if (cancelled) return;
+
+        console.error(
+          "Failed to get chatbox status:",
+          error
+        );
+
         setIsChatboxEnabled(false);
         setIsOpen(false);
       }
     };
 
     fetchChatboxStatus();
+
+    return () => {
+      cancelled = true;
+    };
   }, [eventId]);
 
-  // Lắng nghe tin nhắn Firebase
+  /*
+   * ==========================================
+   * REALTIME MESSAGE
+   * ==========================================
+   */
   useEffect(() => {
-    if (!eventId || !isChatboxEnabled) return;
+    if (
+      !eventId ||
+      !userId ||
+      !organizerId ||
+      !isChatboxEnabled
+    ) {
+      setMessages([]);
+      return;
+    }
 
-    const unsubscribe = chatServices.subscribeMessages(eventId, (data) => {
-      setMessages(data);
-    });
+    const unsubscribe =
+      chatServices.subscribeMessages(
+        eventId,
+        (data) => {
+          /*
+           * User chỉ xem conversation của mình
+           */
+          const myMessages = data.filter(
+            (item) => {
+              const isMyMessage =
+                Number(item.sender_id) ===
+                Number(userId) &&
+                item.sender_type === "user";
+
+              const isOrganizerMessage =
+                Number(item.sender_id) ===
+                  Number(organizerId) &&
+                item.sender_type ===
+                  "organizer" &&
+                Number(item.receiver_id) ===
+                  Number(userId);
+
+              return (
+                isMyMessage ||
+                isOrganizerMessage
+              );
+            }
+          );
+
+          setMessages(myMessages);
+        }
+      );
 
     return unsubscribe;
-  }, [eventId, isChatboxEnabled]);
+  }, [
+    eventId,
+    userId,
+    organizerId,
+    isChatboxEnabled,
+  ]);
 
-  // Gửi tin nhắn
+  /*
+   * ==========================================
+   * GỬI MESSAGE
+   * ==========================================
+   */
   const handleSend = async () => {
     const text = message.trim();
 
-    if (!text || !eventId || !userId || !isChatboxEnabled) {
+    if (
+      !text ||
+      !eventId ||
+      !userId ||
+      !organizerId ||
+      !isChatboxEnabled ||
+      chatLoading
+    ) {
       return;
     }
 
     try {
+      setChatLoading(true);
+
       await chatServices.sendMessage({
         eventId,
+
         senderId: userId,
         senderType: "user",
+
+        receiverId: organizerId,
+        receiverType: "organizer",
+
         content: text,
       });
 
       setMessage("");
     } catch (error) {
-      console.error("Send message error:", error);
+      console.error(
+        "Send user message error:",
+        error
+      );
+    } finally {
+      setChatLoading(false);
     }
   };
 
-  // Enter để gửi
+  /*
+   * ==========================================
+   * ENTER ĐỂ GỬI
+   * ==========================================
+   */
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
+
       handleSend();
     }
   };
 
-  // Không có event, user hoặc ChatBox bị tắt
-  if (!eventId || !userId || !isChatboxEnabled) {
+  /*
+   * ==========================================
+   * KHÔNG ĐỦ DỮ LIỆU
+   * ==========================================
+   */
+  if (
+    !eventId ||
+    !userId ||
+    !organizerId ||
+    !isChatboxEnabled
+  ) {
     return null;
   }
 
   return (
     <>
-      {/* Floating button */}
+      {/* =====================================
+          FLOATING BUTTON
+      ====================================== */}
       {!isOpen && (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center">
-         <span className="relative mb-2 rounded-lg border border-[#ff985c]/30 bg-[#ff985c] px-3 py-1.5 text-[11px] font-semibold text-white shadow-lg shadow-[#ff985c]/20">
+          <span className="relative mb-2 rounded-lg border border-[#ff985c]/30 bg-[#ff985c] px-3 py-1.5 text-[11px] font-semibold text-white shadow-lg shadow-[#ff985c]/20">
             Hỗ trợ
+
             <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-[#ff985c]" />
           </span>
 
@@ -115,10 +260,13 @@ const ChatBox = () => {
         </div>
       )}
 
-      {/* Chat window */}
+      {/* =====================================
+          CHAT WINDOW
+      ====================================== */}
       {isOpen && (
         <div className="fixed bottom-6 right-6 z-50 flex h-[500px] w-[360px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#1b1c1d] shadow-2xl">
-          {/* Header */}
+
+          {/* HEADER */}
           <div className="flex h-16 shrink-0 items-center justify-between bg-[#ff985c] px-4 text-white">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20">
@@ -126,7 +274,7 @@ const ChatBox = () => {
               </div>
 
               <div className="min-w-0 flex-1">
-                <h3 className="truncate text-[13px] font-semibold leading-5 text-white">
+                <h3 className="truncate text-[13px] font-semibold leading-5">
                   {companyName}
                 </h3>
 
@@ -150,11 +298,11 @@ const ChatBox = () => {
             </button>
           </div>
 
-          {/* Messages */}
+          {/* MESSAGES */}
           <div className="flex-1 space-y-3 overflow-y-auto bg-[#111213] p-4">
             {messages.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-center text-sm text-white/40">
-                <div className="text-center text-white/70">
+              <div className="flex h-full items-center justify-center text-center">
+                <div>
                   <FaRegCommentDots
                     className="mx-auto mb-3 text-white/50"
                     size={28}
@@ -165,19 +313,25 @@ const ChatBox = () => {
                   </p>
 
                   <p className="mt-1 text-xs text-white/50">
-                    Bạn có thể gửi tin nhắn để được hỗ trợ
+                    Bạn có thể gửi tin nhắn để
+                    được hỗ trợ
                   </p>
                 </div>
               </div>
             ) : (
               messages.map((item) => {
-                const isUser = item.sender_type === "user";
+                const isUser =
+                  item.sender_type === "user" &&
+                  Number(item.sender_id) ===
+                    Number(userId);
 
                 return (
                   <div
                     key={item.id}
                     className={`flex ${
-                      isUser ? "justify-end" : "justify-start"
+                      isUser
+                        ? "justify-end"
+                        : "justify-start"
                     }`}
                   >
                     <div
@@ -195,21 +349,27 @@ const ChatBox = () => {
             )}
           </div>
 
-          {/* Input */}
+          {/* INPUT */}
           <div className="flex shrink-0 gap-2 border-t border-white/10 bg-[#1b1c1d] p-3">
             <input
               type="text"
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={(e) =>
+                setMessage(e.target.value)
+              }
               onKeyDown={handleKeyDown}
               placeholder="Nhập tin nhắn..."
-              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#242526] px-3.5 text-sm text-white outline-none placeholder:text-white/40 focus:border-[#ff985c]"
+              disabled={chatLoading}
+              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#242526] px-3.5 text-sm text-white outline-none placeholder:text-white/40 focus:border-[#ff985c] disabled:opacity-50"
             />
 
             <button
               type="button"
               onClick={handleSend}
-              disabled={!message.trim()}
+              disabled={
+                !message.trim() ||
+                chatLoading
+              }
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#ff985c] text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Gửi tin nhắn"
             >

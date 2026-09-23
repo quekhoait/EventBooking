@@ -24,9 +24,11 @@ from tests.test_manage_event.conftest import event
 def create_and_publish_event(event_dto, creator_id: int | None = None) -> EventModel:
     location, company, category = _validate_publish_event(event_dto)
 
-    seats_dto_list = getattr(event_dto, 'event_seats', [])
+    seats_dto_list = getattr(event_dto, "event_seats", [])
     if not seats_dto_list:
         raise AppException(ErrorCode.EVENT_MUST_HAVE_SEATS)
+
+    print("Creating and publishing event with data:", vars(event_dto))  # Debugging line
 
     # 3. Tạo và lưu Event
     location_name = location.full_name
@@ -39,7 +41,7 @@ def create_and_publish_event(event_dto, creator_id: int | None = None) -> EventM
 
 
 def create_draft_event(event_dto, creator_id: int | None = None) -> EventModel:
-    location_id = getattr(event_dto, 'location_id', None)
+    location_id = getattr(event_dto, "location_id", None)
     location_name = _get_location_name(location_id)
     return _save_event_to_db(
         event_dto,
@@ -64,10 +66,10 @@ def update_event(event_id: int, event_dto) -> EventModel:
     event_data = dict(vars(event_dto))
 
     # Tách danh sách ghế nếu có truyền lên
-    seats_dto_list = event_data.pop('event_seats', None)
+    seats_dto_list = event_data.pop("event_seats", None)
 
     # 2. Xử lý location_name nếu location_id thay đổi
-    new_location_id = event_data.get('location_id')
+    new_location_id = event_data.get("location_id")
     if new_location_id and new_location_id != event.location_id:
         event.location_name = _get_location_name(new_location_id)
 
@@ -92,20 +94,14 @@ def update_event(event_id: int, event_dto) -> EventModel:
 
 
 def get_events_load_more(
-        page: int = 1,
-        page_size: int = 10,
-        **filters
+    page: int = 1, page_size: int = 10, **filters
 ) -> LoadMoreResponse[EventModel]:
     items, has_next = event_repo.get_events_load_more(
-        status=EventStatus.PUBLISHED,
-        **filters
+        status=EventStatus.PUBLISHED, **filters
     )
 
     return LoadMoreResponse(
-        items=items,
-        page=page,
-        page_size=page_size,
-        has_next=has_next
+        items=items, page=page, page_size=page_size, has_next=has_next
     )
 
 
@@ -140,10 +136,7 @@ def cancel_event(event_id: int) -> EventModel:
 
     # Phát signal kèm theo thông tin event
     # current_app._get_current_object() được truyền để đảm bảo context đúng khi sang thread khác
-    event_cancelled_signal.send(
-        current_app._get_current_object(),
-        event=saved_event
-    )
+    event_cancelled_signal.send(current_app._get_current_object(), event=saved_event)
 
     return saved_event
 
@@ -233,7 +226,7 @@ def _validate_publish_event(event_dto, exclude_event_id: int | None = None):
         company_id=event_dto.company_id,
         name=event_dto.name,
         event_start_time=event_dto.event_start_time,
-        exclude_event_id=exclude_event_id
+        exclude_event_id=exclude_event_id,
     )
     if is_duplicated:
         raise AppException(ErrorCode.EVENT_NAME_EXISTS)
@@ -241,13 +234,15 @@ def _validate_publish_event(event_dto, exclude_event_id: int | None = None):
     return location, company, category
 
 
-def _save_event_seats(event_id: int, seats_dto_list: list, validate_ticket_type: bool = False):
+def _save_event_seats(
+    event_id: int, seats_dto_list: list, validate_ticket_type: bool = False
+):
     """Thêm danh sách ghế cho Event."""
     for seat_dto in seats_dto_list:
         seat_data = vars(seat_dto) if not isinstance(seat_dto, dict) else seat_dto
 
         if validate_ticket_type:
-            ticket_type_id = seat_data.get('event_ticket_type_id')
+            ticket_type_id = seat_data.get("event_ticket_type_id")
             ticket_type = base_repo.get_by_id(EventTicketType, ticket_type_id)
             if not ticket_type:
                 raise AppException(f"Loại vé có ID {ticket_type_id} không tồn tại.")
@@ -258,7 +253,7 @@ def _save_event_seats(event_id: int, seats_dto_list: list, validate_ticket_type:
 def _save_event_to_db(event_dto, status: EventStatus, **kwargs) -> EventModel:
     """Hàm dùng chung cho việc khởi tạo Event & Seats vào DB."""
     event_data = dict(vars(event_dto))
-    seats_dto_list = event_data.pop('event_seats', [])
+    seats_dto_list = event_data.pop("event_seats", [])
 
     event_data.update(kwargs)
     try:
@@ -289,7 +284,8 @@ def _get_location_name(location_id: int | None) -> str | None:
         return None
     return location.full_name
 
-def get_tickets(id)->EventTicketType:
+
+def get_tickets(id) -> EventTicketType:
     if not id:
         return None
     return event_repo.get_tickets(id)
@@ -303,25 +299,27 @@ def get_is_chatbox_enabled(event_id: int) -> bool:
     return is_chatbox_enabled
 
 
-def set_is_chatbox_enabled(event_id: int, enabled: bool) -> EventModel:
-    """Cập nhật trạng thái is_chatbox_enabled của một sự kiện."""
+def set_is_chatbox_enabled(event_id: int, enabled: bool) -> bool:
+    is_chatbox_enabled = event_repo.set_is_chatbox_enabled(
+        event_id,
+        enabled,
+    )
 
-    is_chatbox_enabled = event_repo.set_is_chatbox_enabled(event_id, enabled)
     if is_chatbox_enabled is None:
         raise AppException(ErrorCode.EVENT_NOT_FOUND)
-    saved_event = base_repo.save(event)
-    return saved_event
+
+    return is_chatbox_enabled
 
 
-#Lấy sự kiện theo người tạo
+# Lấy sự kiện theo người tạo
 def get_events_by_creator(
-    creator_id: int,
-    include_deleted: bool = False
+    creator_id: int, include_deleted: bool = False
 ) -> list[EventModel]:
     return event_repo.get_events_by_creator(
-        creator_id=creator_id,
-        include_deleted=include_deleted
+        creator_id=creator_id, include_deleted=include_deleted
     )
+
+
 def create_report(event_id, data):
     user_id = getattr(data, "user_id", None) or 1
 
@@ -329,7 +327,7 @@ def create_report(event_id, data):
         "user_id": user_id,
         "event_id": event_id,
         "name": data.name,
-        "content": data.content
+        "content": data.content,
     }
 
     report = event_repo.create_report(data=report_data)
@@ -340,10 +338,11 @@ def get_event_creator_id(event_id):
     event = event_repo.get_event_by_id(event_id=event_id)
     return event.creator_id if event else None
 
+
 def get_report(event_id, user_id):
-    event = event_repo.get_event_by_id(event_id=event_id);
+    event = event_repo.get_event_by_id(event_id=event_id)
     if event.creator_id != user_id:
-         raise AppException("Thông tin khôn ghợp lệ!", status_code=400)
+        raise AppException("Thông tin khôn ghợp lệ!", status_code=400)
     report = event_repo.get_report(event_id=event_id)
     return report
 
@@ -352,4 +351,3 @@ def get_report_by_userId(user_id):
 
     report = event_repo.get_report_by_userId(user_id=user_id)
     return report
-

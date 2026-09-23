@@ -3,47 +3,83 @@ import { money, statsFor, statusLabel } from "./eventManagementUtils";
 export default function EventRow({
   event,
   onOpen,
+  onOpenChat,
   onEdit,
   onAddDiscount,
   onDelete,
+  chatUserCount = 0,
 }) {
   const stats = statsFor(event);
+
   return (
     <article
       onClick={() => onOpen(event)}
       className="grid cursor-pointer gap-4 border-b border-[#D6D1C8] p-5 transition hover:bg-white lg:grid-cols-[minmax(230px,1.5fr)_120px_130px_150px_auto] lg:items-center"
     >
+      {/* Event */}
       <div className="flex gap-3">
         <img
           src={event.image}
           alt=""
           className="h-16 w-20 rounded-lg object-cover"
         />
+
         <div>
           <h3 className="font-display text-xl uppercase">{event.name}</h3>
+
           <p className="mt-1 text-xs text-[#8A8781]">
             {event.category} · {event.date} · {event.venue}
           </p>
+
           <span className="mt-2 inline-block rounded-full bg-[#171717] px-2 py-1 text-[10px] font-bold uppercase text-white">
             {statusLabel[event.status]}
           </span>
         </div>
       </div>
+
+      {/* Đã bán */}
       <div>
         <small>Đã bán</small>
+
         <strong className="block">
           {stats.sold} / {stats.capacity}
         </strong>
       </div>
+
+      {/* Doanh thu */}
       <div>
         <small>Doanh thu</small>
+
         <strong className="block">{money(stats.revenue)}</strong>
       </div>
+
+      {/* Loại vé */}
       <div>
         <small>Loại vé</small>
+
         <strong className="block">{event.ticketTypes?.length || 0} loại</strong>
       </div>
+
+      {/* Buttons */}
       <div className="flex flex-wrap gap-2 lg:justify-end">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenChat?.(event);
+          }}
+          className="relative flex items-center gap-2 rounded-lg border border-[#ff985c]/40 bg-[#ff985c]/10 px-3 py-2 text-[10px] font-bold uppercase text-[#ff985c] transition hover:border-[#ff985c] hover:bg-[#ff985c]/20"
+        >
+          <span>Tin nhắn</span>
+
+          {chatUserCount > 0 && (
+            <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow-md shadow-red-500/30 ring-2 ring-[#F4F1EB]">
+              {chatUserCount > 99 ? "99+" : chatUserCount}
+            </span>
+          )}
+        </button>
+
+        {/* EDIT */}
         <button
           type="button"
           onClick={(e) => {
@@ -54,6 +90,8 @@ export default function EventRow({
         >
           Sửa
         </button>
+
+        {/* DISCOUNT */}
         <button
           type="button"
           onClick={(e) => {
@@ -64,6 +102,8 @@ export default function EventRow({
         >
           + Discount
         </button>
+
+        {/* DELETE */}
         <button
           type="button"
           onClick={(e) => {

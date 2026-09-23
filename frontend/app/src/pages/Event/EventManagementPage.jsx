@@ -1,14 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import EventForm from "../../components/events/EventForm";
 import RevenueReport from "../../components/events/RevenueReport";
 import DiscountEditor from "../../components/events/DiscountEditor";
-import EventDetail from "../../components/events/EventDetail";
 import EventModal from "../../components/events/EventModal";
 import EventRow from "../../components/events/EventRow";
+import { chatServices } from "../../services/chat.service";
 import { emptyEventForm } from "../../components/events/eventModel";
-import { money, normalizeEventsResponse, statsFor } from "../../components/events/eventManagementUtils";
+import {
+  money,
+  normalizeEventsResponse,
+  statsFor,
+} from "../../components/events/eventManagementUtils";
 import { eventService } from "../../services/eventService";
 import { baseDataService } from "../../services/baseDataService";
 import { useCategories } from "../../hooks/useCategories";
@@ -17,8 +21,19 @@ import { logError } from "../../utils/log";
 import { ticketService } from "../../services/ticketServices";
 
 async function loadCreatorEvents(creatorId) {
+  console.log("===== GET CREATOR EVENTS =====");
+  console.log("creatorId:", creatorId);
+
   const res = await eventService.getEventbyCreator(creatorId);
-  return normalizeEventsResponse(res) || [];
+
+  console.log("RAW RESPONSE:", res);
+
+  const normalized = normalizeEventsResponse(res) || [];
+
+  console.log("NORMALIZED:", normalized);
+  console.log("LENGTH:", normalized.length);
+
+  return normalized;
 }
 
 function mapEventToForm(event) {
@@ -46,6 +61,7 @@ function mapEventToForm(event) {
 
 export default function EventManagementPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("events");
@@ -57,13 +73,21 @@ export default function EventManagementPage() {
 
   // Modal states
   const [editorEvent, setEditorEvent] = useState(null);
-  const [detailEvent, setDetailEvent] = useState(null);
   const [discountEvent, setDiscountEvent] = useState(null);
 
   //   hooks
-  const { categories, loading: loadingCategory, getCategoryId } = useCategories();
-   const { flatLocations, loading: loadingLocations } = useLocations();
+  const {
+    categories,
+    loading: loadingCategory,
+    getCategoryId,
+  } = useCategories();
+  const { flatLocations, loading: loadingLocations } = useLocations();
   const [ticketTypes, setTicketTypes] = useState([]);
+  // Chatbox states
+  const [chatboxEnabled, setChatboxEnabled] = useState(false);
+  const [chatboxLoading, setChatboxLoading] = useState(false);
+  const [chatboxError, setChatboxError] = useState("");
+  const [chatUserCounts, setChatUserCounts] = useState({});
   // 1. Tải danh sách sự kiện
   useEffect(() => {
     if (!user?.id) return;
@@ -108,32 +132,102 @@ export default function EventManagementPage() {
     }
   }, [categories, loadingCategory]);
 
+  const handleGetChatboxStatus = useCallback(async (eventId) => {
+    if (!eventId) return;
+
+    try {
+      setChatboxLoading(true);
+      setChatboxError("");
+
+      const response = await eventService.getChatboxStatus(eventId);
+      const data = response?.data ?? response;
+
+      setChatboxEnabled(Boolean(data?.is_chatbox_enabled));
+    } catch (error) {
+      console.error("Lỗi lấy trạng thái chatbox:", error);
+      setChatboxError("Không thể lấy trạng thái chatbox.");
+    } finally {
+      setChatboxLoading(false);
+    }
+  }, []);
+
+  const handleSetChatboxStatus = useCallback(async (eventId, isEnabled) => {
+    if (!eventId) return;
+
+    try {
+      setChatboxLoading(true);
+      setChatboxError("");
+
+      const response = await eventService.setChatboxStatus(eventId, isEnabled);
+
+      const data = response?.data ?? response;
+
+      setChatboxEnabled(Boolean(data?.is_chatbox_enabled));
+    } catch (error) {
+      console.error("Lỗi cập nhật chatbox:", error);
+      setChatboxError("Không thể cập nhật trạng thái chatbox.");
+    } finally {
+      setChatboxLoading(false);
+    }
+  }, []);
+
   // 2. Xử lý Lưu (Create / Update) ở cấp cha
   const handleSaveEvent = async (formData, eventId) => {
     const token = localStorage.getItem("access_token");
-   console.log("handleSaveEvent" , Object.fromEntries(formData));
-   
+
     try {
       setFormSubmitting(true);
       setFormError("");
 
+      let savedEventId = eventId;
+
       if (eventId) {
-        if (eventService.updateEvent) {
-          await eventService.updateEvent(eventId, formData, token);
-        }
+        await eventService.updateEvent(eventId, formData, token);
       } else {
-        if (eventService.createEvent) {
-          await eventService.createEvent(formData, token);
+        const response = await eventService.createEvent(formData, token);
+
+        console.log("===== CREATE EVENT =====");
+        console.log("response:", response);
+
+        const data = response?.data ?? response;
+
+        savedEventId = data?.id ?? data?.event?.id ?? data?.data?.id;
+
+        console.log("savedEventId:", savedEventId);
+
+        if (!savedEventId) {
+          throw new Error("Không lấy được ID sự kiện sau khi tạo.");
         }
       }
 
+      // QUAN TRỌNG: tải lại danh sách
+      const newEvents = await loadCreatorEvents(user.id);
+
+      console.log("===== EVENTS AFTER CREATE =====");
+      console.log("user.id:", user.id);
+      console.log("newEvents:", newEvents);
+      console.log("newEvents.length:", newEvents.length);
+
+      setEvents(newEvents);
+
+      // Đóng modal
       setEditorEvent(null);
-      setEvents(await loadCreatorEvents(user.id));
-} catch (err) {
+
+      return savedEventId;
+    } catch (err) {
+      console.error("===== SAVE EVENT ERROR =====", err);
+
       logError(err);
-      const message = err.response?.data?.message || err.message || "Thao tác thất bại. Vui lòng thử lại!";
+
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        "Thao tác thất bại. Vui lòng thử lại!";
+
       setFormError(message);
       alert(message);
+
+      return null;
     } finally {
       setFormSubmitting(false);
     }
@@ -142,10 +236,67 @@ export default function EventManagementPage() {
   // 3. Tìm kiếm sự kiện theo từ khóa
   const filteredEvents = useMemo(() => {
     const q = query.trim().toLowerCase();
+
     if (!q) return events;
 
-    return events.filter((e) => `${e.name || ""} ${e.category || ""} ${e.venue || ""}`.toLowerCase().includes(q));
+    return events.filter((e) =>
+      `${e.name || ""} ${e.category || ""} ${e.venue || ""}`
+        .toLowerCase()
+        .includes(q),
+    );
   }, [events, query]);
+
+  // Đếm số USER đang có cuộc trò chuyện của từng event
+  useEffect(() => {
+    if (!filteredEvents?.length) {
+      setChatUserCounts({});
+      return;
+    }
+
+    const unsubscribes = [];
+
+    filteredEvents.forEach((event) => {
+      if (!event?.id) return;
+
+      const unsubscribe = chatServices.subscribeMessages(
+        event.id,
+        (messages) => {
+          const uniqueUserIds = new Set();
+
+          messages.forEach((message) => {
+            // User đã từng gửi tin
+            if (message.sender_type === "user" && message.sender_id) {
+              uniqueUserIds.add(String(message.sender_id));
+            }
+
+            // Organizer đã trả lời user
+            if (
+              message.sender_type === "organizer" &&
+              message.receiver_type === "user" &&
+              message.receiver_id
+            ) {
+              uniqueUserIds.add(String(message.receiver_id));
+            }
+          });
+
+          setChatUserCounts((prev) => ({
+            ...prev,
+            [event.id]: uniqueUserIds.size,
+          }));
+        },
+      );
+
+      unsubscribes.push(unsubscribe);
+    });
+
+    return () => {
+      unsubscribes.forEach((unsubscribe) => {
+        if (typeof unsubscribe === "function") {
+          unsubscribe();
+        }
+      });
+    };
+  }, [filteredEvents]);
 
   // 4. Thống kê tổng hợp
   const totals = useMemo(() => {
@@ -174,8 +325,11 @@ export default function EventManagementPage() {
       setEvents(await loadCreatorEvents(user.id));
     } catch (err) {
       logError(err);
-      const message = err.response?.data?.message || err.message || "Thao tác thất bại. Vui lòng thử lại!";
-      alert(message)
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        "Thao tác thất bại. Vui lòng thử lại!";
+      alert(message);
       setFormError(message);
     } finally {
       setFormSubmitting(false);
@@ -183,14 +337,24 @@ export default function EventManagementPage() {
   };
 
   const handleDeleteEvent = (event) =>
-    handleStatusAction(eventService.deleteEvent, event.id, `Bạn có chắc muốn xóa sự kiện "${event.name}"?`);
+    handleStatusAction(
+      eventService.deleteEvent,
+      event.id,
+      `Bạn có chắc muốn xóa sự kiện "${event.name}"?`,
+    );
 
-  const handlePublishEvent = (eventId) => handleStatusAction(eventService.publishEvent, eventId);
+  const handlePublishEvent = (eventId) =>
+    handleStatusAction(eventService.publishEvent, eventId);
 
   const handleCancelEvent = (eventId) =>
-    handleStatusAction(eventService.cancelEvent, eventId, "Bạn có chắc muốn hủy sự kiện này?");
+    handleStatusAction(
+      eventService.cancelEvent,
+      eventId,
+      "Bạn có chắc muốn hủy sự kiện này?",
+    );
 
-  const handleRestoreEvent = (eventId) => handleStatusAction(eventService.restoreEvent, eventId);
+  const handleRestoreEvent = (eventId) =>
+    handleStatusAction(eventService.restoreEvent, eventId);
 
   const handleEditEvent = async (event) => {
     setFormError("");
@@ -206,54 +370,42 @@ export default function EventManagementPage() {
     }
   };
 
-  const handleOpenDetail = async (event) => {
-    setDetailEvent(event);
+  const handleOpenDetail = (event) => {
+    navigate(`/dashboard/organizer/events/${event.id}`);
+  };
+
+  const handleSaveDiscount = async (eventId, discount) => {
     try {
-      const res = await eventService.getEventDetail(event.id);
-      const body = res?.data ?? res;
-      const detail = body?.data ?? body;
-      if (detail?.id) {
-        setDetailEvent({
-          ...event,
-          ...detail,
-          discounts: Array.isArray(detail.discounts)
-            ? detail.discounts
-            : Array.isArray(detail.discount)
-              ? detail.discount
-              : [],
-        });
+      const payload = {
+        event_id: eventId,
+        code: discount.code,
+        value: discount.value,
+        unit: discount.unit,
+        start_time: discount.start_time,
+        end_time: discount.end_time,
+      };
+      const response = await ticketService.createDiscount(payload);
+      if (response.data?.status !== "success") {
+        throw new Error(response.data?.message || "Không thể tạo discount");
       }
+      alert("Tạo discount thành công");
+      setDiscountEvent(null);
     } catch (err) {
       logError(err);
+      alert(
+        err.response?.data?.message || err.message || "Không thể tạo discount",
+      );
     }
   };
 
-  const handleSaveDiscount = async(eventId, discount) => {
-      try{
-        const payload = ({
-          event_id: eventId,
-          code: discount.code,
-          value: discount.value,
-          unit: discount.unit,
-          start_time: discount.start_time,
-          end_time: discount.end_time
-        })
-        const response = await ticketService.createDiscount(payload)
-        if (response.data?.status !== "success") {
-          throw new Error(response.data?.message || "Không thể tạo discount");
-        }
-        alert("Tạo discount thành công");
-        setDiscountEvent(null);
-      }catch(err){
-        logError(err);
-        alert(err.response?.data?.message || err.message || "Không thể tạo discount");
-      }
-  };
+  const handleChatboxChange = useCallback((value) => {
+    setChatboxEnabled(value);
+    setChatboxError("");
+  }, []);
 
-  const handleRemoveDiscount = (eventId, discountId) => {
-    
+  const handleOpenChat = (event) => {
+    navigate(`/dashboard/organizer/events/${event.id}/chat`);
   };
-
   if (!user) return <Navigate to="/login" replace />;
   if (!["STAFF", "ADMIN"].includes(String(user.role).toUpperCase())) {
     return <Navigate to="/" replace />;
@@ -265,35 +417,49 @@ export default function EventManagementPage() {
         <PageHeader
           onCreate={() => {
             setFormError("");
+            setChatboxEnabled(false);
+            setChatboxError("");
             setEditorEvent({});
           }}
         />
 
         <SummaryCards eventsCount={events.length} totals={totals} />
 
-        <ReportTabs tab={tab} setTab={setTab} query={query} setQuery={setQuery} eventCount={events.length} />
+        <ReportTabs
+          tab={tab}
+          setTab={setTab}
+          query={query}
+          setQuery={setQuery}
+          eventCount={events.length}
+        />
 
         {tab === "events" ? (
           <EventList
             events={filteredEvents}
             loading={loading}
             onOpen={handleOpenDetail}
+            onOpenChat={handleOpenChat}
             onEdit={handleEditEvent}
             onAddDiscount={setDiscountEvent}
             onDelete={handleDeleteEvent}
+            chatUserCounts={chatUserCounts}
           />
         ) : (
           <RevenueReport events={events} />
         )}
 
         <p className="mt-5 text-xs text-white/40">
-          Nhấn vào event để xem chi tiết. Báo cáo hỗ trợ lọc theo ngày, tháng và năm.
+          Nhấn vào event để xem chi tiết. Báo cáo hỗ trợ lọc theo ngày, tháng và
+          năm.
         </p>
       </div>
 
       {/* Modal chỉnh sửa / tạo sự kiện */}
       {editorEvent && (
-        <EventModal title={editorEvent.id ? "Sửa sự kiện" : "Tạo sự kiện"} onClose={() => setEditorEvent(null)}>
+        <EventModal
+          title={editorEvent.id ? "Sửa sự kiện" : "Tạo sự kiện"}
+          onClose={() => setEditorEvent(null)}
+        >
           <EventForm
             initialEvent={mapEventToForm(editorEvent)}
             submitting={formSubmitting}
@@ -308,19 +474,24 @@ export default function EventManagementPage() {
             onCancelEvent={handleCancelEvent}
             onRestore={handleRestoreEvent}
             onDelete={handleDeleteEvent}
-            catalogMode = {true}
+            catalogMode={true}
+            chatboxEnabled={chatboxEnabled}
+            chatboxLoading={chatboxLoading}
+            chatboxError={chatboxError}
+            onChatboxChange={handleChatboxChange}
+            onGetChatboxStatus={handleGetChatboxStatus}
+            onSetChatboxStatus={handleSetChatboxStatus}
           />
         </EventModal>
       )}
 
       {/* Modal giảm giá */}
       {discountEvent && (
-        <DiscountEditor event={discountEvent} onSave={handleSaveDiscount} onClose={() => setDiscountEvent(null)} />
-      )}
-
-      {/* Modal chi tiết */}
-      {detailEvent && (
-        <EventDetail event={detailEvent} onRemoveDiscount={handleRemoveDiscount} onClose={() => setDetailEvent(null)} />
+        <DiscountEditor
+          event={discountEvent}
+          onSave={handleSaveDiscount}
+          onClose={() => setDiscountEvent(null)}
+        />
       )}
     </main>
   );
@@ -330,16 +501,24 @@ function PageHeader({ onCreate }) {
   return (
     <header className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
       <div>
-        <Link to="/profile" className="text-xs font-bold uppercase tracking-wider text-[#ff985c] hover:underline">
+        <Link
+          to="/profile"
+          className="text-xs font-bold uppercase tracking-wider text-[#ff985c] hover:underline"
+        >
           ← Hồ sơ tổ chức
         </Link>
-        <p className="mt-4 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">Organizer command center</p>
-        <h1 className="mt-2 font-display text-5xl font-extrabold uppercase sm:text-7xl">Quản lý sự kiện</h1>
+        <p className="mt-4 text-xs font-bold uppercase tracking-[.25em] text-[#ff985c]">
+          Organizer command center
+        </p>
+        <h1 className="mt-2 font-display text-5xl font-extrabold uppercase sm:text-7xl">
+          Quản lý sự kiện
+        </h1>
       </div>
       <button
         type="button"
         onClick={onCreate}
-        className="rounded-xl bg-[#ff6b12] px-5 py-3 text-xs font-extrabold uppercase shadow-[4px_4px_0_#b94308] transition hover:brightness-110">
+        className="rounded-xl bg-[#ff6b12] px-5 py-3 text-xs font-extrabold uppercase shadow-[4px_4px_0_#b94308] transition hover:brightness-110"
+      >
         + Tạo sự kiện
       </button>
     </header>
@@ -353,7 +532,9 @@ function SummaryCards({ eventsCount, totals }) {
     { label: "Doanh thu", value: money(totals.revenue), accent: true },
     {
       label: "Tỷ lệ lấp đầy",
-      value: totals.capacity ? `${((totals.sold / totals.capacity) * 100).toFixed(1)}%` : "0%",
+      value: totals.capacity
+        ? `${((totals.sold / totals.capacity) * 100).toFixed(1)}%`
+        : "0%",
       highlight: true,
     },
   ];
@@ -364,10 +545,19 @@ function SummaryCards({ eventsCount, totals }) {
         <div
           key={card.label}
           className={`rounded-2xl border p-5 ${
-            card.highlight ? "border-[#ff6b12]/40 bg-[#ff6b12]/10" : "border-white/10 bg-[#171717]"
-          }`}>
-          <small className="text-xs uppercase text-white/60">{card.label}</small>
-          <p className={`mt-3 font-display ${card.accent ? "text-3xl text-[#ff985c]" : "text-4xl"}`}>{card.value}</p>
+            card.highlight
+              ? "border-[#ff6b12]/40 bg-[#ff6b12]/10"
+              : "border-white/10 bg-[#171717]"
+          }`}
+        >
+          <small className="text-xs uppercase text-white/60">
+            {card.label}
+          </small>
+          <p
+            className={`mt-3 font-display ${card.accent ? "text-3xl text-[#ff985c]" : "text-4xl"}`}
+          >
+            {card.value}
+          </p>
         </div>
       ))}
     </section>
@@ -382,16 +572,22 @@ function ReportTabs({ tab, setTab, query, setQuery, eventCount }) {
           type="button"
           onClick={() => setTab("events")}
           className={`pb-3 text-xs font-bold uppercase transition ${
-            tab === "events" ? "border-b-2 border-white text-white" : "text-white/50 hover:text-white"
-          }`}>
+            tab === "events"
+              ? "border-b-2 border-white text-white"
+              : "text-white/50 hover:text-white"
+          }`}
+        >
           Sự kiện ({eventCount})
         </button>
         <button
           type="button"
           onClick={() => setTab("reports")}
           className={`pb-3 text-xs font-bold uppercase transition ${
-            tab === "reports" ? "border-b-2 border-[#ff985c] text-[#ff985c]" : "text-[#ff985c]/60 hover:text-[#ff985c]"
-          }`}>
+            tab === "reports"
+              ? "border-b-2 border-[#ff985c] text-[#ff985c]"
+              : "text-[#ff985c]/60 hover:text-[#ff985c]"
+          }`}
+        >
           Báo cáo doanh thu
         </button>
       </div>
@@ -408,7 +604,7 @@ function ReportTabs({ tab, setTab, query, setQuery, eventCount }) {
   );
 }
 
-function EventList({ events, loading, ...actions }) {
+function EventList({ events, loading, chatUserCounts, ...actions }) {
   if (loading) {
     return (
       <section className="rounded-2xl bg-[#F4F1EB] p-10 text-center text-sm font-medium text-[#8A8781]">
@@ -428,7 +624,12 @@ function EventList({ events, loading, ...actions }) {
   return (
     <section className="overflow-hidden rounded-2xl bg-[#F4F1EB] text-[#171717]">
       {events.map((event) => (
-        <EventRow key={event.id} event={event} {...actions} />
+        <EventRow
+          key={event.id}
+          event={event}
+          {...actions}
+          chatUserCount={chatUserCounts?.[event.id] || 0}
+        />
       ))}
     </section>
   );
