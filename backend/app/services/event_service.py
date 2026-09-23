@@ -14,6 +14,7 @@ from app.models import (
     EventStatus,
     EventTicketType,
     TicketModel,
+    Seat,
 )
 from app.repositories import base_repo, event_repo
 from app.utils.exception import AppException
@@ -248,6 +249,21 @@ def _save_event_seats(
                 raise AppException(f"Loại vé có ID {ticket_type_id} không tồn tại.")
 
         db.session.add(EventSeat(event_id=event_id, **seat_data))
+
+        seat_total = int(seat_data.get("seat_total") or 0)
+        ticket_type_id = seat_data.get("event_ticket_type_id")
+        if seat_total > 0 and ticket_type_id:
+            ticket_type = base_repo.get_by_id(EventTicketType, ticket_type_id)
+            prefix = ticket_type.name[:3].upper() if ticket_type else "SEAT"
+            for i in range(1, seat_total + 1):
+                db.session.add(
+                    Seat(
+                        seat_code=f"{prefix}-{i:03d}",
+                        is_active=True,
+                        event_id=event_id,
+                        event_ticket_type_id=ticket_type_id,
+                    )
+                )
 
 
 def _save_event_to_db(event_dto, status: EventStatus, **kwargs) -> EventModel:
