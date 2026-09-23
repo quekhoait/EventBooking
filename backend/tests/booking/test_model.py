@@ -56,7 +56,7 @@ def test_create_ticket_success_and_defaults():
         code="TCK00001",
         user_id=user.id,
         seat_id=seat.id,
-        price=150000.0
+        price=150000.0, face_image="default_face.jpg"
     )
     db.session.add(ticket)
     db.session.commit()
@@ -85,7 +85,8 @@ def test_ticket_status_enum_values(status_enum):
         user_id=user.id,
         seat_id=seat.id,
         price=200000.0,
-        status=status_enum
+        status=status_enum,
+        face_image="default_face.jpg"
     )
     db.session.add(ticket)
     db.session.commit()
@@ -110,7 +111,8 @@ def test_ticket_invalid_foreign_keys():
         code="TCK_FK_ERR",
         user_id=99999,
         seat_id=99999,
-        price=100000.0
+        price=100000.0,
+        face_image="default_face.jpg"
     )
     db.session.add(invalid_ticket)
 
@@ -140,7 +142,8 @@ def test_ticket_discount_relationship():
         user_id=user.id,
         seat_id=seat.id,
         price=80000.0,
-        discount_id=discount.id
+        discount_id=discount.id,
+        face_image="default_face.jpg"
     )
     db.session.add(ticket)
     db.session.commit()
@@ -158,7 +161,8 @@ def test_ticket_payments_relationship():
         code="TCK_PAY",
         user_id=user.id,
         seat_id=seat.id,
-        price=150000.0
+        price=150000.0,
+        face_image="default_face.jpg"
     )
 
     pay1 = PaymentModel(

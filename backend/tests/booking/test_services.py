@@ -91,7 +91,7 @@ def test_get_price_for_seat_missing_config_raises_400():
 
 @pytest.mark.parametrize("discount_unit, discount_val, initial_price, expected_price", [
     ("%", 20.0, 100000.0, 80000.0),        # Giảm 20%
-    ("%", 100.0, 100000.0, 0.0),           # Giảm 100% -> Vé 0đ
+    ("%", 100.0, 100000.0, 0.0),          # Giảm 100% -> Vé 0đ
     ("%", 0.0, 100000.0, 100000.0),        # Giảm 0% -> Giữ nguyên giá gốc
     ("%", 12.5, 100000.0, 87500.0),        # Giảm phần trăm lẻ
     ("amount", 30000.0, 100000.0, 70000.0), # Giảm số tiền cố định
@@ -149,7 +149,7 @@ def test_use_discount_not_id():
     assert discount_id is None
 
 
-def test_get_discount_by_event_and_code():
+def test_get_discount_by_event_and_code(logged_in_user): # Thêm logged_in_user để vượt qua @jwt_required() nếu có
     now = datetime.now()
     discount = DiscountModel(
         code="SUMMER50",
@@ -180,7 +180,7 @@ def test_create_ticket_event_not_found(logged_in_user, mocker):
 def test_create_ticket_max_limit_exceeded(logged_in_user, mocker):
     event = create_sample_event(event_id=1, max_per_user=1)
     seat = Seat(id=1, seat_code="A1", is_active=False, event_id=1, event_ticket_type_id=10)
-    ticket = TicketModel(code="TCK00001", user_id=1, seat_id=1, price=100000.0)
+    ticket = TicketModel(code="TCK00001", user_id=1, seat_id=1, price=100000.0,  face_image="default_face.jpg")
 
     db.session.add_all([event, seat, ticket])
     db.session.commit()
@@ -207,7 +207,8 @@ def test_create_ticket_no_seat_available(logged_in_user, mocker):
         booking_services.create(mock_dto)
 
     assert exc_info.value.status_code == 400
-    assert "Loại vé này đết còn" in str(exc_info.value.message)
+    # Sửa lại câu thông báo lỗi cho khớp với thực tế ở service ("không còn" thay vì "đết còn")
+    assert "Loại vé này không còn" in str(exc_info.value.message)
 
 
 def test_create_ticket_db_exception_rollbacks(logged_in_user, mocker):
@@ -239,7 +240,7 @@ def test_create_ticket_success(logged_in_user, mocker):
     db.session.add_all([event, event_seat, seat])
     db.session.commit()
 
-    mock_dto = mocker.Mock(event_id=1, seat_type_id=10, discount_id=None)
+    mock_dto = mocker.Mock(event_id=1, seat_type_id=10, discount_id=None,  face_image="default_face.jpg")
 
     ticket = booking_services.create(mock_dto)
 
@@ -253,37 +254,32 @@ def test_create_ticket_success(logged_in_user, mocker):
 
 
 
-def test_get_by_code_not_found(logged_in_user, mocker):
-    mock_dto = mocker.Mock(code="NOT_EXIST")
-
+def test_get_by_code_not_found(logged_in_user): # Truyền chuỗi trực tiếp thay vì mock object
     with pytest.raises(AppException) as exc_info:
-        booking_services.get_by_code(mock_dto)
+        booking_services.get_by_code("NOT_EXIST")
     assert exc_info.value.status_code == 404
 
 
-def test_get_by_code_unauthorized_owner(logged_in_user, mocker):
-    ticket = TicketModel(code="TCK00001", user_id=999, seat_id=1, price=100000.0)
+def test_get_by_code_unauthorized_owner(logged_in_user): # Truyền chuỗi trực tiếp
+    ticket = TicketModel(code="TCK00001", user_id=999, seat_id=1, price=100000.0,  face_image="default_face.jpg")
     db.session.add(ticket)
     db.session.commit()
 
-    mock_dto = mocker.Mock(code="TCK00001")
-
     with pytest.raises(AppException) as exc_info:
-        booking_services.get_by_code(mock_dto)
+        booking_services.get_by_code("TCK00001")
     assert exc_info.value.status_code == 404
 
 
-def test_get_by_code_success(logged_in_user, mocker):
+def test_get_by_code_success(logged_in_user): # Truyền chuỗi trực tiếp
     location = LocationModel(id=1, name="Mỹ Đình")
     event = create_sample_event(event_id=1, location_id=1)
     seat = Seat(id=1, seat_code="A1", is_active=False, event_id=1, event_ticket_type_id=1)
-    ticket = TicketModel(code="TCK00001", user_id=1, seat_id=1, price=100000.0)
+    ticket = TicketModel(code="TCK00001", user_id=1, seat_id=1, price=100000.0,  face_image="default_face.jpg")
 
     db.session.add_all([location, event, seat, ticket])
     db.session.commit()
 
-    mock_dto = mocker.Mock(code="TCK00001")
-    res = booking_services.get_by_code(mock_dto)
+    res = booking_services.get_by_code("TCK00001")
 
     assert res is not None
     assert res.code == "TCK00001"
@@ -295,9 +291,9 @@ def test_list_tickets_success(logged_in_user):
     seat1 = Seat(id=1, seat_code="A1", is_active=False, event_id=1, event_ticket_type_id=1)
     seat2 = Seat(id=2, seat_code="A2", is_active=False, event_id=1, event_ticket_type_id=1)
 
-    t1 = TicketModel(code="TCK00001", user_id=1, seat_id=1, price=100000.0)
-    t2 = TicketModel(code="TCK00002", user_id=1, seat_id=2, price=100000.0)
-    t_other = TicketModel(code="TCK00003", user_id=999, seat_id=1, price=100000.0)
+    t1 = TicketModel(code="TCK00001", user_id=1, seat_id=1, price=100000.0,  face_image="default_face.jpg")
+    t2 = TicketModel(code="TCK00002", user_id=1, seat_id=2, price=100000.0,  face_image="default_face.jpg")
+    t_other = TicketModel(code="TCK00003", user_id=999, seat_id=1, price=100000.0,  face_image="default_face.jpg")
 
     db.session.add_all([event, seat1, seat2, t1, t2, t_other])
     db.session.commit()
@@ -315,7 +311,7 @@ def test_send_ticket_success(mocker):
     location = LocationModel(id=1, name="Sân vận động Mỹ Đình")
     event = create_sample_event(event_id=1, location_id=1)
     seat = Seat(id=1, seat_code="A1", is_active=False, event_id=1, event_ticket_type_id=1)
-    ticket = TicketModel(code="TCK00001", user_id=1, seat_id=1, price=100000.0)
+    ticket = TicketModel(code="TCK00001", user_id=1, seat_id=1, price=100000.0,  face_image="default_face.jpg")
 
     db.session.add_all([user, location, event, seat, ticket])
     db.session.commit()
@@ -332,7 +328,7 @@ def test_send_ticket_mail_failed(mocker):
     location = LocationModel(id=1, name="Sân vận động Mỹ Đình")
     event = create_sample_event(event_id=1, location_id=1)
     seat = Seat(id=1, seat_code="A1", is_active=False, event_id=1, event_ticket_type_id=1)
-    ticket = TicketModel(code="TCK00001", user_id=1, seat_id=1, price=100000.0)
+    ticket = TicketModel(code="TCK00001", user_id=1, seat_id=1, price=100000.0,  face_image="default_face.jpg")
 
     db.session.add_all([user, location, event, seat, ticket])
     db.session.commit()
@@ -353,7 +349,7 @@ def test_cancel_ticket_not_found(logged_in_user):
 
 
 def test_cancel_ticket_forbidden(logged_in_user):
-    ticket = TicketModel(code="TCK00001", user_id=999, seat_id=1, price=100000.0)
+    ticket = TicketModel(code="TCK00001", user_id=999, seat_id=1, price=100000.0,  face_image="default_face.jpg")
     db.session.add(ticket)
     db.session.commit()
 
@@ -366,7 +362,7 @@ def test_cancel_ticket_forbidden(logged_in_user):
 
 
 def test_cancel_ticket_success(logged_in_user, mocker):
-    ticket = TicketModel(code="TCK00001", user_id=1, seat_id=1, price=100000.0)
+    ticket = TicketModel(code="TCK00001", user_id=1, seat_id=1, price=100000.0,  face_image="default_face.jpg")
     db.session.add(ticket)
     db.session.commit()
 
@@ -386,7 +382,7 @@ def test_create_ticket_code_collision_retries(logged_in_user, mocker):
     event = create_sample_event(event_id=1)
     event_seat = EventSeat(id=1, event_id=1, event_ticket_type_id=1, price=100000.0, seat_total=10)
     seat = Seat(id=1, seat_code="A1", is_active=True, event_id=1, event_ticket_type_id=1)
-    existing_ticket = TicketModel(code="TK001", user_id=1, seat_id=1, price=100000.0)
+    existing_ticket = TicketModel(code="TK001", user_id=1, seat_id=1, price=100000.0, face_image="default_face.jpg")
 
     db.session.add_all([event, event_seat, seat, existing_ticket])
     db.session.commit()
@@ -396,7 +392,12 @@ def test_create_ticket_code_collision_retries(logged_in_user, mocker):
         side_effect=["TK001", "TK002"]
     )
 
-    payload = {"event_id":1,"user_id":1,"seat_type_id":1}
+    mocker.patch(
+        'app.dto.booking_dto.CloudinaryImageField._deserialize',
+        return_value='https://res.cloudinary.com/demo/image/upload/sample.jpg'
+    )
+
+    payload = {"event_id": 1, "seat_type_id": 1, "face_image": "default_face.jpg"}
 
     ticket = booking_services.create(CreateTicketRequestDTO().load(payload))
 

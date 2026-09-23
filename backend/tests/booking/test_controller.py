@@ -1,4 +1,3 @@
-
 import pytest
 
 from app.models import TicketModel, Seat, EventModel
@@ -39,7 +38,6 @@ def test_api_create_ticket_success(client, mocker, logged_in_user):
     payload = {
         "event_id": 1,
         "seat_type_id": 10,
-        "user_id": 1
     }
     response = client.post('/api/bookings/create', json=payload)
     assert response.status_code == 200
@@ -49,15 +47,15 @@ def test_api_create_ticket_success(client, mocker, logged_in_user):
 
 @pytest.mark.parametrize("invalid_payload", [
     {},
-    {"event_id": 1},
     {"seat_type_id": 10},
+    {"discount_id": 1},
 ])
-def test_api_create_ticket_validation_error(client, invalid_payload):
+def test_api_create_ticket_validation_error(client, invalid_payload, logged_in_user):
     response = client.post('/api/bookings/create', json=invalid_payload)
     assert response.status_code == 400
 
 
-def test_api_create_ticket_service_exception(client, mocker):
+def test_api_create_ticket_service_exception(client, mocker, logged_in_user):
     mocker.patch(
         'app.services.booking_services.create',
         side_effect=AppException("Loại vé này đết còn", status_code=400)
@@ -66,7 +64,7 @@ def test_api_create_ticket_service_exception(client, mocker):
     response = client.post('/api/bookings/create', json=payload)
     assert response.status_code == 400
 
-def test_api_get_ticket_details_success(client, mocker):
+def test_api_get_ticket_details_success(client, mocker, logged_in_user):
     ticket = TicketModel(
         code="TCK00001",
         price=100000.0,
@@ -74,15 +72,14 @@ def test_api_get_ticket_details_success(client, mocker):
         seat=Seat(seat_code="A1", event=EventModel(name="Concert 2026"))
     )
     mocker.patch('app.services.booking_services.get_by_code', return_value=ticket)
-    payload = {"code": "TCK00001"}
-    response = client.get('/api/bookings/details', json=payload)
+    response = client.get('/api/bookings/details/TCK00001')
 
     assert response.status_code == 200
     res_data = response.get_json()
     assert res_data["status"] == "success"
 
 
-def test_api_get_ticket_details_not_found(client, mocker):
+def test_api_get_ticket_details_not_found(client, mocker, logged_in_user):
     mocker.patch(
         'app.services.booking_services.get_by_code',
         side_effect=AppException("Không tìm thấy thông tin vé!", status_code=404)
@@ -94,7 +91,7 @@ def test_api_get_ticket_details_not_found(client, mocker):
     assert response.status_code == 404
 
 
-def test_api_list_tickets_success(client, mocker):
+def test_api_list_tickets_success(client, mocker, logged_in_user):
     tickets = [
        TicketModel(code="TCK001", price=100000.0, seat=Seat(seat_code="A1", event=EventModel(name="Ev1"))),
         TicketModel(code="TCK002", price=200000.0, seat=Seat(seat_code="A2", event=EventModel(name="Ev1")))
@@ -108,7 +105,7 @@ def test_api_list_tickets_success(client, mocker):
     assert res_data["status"] == "success"
 
 
-def test_api_cancel_ticket_success(client, mocker):
+def test_api_cancel_ticket_success(client, mocker, logged_in_user):
     mocker.patch('app.services.booking_services.cancel_ticket', return_value=True)
 
     payload = {"ticket_code": "TCK00001", "method": "momo"}
@@ -119,14 +116,14 @@ def test_api_cancel_ticket_success(client, mocker):
     assert res_data["message"] == "Hủy vé thành công"
 
 
-def test_api_cancel_ticket_validation_error(client):
+def test_api_cancel_ticket_validation_error(client, logged_in_user):
     payload = {"method": "momo"}
     response = client.post('/api/bookings/cancel', json=payload)
 
     assert response.status_code == 400
 
 
-def test_api_cancel_ticket_forbidden(client, mocker):
+def test_api_cancel_ticket_forbidden(client, mocker, logged_in_user):
     mocker.patch(
         'app.services.booking_services.cancel_ticket',
         side_effect=AppException("Bạn không có quyền hủy vé này!", status_code=403)

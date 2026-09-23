@@ -102,9 +102,9 @@ def test_count_user_successful_tickets():
     seat1 = Seat(id=1, seat_code="A1", is_active=False, event_id=1, event_ticket_type_id=1)
     seat2 = Seat(id=2, seat_code="A2", is_active=False, event_id=1, event_ticket_type_id=1)
     seat3 = Seat(id=3, seat_code="A3", is_active=True, event_id=1, event_ticket_type_id=1)
-    ticket1 = TicketModel(code="TCK001", user_id=1, seat_id=1, price=100000.0)
-    ticket2 = TicketModel(code="TCK002", user_id=1, seat_id=2, price=100000.0)
-    ticket3 = TicketModel(code="TCK003", user_id=1, seat_id=3, price=100000.0)
+    ticket1 = TicketModel(code="TCK001", user_id=1, seat_id=1, price=100000.0, face_image="default_face.jpg")
+    ticket2 = TicketModel(code="TCK002", user_id=1, seat_id=2, price=100000.0,  face_image="default_face.jpg")
+    ticket3 = TicketModel(code="TCK003", user_id=1, seat_id=3, price=100000.0,  face_image="default_face.jpg")
 
     db.session.add_all([seat1, seat2, seat3, ticket1, ticket2, ticket3])
     db.session.commit()
@@ -114,7 +114,7 @@ def test_count_user_successful_tickets():
 
 
 def test_find_ticket_by_code():
-    ticket = TicketModel(code="TCK00001", user_id=1, seat_id=1, price=100000.0)
+    ticket = TicketModel(code="TCK00001", user_id=1, seat_id=1, price=100000.0,  face_image="default_face.jpg")
     db.session.add(ticket)
     db.session.commit()
 
@@ -127,7 +127,7 @@ def test_find_ticket_by_code():
 
 
 def test_save_ticket():
-    ticket = TicketModel(code="TCK_SAVE_TEST", user_id=1, seat_id=1, price=100000.0)
+    ticket = TicketModel(code="TCK_SAVE_TEST", user_id=1, seat_id=1, price=100000.0,  face_image="default_face.jpg")
     booking_repo.save_ticket(ticket)
     db.session.commit()
 
@@ -140,7 +140,7 @@ def test_get_ticket_details():
     location = LocationModel(id=1, name="Nhà hát lớn")
     event = create_sample_event(event_id=1, name="Concert 2026", location_id=1)
     seat = Seat(id=1, seat_code="A1", is_active=False, event_id=1, event_ticket_type_id=1)
-    ticket = TicketModel(code="TCK_DETAIL", user_id=1, seat_id=1, price=100000.0)
+    ticket = TicketModel(code="TCK_DETAIL", user_id=1, seat_id=1, price=100000.0,  face_image="default_face.jpg")
 
     db.session.add_all([location, event, seat, ticket])
     db.session.commit()
@@ -165,9 +165,9 @@ def test_get_list():
     seat1 = Seat(id=1, seat_code="A1", is_active=False, event_id=1, event_ticket_type_id=1)
     seat2 = Seat(id=2, seat_code="A2", is_active=False, event_id=1, event_ticket_type_id=1)
 
-    ticket1 = TicketModel(code="TCK001", user_id=10, seat_id=1, price=100000.0)
-    ticket2 = TicketModel(code="TCK002", user_id=10, seat_id=2, price=100000.0)
-    ticket3 = TicketModel(code="TCK003", user_id=20, seat_id=1, price=100000.0)
+    ticket1 = TicketModel(code="TCK001", user_id=10, seat_id=1, price=100000.0,  face_image="default_face.jpg")
+    ticket2 = TicketModel(code="TCK002", user_id=10, seat_id=2, price=100000.0,  face_image="default_face.jpg")
+    ticket3 = TicketModel(code="TCK003", user_id=20, seat_id=1, price=100000.0,  face_image="default_face.jpg")
 
     db.session.add_all([event, seat1, seat2, ticket1, ticket2, ticket3])
     db.session.commit()
