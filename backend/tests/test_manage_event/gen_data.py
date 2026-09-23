@@ -74,7 +74,7 @@ def make_event_payload(**overrides):
     """Tạo payload hợp lệ gửi lên API /events, hỗ trợ override các trường."""
     default_payload = {
         "name": "Đại Nhạc Hội 2026",
-        "status": "draft",
+        "status": "DRAFT",
         "company_id": 1,
         "category_id": 1,
         "location_id": 1,
@@ -88,6 +88,8 @@ def make_event_payload(**overrides):
         ]
     }
     default_payload.update(overrides)
+    if isinstance(default_payload.get("status"), str):
+        default_payload["status"] = default_payload["status"].upper()
     return default_payload
 
 def make_mock_event(**overrides):

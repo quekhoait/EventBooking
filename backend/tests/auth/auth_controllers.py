@@ -105,7 +105,7 @@ def test_register_app_exception(client, mocker):
     mock_service.side_effect = AppException("Email này đã được sử dụng", status_code=400)
     response = client.post(
         "/api/auth/register",
-        json={"email": "test@gmail.com", "password": "password123", "confirm_password": "password123", "role": "user"}
+        json={"email": "test@gmail.com", "username": "testuser", "password": "password123", "confirm_password": "password123", "role": "user"}
     )
     assert response.status_code == 400
     mock_service.assert_called_once()
@@ -252,7 +252,7 @@ def test_google_callback_get_success(client, mocker):
 
     assert response.status_code == 302
     mock_service.assert_called_once_with({"code": "google_code", "state": "test_state"})
-    mock_dump.assert_called_once_with({"user": user, "access_token": "mock_token"})
+    mock_dump.assert_called_once_with(user)
 
 
 def test_google_callback_google_error(client, mocker):
@@ -296,7 +296,7 @@ def test_google_callback_post_success(client, mocker):
 
     assert response.status_code == 200
     mock_service.assert_called_once_with(data)
-    mock_dump.assert_called_once_with({"user": user, "access_token": "mock_token"})
+    mock_dump.assert_called_once_with(user)
 
 
 def test_google_callback_post_empty_data(client, mocker):
@@ -347,7 +347,7 @@ def test_login_success(client, mocker):
 
     assert response.status_code == 200
     mock_service.assert_called_once()
-    mock_dump.assert_called_once_with({"user": user, "access_token": "mock_token"})
+    mock_dump.assert_called_once_with(user)
 
 
 def test_login_validation_error(client, mocker):

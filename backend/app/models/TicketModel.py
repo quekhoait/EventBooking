@@ -58,3 +58,7 @@ class PaymentModel(BaseModel):
     expired_time = db.Column(db.DateTime)
     status = db.Column(db.Enum(PaymentStatus), default=PaymentStatus.PENDING, nullable=False)
     type = db.Column(db.Enum(PaymentType), default=PaymentType.PAYMENT, nullable=False)
+
+    @property
+    def payUrl(self):
+        return self.pay_url

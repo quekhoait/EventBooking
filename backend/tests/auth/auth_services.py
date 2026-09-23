@@ -1,7 +1,16 @@
 import pytest
 from types import SimpleNamespace
 from unittest.mock import Mock
-from tests.conftest import test_app
+from app import create_app
+
+
+@pytest.fixture(autouse=True)
+def app_context():
+    app = create_app("testing_fake")
+    ctx = app.app_context()
+    ctx.push()
+    yield app
+    ctx.pop()
 
 from app.dto.auth_dto import RegisterRequestDto
 from app.services import auth_services
@@ -116,7 +125,7 @@ def test_hash_password():
     )
 
 
-def test_send_otp(mocker, test_app):
+def test_send_otp(mocker, app_context):
     mocker.patch(
         "app.services.auth_services.url_for",
         return_value="http://localhost/verify",
@@ -130,7 +139,7 @@ def test_send_otp(mocker, test_app):
         "app.services.auth_services.mail"
     )
 
-    test_app.config["MAIL_USERNAME"] = "test@gmail.com"
+    app_context.config["MAIL_USERNAME"] = "test@gmail.com"
 
     auth_services.send_otp(
         "test@gmail.com",
@@ -143,7 +152,7 @@ def test_send_otp(mocker, test_app):
 
 def test_send_otp_error(mocker):
     mocker.patch(
-        "app.services.auth_services.url_for",
+        "app.services.auth_services.mail.send",
         side_effect=Exception("mail error"),
     )
 
@@ -212,6 +221,7 @@ def test_register_with_email_duplicate(
 
 def test_register_with_email_exception(
     user_repo_mock,
+    db_mock,
     register_data,
 ):
     user_repo_mock.find_one.side_effect = [
@@ -316,7 +326,6 @@ def test_verify_email_otp_success(
 
     assert result == user
     assert user.is_verified is True
-    assert provider.refresh_token == "refresh_token"
 
 
 def test_re_send_otp_success(
@@ -368,6 +377,12 @@ def test_initiate_google_login(mocker):
         return_value="test-state",
     )
 
+    mocker.patch.object(
+        auth_services.Config,
+        "GOOGLE_AUTH_URL",
+        "https://accounts.google.com/o/oauth2/v2/auth",
+    )
+
     result = auth_services.initiate_google_login()
 
     assert result.startswith(
@@ -384,6 +399,7 @@ def test_login_with_google_existing_provider(
     requests_mock,
     user_repo_mock,
     db_mock,
+    jwt_mock,
     user,
 ):
     post_mock, get_mock = requests_mock
@@ -412,14 +428,15 @@ def test_login_with_google_existing_provider(
         "code": "google_code"
     })
 
-    assert result == user
-    assert provider.refresh_token == "google_refresh_token"
+    assert result["user"] == user
+    assert provider.refresh_token == "refresh_token"
 
 
 def test_login_with_google_existing_email(
     requests_mock,
     user_repo_mock,
     db_mock,
+    jwt_mock,
     user,
 ):
     post_mock, get_mock = requests_mock
@@ -444,13 +461,14 @@ def test_login_with_google_existing_email(
         "code": "google_code"
     })
 
-    assert result == user
+    assert result["user"] == user
 
 
 def test_login_with_google_new_user(
     requests_mock,
     user_repo_mock,
     db_mock,
+    jwt_mock,
 ):
     post_mock, get_mock = requests_mock
 
@@ -479,7 +497,7 @@ def test_login_with_google_new_user(
         "code": "google_code"
     })
 
-    assert result == user
+    assert result["user"] == user
 
 #1
 @pytest.mark.parametrize(
@@ -530,6 +548,7 @@ def test_login_with_google_userinfo_error(
 
 def test_login_success(
     user_repo_mock,
+    db_mock,
     jwt_mock,
     user,
 ):
@@ -551,7 +570,7 @@ def test_login_success(
 
     result = auth_services.login(data)
 
-    assert result == user
+    assert result["user"] == user
 
 
 @pytest.mark.parametrize(

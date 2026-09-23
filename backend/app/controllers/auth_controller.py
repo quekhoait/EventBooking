@@ -1,5 +1,4 @@
 from http.client import responses
-from urllib import response
 
 from flask_jwt_extended import jwt_required, set_access_cookies, set_refresh_cookies
 import urllib
@@ -183,9 +182,12 @@ def handle_google_callback():
             }
         )
 
-        set_access_cookies(response, user_response.get("access_token"))
-        set_refresh_cookies(response, user_response.get("refresh_token"))
-        return redirect(f"{frontend_base_url}/auth/google/callback?{params}")
+        resp = redirect(f"{frontend_base_url}/auth/google/callback?{params}")
+        if user_response.get("access_token"):
+            set_access_cookies(resp, user_response.get("access_token"))
+        if user_response.get("refresh_token"):
+            set_refresh_cookies(resp, user_response.get("refresh_token"))
+        return resp
 
     return NewPackage(
         status=StatusResponse.SUCCESS,
