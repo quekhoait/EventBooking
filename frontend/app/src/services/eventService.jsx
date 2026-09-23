@@ -95,11 +95,9 @@ export const eventService = {
     },
     getReportByUser: async()=> {
         return await Apis().get(endpoints.get_report_by_user)
-    }
-}
     },
 
-    getChatboxStatus: async (eventId) => {
+        getChatboxStatus: async (eventId) => {
         try {
             const response = await Apis().get(endpoints.chatbox(eventId));
             return response.data;

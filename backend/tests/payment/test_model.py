@@ -29,7 +29,7 @@ def client(app_context):
 
 
 def test_create_payment_success_and_defaults(client):
-    ticket = TicketModel(code="TCK00002", user_id=1, seat_id=1, price=200000.0)
+    ticket = TicketModel(code="TCK00002", user_id=1, seat_id=1, price=200000.0,  face_image="default_face.jpg")
     db.session.add(ticket)
     db.session.commit()
 
@@ -57,7 +57,7 @@ def test_payment_ticket_foreign_key_constraint(client):
     db.session.rollback()
 
 def test_ticket_payments_relationship(client):
-    ticket = TicketModel(code="TCK00004", user_id=1, seat_id=1, price=100000.0)
+    ticket = TicketModel(code="TCK00004", user_id=1, seat_id=1, price=100000.0, face_image="default_face.jpg")
     p1 = PaymentModel(code="PAY_ONE", ticket_code="TCK00004", amount=100000.0)
     p2 = PaymentModel(code="PAY_TWO", ticket_code="TCK00004", amount=100000.0, type=PaymentType.REFUND)
 

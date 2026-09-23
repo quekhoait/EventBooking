@@ -5,7 +5,6 @@ import OrderSummary from "../components/OrderSummary";
 import TicketSelector from "../components/TicketSelector";
 import ReportModal from "../components/events/ModelReport";
 import { EventContext } from "../context/EventContext";
-import { eventServices } from "../services/eventServices";
 import { ticketService } from "../services/ticketServices";
 import DigitalTicketPage from "./DigitalTicketPage";
 import { logError } from "../utils/log";
@@ -31,8 +30,10 @@ function BookingPage({ onBack }) {
   const [saveError, setSaveError] = useState("");
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const [discountId, setDiscountId] = useState()
 
   const { user, logoutUser } = useAuth();
+
   useEffect(() => {
     if (!eventId) return;
 
@@ -118,7 +119,7 @@ function BookingPage({ onBack }) {
       const bookingPayload = {
         event_id: eventId,
         seat_type_id: selectedTicket.event_ticket_type_id,
-        discount_id: disountId,
+        discount_id: discountId,
         face_image: faceImage,
       };
       
