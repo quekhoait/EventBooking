@@ -88,6 +88,7 @@ export default function EventManagementPage() {
   const [chatboxLoading, setChatboxLoading] = useState(false);
   const [chatboxError, setChatboxError] = useState("");
   const [chatUserCounts, setChatUserCounts] = useState({});
+  const [lastReadAt, setLastReadAt] = useState({});
   // 1. Tải danh sách sự kiện
   useEffect(() => {
     if (!user?.id) return;
@@ -248,7 +249,7 @@ export default function EventManagementPage() {
 
   // Đếm số USER đang có cuộc trò chuyện của từng event
   useEffect(() => {
-    if (!filteredEvents?.length) {
+    if (!filteredEvents.length) {
       setChatUserCounts({});
       return;
     }
@@ -258,30 +259,23 @@ export default function EventManagementPage() {
     filteredEvents.forEach((event) => {
       if (!event?.id) return;
 
+      const readKey = `chat_read_at_${event.id}`;
+
       const unsubscribe = chatServices.subscribeMessages(
         event.id,
         (messages) => {
-          const uniqueUserIds = new Set();
+          const lastReadAt = Number(localStorage.getItem(readKey) || 0);
 
-          messages.forEach((message) => {
-            // User đã từng gửi tin
-            if (message.sender_type === "user" && message.sender_id) {
-              uniqueUserIds.add(String(message.sender_id));
-            }
-
-            // Organizer đã trả lời user
-            if (
-              message.sender_type === "organizer" &&
-              message.receiver_type === "user" &&
-              message.receiver_id
-            ) {
-              uniqueUserIds.add(String(message.receiver_id));
-            }
-          });
+          const unreadCount = messages.filter((msg) => {
+            return (
+              msg.sender_type === "user" &&
+              Number(msg.created_at || 0) > lastReadAt
+            );
+          }).length;
 
           setChatUserCounts((prev) => ({
             ...prev,
-            [event.id]: uniqueUserIds.size,
+            [event.id]: unreadCount,
           }));
         },
       );
@@ -404,6 +398,17 @@ export default function EventManagementPage() {
   }, []);
 
   const handleOpenChat = (event) => {
+    const now = Date.now();
+
+    // Đánh dấu tất cả tin hiện tại của event là đã đọc
+    localStorage.setItem(`chat_read_at_${event.id}`, String(now));
+
+    // Xóa badge ngay lập tức
+    setChatUserCounts((prev) => ({
+      ...prev,
+      [event.id]: 0,
+    }));
+
     navigate(`/dashboard/organizer/events/${event.id}/chat`);
   };
   if (!user) return <Navigate to="/login" replace />;
